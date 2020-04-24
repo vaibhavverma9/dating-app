@@ -23,6 +23,18 @@
     ],
     "ios": {
       "supportsTablet": true
+    },
+    "hooks": {
+      "postPublish": [
+        {
+          "file": "sentry-expo/upload-sourcemaps",
+          "config": {
+            "organization": "simmer",
+            "project": "simmer",
+            "authToken": "9714ee476d294f8eb4d9321437bc7df5d4c2e4f89a60496e8b495fe68148d9fd"
+          }
+        }
+      ]
     }
   }
 }
