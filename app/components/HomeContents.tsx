@@ -3,12 +3,13 @@ import { Text, View, TouchableOpacity } from 'react-native';
 import { homeStyles } from '../../styles/homeStyles';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons'
-import SingleVideo from './SingleVideo';
+import SingleVideo from './HomeVideo';
 
 export default function HomeView(props) {
 
   const [videoData, setVideoData] = useState(null); // videoData passed down from props
-  const [uploaded, setUploaded] = useState(false); // boolean on whether videoData has been set 
+  const [uploaded, setUploaded] = useState(false);
+
   const [muxPlaybackId, setMuxPlaybackId] = useState('');
   const [questionText, setQuestionText] = useState(''); 
   const [shouldPlay, setShouldPlay] = useState(true); 
@@ -21,6 +22,8 @@ export default function HomeView(props) {
   const [backArrowColor, setBackArrowColor] = useState('#303030');
   const [forwardArrowColor, setForwardArrowColor] = useState('white'); 
   const [heartIcon, setHeartIcon] = useState('md-heart-empty');
+
+  let recentUpload = 0; 
 
   // rotate through a user's videos with every press
   const onPress = () => {
@@ -42,9 +45,21 @@ export default function HomeView(props) {
     });  
   }, [props.navigation])
 
+  // changes in routes
+  useEffect(() => {
+    let params = props.route.params;
+    if (params != undefined){
+      if(recentUpload != params.recentUpload){
+        recentUpload = params.recentUpload; 
+        setMuxPlaybackId(params.muxPlaybackId);
+        setQuestionText(params.questionText);        
+      }
+    }
+  }, [props.route])
+
   // set new muxPlaybackId and questionText with any update to videoIndex and userIndex
   useEffect(() => {
-      if(uploaded){
+    if(uploaded){
         setMuxPlaybackId(videoData.users[userIndex].userVideos[videoIndex].muxPlaybackId);
         setQuestionText(videoData.users[userIndex].userVideos[videoIndex].videoQuestion.questionText);
       }
@@ -61,11 +76,12 @@ export default function HomeView(props) {
 
   // setUpload to true once videoData has been mounted
   useEffect(() => {
-      setUploaded(true); 
-    }, [videoData])
+    setUploaded(true); 
+  }, [videoData])
 
   // changing icons and arrows when moving from user to user
   useEffect(() => {
+    setCurrentUserVideoCount(props.data.users[userIndex].userVideos.length);
     setHeartIcon('md-heart-empty');
     setBackArrowColor('white');
     setForwardArrowColor('white');

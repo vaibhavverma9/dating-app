@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
-import VideoContents from './VideoContents';
-import { GET_VIDEOS } from '../../graphql/GraphqlClient';
+import VideoContents from './HomeContents';
+import { GET_VIDEOS } from '../graphql/GraphqlClient';
 import { useQuery } from '@apollo/client';
 
-export default function HomeView({ navigation }) {
+export default function HomeView({ route, navigation }) {
 
   const { data, error, loading} = useQuery(GET_VIDEOS)
   if (loading) return null;
@@ -12,6 +12,7 @@ export default function HomeView({ navigation }) {
   return (
     <VideoContents 
       data={data}
+      route={route}
       navigation={navigation}
     />
   );

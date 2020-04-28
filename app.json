@@ -1,7 +1,10 @@
 {
   "expo": {
-    "name": "dating-app",
-    "slug": "dating-app",
+    "name": "Reeltalk",
+    "description": "The most authentic, least superficial dating app ever.",
+    "slug": "reeltalk",
+    "backgroundColor" : "#E6E6FA", 
+    "primaryColor" : "#E6E6FA", 
     "platforms": [
       "ios",
       "android",
@@ -13,7 +16,7 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#E6E6FA"
     },
     "updates": {
       "fallbackToCacheTimeout": 0
@@ -22,7 +25,13 @@
       "**/*"
     ],
     "ios": {
+      "bundleIdentifier": "com.dating.reeltalk",
+      "buildNumber": "1.0.0",
       "supportsTablet": true
+    },
+    "android": {
+      "package": "com.dating.reeltalk",
+      "versionCode": 1
     },
     "hooks": {
       "postPublish": [
