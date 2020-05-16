@@ -19,5 +19,16 @@ export const addStyles = StyleSheet.create({
     },
     questionText: {
         textAlign: 'center'
+    },
+    uploadContainer: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 12,
+        flexDirection: 'row'
+        // height: '15%'
     }
 });

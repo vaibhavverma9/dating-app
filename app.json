@@ -10,11 +10,11 @@
       "android",
       "web"
     ],
-    "version": "1.0.0",
+    "version": "1.0.5",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./app/assets/icon.png",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./app/assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#E6E6FA"
     },
@@ -26,12 +26,19 @@
     ],
     "ios": {
       "bundleIdentifier": "com.dating.reeltalk",
-      "buildNumber": "1.0.0",
-      "supportsTablet": true
+      "buildNumber": "1.0.9",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Reeltalk accesses your library so you can upload videos of you answering questions.",
+        "NSCameraUsageDescription": "Reeltalk accesses your camera so you can record videos answering questions.",
+        "NSMicrophoneUsageDescription" : "Reeltalk accesses your microphone to record the audio of your videos.",
+        "NSLocationWhenInUseUsageDescription": "Reeltalk uses your location to find matches near you."
+      }
     },
     "android": {
       "package": "com.dating.reeltalk",
-      "versionCode": 1
+      "versionCode": 5,
+      "permissions": ["RECORD_AUDIO", "CAMERA", "READ_EXTERNAL_STORAGE"]
     },
     "hooks": {
       "postPublish": [
@@ -44,6 +51,9 @@
           }
         }
       ]
-    }
+    },
+    "facebookScheme": "fb281059376262031",
+    "facebookAppId": "281059376262031",
+    "facebookDisplayName": "Reeltalk"  
   }
 }

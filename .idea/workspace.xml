@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="fbe6f678-81c1-42bb-af88-dd958d2fb05e" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.expo/packager-info.json" beforeDir="false" afterPath="$PROJECT_DIR$/.expo/packager-info.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.expo/settings.json" beforeDir="false" afterPath="$PROJECT_DIR$/.expo/settings.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/App.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app.json" beforeDir="false" afterPath="$PROJECT_DIR$/app.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/components/AddContents.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/components/AddView.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/components/FeedbackView.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/components/HomeContents.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/components/HomeVideo.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/components/HomeView.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/context/UserIdContext.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/firebase/fbConfig.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/firebase/fbStorageDownloadUrl.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/firebase/firestoreFunctions.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/graphql/GraphqlClient.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/graphql/graphqlSubscriptions.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/sentry/sentryConfig.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/splash.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/styles/addStyles.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/styles/global.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/styles/homeStyles.tsx" beforeDir="false" />
+    </list>
+    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectId" id="1bUxhgUfC4PpiDMzCiwyKZjsTok" />
+  <component name="PropertiesComponent">
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+  </component>
+  <component name="RunDashboard">
+    <option name="ruleStates">
+      <list>
+        <RuleState>
+          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
+        </RuleState>
+        <RuleState>
+          <option name="name" value="StatusDashboardGroupingRule" />
+        </RuleState>
+      </list>
+    </option>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="fbe6f678-81c1-42bb-af88-dd958d2fb05e" name="Default Changelist" comment="" />
+      <created>1588700593890</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1588700593890</updated>
+    </task>
+    <servers />
+  </component>
+</project>

@@ -1,6 +1,4 @@
 import React, { createContext, useState } from 'react';
-import { GET_USER_DEVICE_ID, client } from '../graphql/GraphqlClient';
-import Constants from 'expo-constants';
 
 const UserIdContext = createContext([{}, () => {}]);
 
