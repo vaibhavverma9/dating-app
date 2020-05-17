@@ -8,9 +8,9 @@ import { UserIdContext } from '../../utils/context/UserIdContext'
 import { useMutation } from '@apollo/client';
 import { UPDATE_LATITUDE_LONGITUDE } from '../../utils/graphql/GraphqlClient';
 import { _storeLatitude, _storeLongitude } from '../../utils/asyncStorage'; 
-import Terms from './Terms';
+import TermsOnboarding from './TermsOnboarding';
 
-export default function LocationServices() {
+export default function LocationOnboarding() {
 
     const [errorMsg, setErrorMsg] = useState(null);
     const [userId, setUserId] = useContext(UserIdContext);
@@ -32,8 +32,13 @@ export default function LocationServices() {
 
             const point = {
                 "type" : "Point", 
-                "coordinates": [location.coords.latitude, location.coords.longitude]
+                properties: {
+                    name: "EPSG:4326"
+                  },
+                "coordinates": [location.coords.longitude, location.coords.latitude]
             }; 
+
+            console.log(point); 
 
             updateLatitudeLongitude({ variables: { userId, point }});
         })();
@@ -45,7 +50,7 @@ export default function LocationServices() {
 
     if(locationServices) {
         return (
-            <Terms />
+            <TermsOnboarding />
         )
     } else {
         return (

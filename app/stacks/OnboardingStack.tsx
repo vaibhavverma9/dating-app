@@ -1,9 +1,8 @@
 import React from 'react';
-import LocationServices from "../components/onboarding/LocationServices";
-import { NavigationContainer } from '@react-navigation/native';
+import NameOnboarding from "../components/onboarding/NameOnboarding";
 
 export default function OnboardingStack (){
     return (
-        <LocationServices />
+        <NameOnboarding />
     )
   }

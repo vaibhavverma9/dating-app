@@ -292,8 +292,40 @@ export const UPDATE_LATITUDE_LONGITUDE = gql`
 `
 
 export const UPDATE_ONBOARDED = gql`
-  mutation UpdateLatitudeLongitude ($userId: Int, $onboarded: Boolean) {
+  mutation UpdateOnboarded ($userId: Int, $onboarded: Boolean) {
     update_users(where: {id: {_eq: $userId}}, _set: {onboarded: $onboarded}) {
+      affected_rows
+    }
+  }
+`
+
+export const UPDATE_NAME = gql`
+  mutation UpdateName ($userId: Int, $firstName: String) {
+    update_users(where: {id: {_eq: $userId}}, _set: {firstName: $firstName}) {
+      affected_rows
+    }
+  }
+`
+
+export const UPDATE_GENDER = gql`
+  mutation UpdateGender ($userId: Int, $gender: String) {
+    update_users(where: {id: {_eq: $userId}}, _set: {gender: $gender}) {
+      affected_rows
+    }
+  }
+`
+
+export const UPDATE_GENDER_INTEREST = gql`
+  mutation UpdateGenderInterest ($userId: Int, $genderInterest: String) {
+    update_users(where: {id: {_eq: $userId}}, _set: {genderInterest: $genderInterest}) {
+      affected_rows
+    }
+  }
+`
+
+export const UPDATE_SHOW_TO_PEOPLE = gql`
+  mutation UpdateShowToPeople ($userId: Int, $showToPeopleLookingFor: String) {
+    update_users(where: {id: {_eq: $userId}}, _set: {showToPeopleLookingFor: $showToPeopleLookingFor}) {
       affected_rows
     }
   }

@@ -9,7 +9,7 @@ import { useMutation } from '@apollo/client';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { Linking } from 'expo';
 
-export default function Terms() {
+export default function TermsOnboarding() {
 
     const [accepted, setAccepted] = useState(false); 
     const [updateOnboarded, { updateOnboardedData }] = useMutation(UPDATE_ONBOARDED);
@@ -40,7 +40,7 @@ export default function Terms() {
                         <Ionicons name="ios-paper" size={45} color={primaryColor} />
                     </View>        
                     <Text onPress={termsLink} style={{ fontSize: 25, fontWeight: 'bold', padding: 15, color: primaryColor }}>Terms and conditions</Text>
-                    <Text onPress={termsLink} style={{ textAlign: 'center', fontSize: 18, padding: 15, color: primaryColor, textDecorationLine: 'underline'}}>Please read and approve terms here.</Text>
+                    <Text onPress={termsLink} style={{ textAlign: 'center', fontSize: 18, height: '25%', padding: 15, color: primaryColor, textDecorationLine: 'underline'}}>Please read and approve terms here.</Text>
                     <View style={{ paddingTop: '12%' }}>
                         <TouchableOpacity onPress={acceptTerms} style={styles.acceptContainer}>
                             <Text style={styles.acceptText}>Accept Terms</Text>

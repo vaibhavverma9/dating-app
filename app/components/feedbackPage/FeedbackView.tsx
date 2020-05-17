@@ -11,11 +11,11 @@ export default function FeedbackView() {
 
   const { signOut } = useDoormanUser();
 
-  const pressSignOut = () => {
+  const pressSignOut = async () => {
+    await _clearDoormanUid();
+    await _clearOnboarded(); 
+    await _clearUserId();  
     signOut();
-    _clearDoormanUid();
-    _clearOnboarded(); 
-    _clearUserId();  
   }
   
 

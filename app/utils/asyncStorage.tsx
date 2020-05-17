@@ -71,7 +71,7 @@ export const _clearDoormanUid = async () => {
     try {
         await AsyncStorage.setItem('@doormanUid', '');
     } catch (error){
-        console.log("error in _clearDoormanUid", error)
+        console.log("error in _clearDoormanUid", error); 
     }
 }
 

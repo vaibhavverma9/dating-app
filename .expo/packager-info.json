@@ -1,10 +1,10 @@
 {
   "devToolsPort": 19002,
-  "expoServerPort": null,
-  "packagerPort": null,
-  "packagerPid": null,
-  "expoServerNgrokUrl": null,
-  "packagerNgrokUrl": null,
-  "ngrokPid": null,
+  "expoServerPort": 19000,
+  "packagerPort": 19001,
+  "packagerPid": 9320,
+  "expoServerNgrokUrl": "https://xa-h37.vaibhavverma9.dating-app.exp.direct",
+  "packagerNgrokUrl": "https://packager.xa-h37.vaibhavverma9.dating-app.exp.direct",
+  "ngrokPid": 9347,
   "webpackServerPort": null
 }

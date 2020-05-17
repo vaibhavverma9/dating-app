@@ -17,6 +17,7 @@ export default function AppNavigator(){
   const [insertUser, { insertUserData }] = useMutation(INSERT_USER); 
 
   useEffect(() => {
+    console.log(uid); 
     doormanDatabaseAuth(); 
   }, []);
 
@@ -24,7 +25,8 @@ export default function AppNavigator(){
     const localUserId = await _retrieveUserId();
     const localDoormanUid = await _retrieveDoormanUid();
     const localOnboarded = await _retrieveOnboarded(); 
-    
+
+    console.log(localUserId, localDoormanUid, localOnboarded); 
 
     if(localUserId > 0 && localDoormanUid != "" && localOnboarded != ""){ 
       const localLatitude = await _retrieveLatitude(); 
@@ -51,6 +53,8 @@ export default function AppNavigator(){
           })
           .catch(insertUserError => { console.log(insertUserError) })
         } else {
+          console.log("in database"); 
+          console.log(getUsersResponse.data.users[0].onboarded); 
           _storeUserId(getUsersResponse.data.users[0].id);
           _storeDoormanUid(uid); 
           _storeOnboarded(getUsersResponse.data.users[0].onboarded); 
