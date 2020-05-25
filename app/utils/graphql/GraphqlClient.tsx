@@ -12,53 +12,97 @@ export const client = new ApolloClient({
 });
 
 export const GET_VIDEOS = gql`
-  query GetVideos ($userId: Int) { 
+  query GetVideos ($userId: Int, $limit: Int, $lastUploaded: timestamptz) { 
     users(
-      limit: 10, 
+      limit: $limit, 
       where: {_and: [
         {userVideos: {status: {_eq: "ready"}}}, 
         {_not: {id: {_eq: $userId}}},        
         {_not: {likesByLikedid: {Liker: {id: {_eq: $userId}}}}},
-        {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}}
+        {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}},
+        {lastUploaded: {_lt: $lastUploaded}}
       ]}, 
       order_by: {lastUploaded: desc_nulls_last}
     ) {
       firstName
-      userVideos(limit: 4, where: {status: {_eq: "ready"}}) {
+      userVideos(limit: 4, where: {status: {_eq: "ready"}}, order_by: {views: asc}) {
         muxPlaybackId
         videoQuestion {
           questionText
         }
         id
         flags
+        likes
+        views
       }
       id
+      lastUploaded
     }
   }
-`; 
+`
 
-export const GET_VIDEOS_NO_USERID = gql`
-  query GetVideos { 
+export const GET_VIDEOS_MAN = gql`
+  query GetVideos ($userId: Int, $limit: Int, $lastUploaded: timestamptz) { 
     users(
-      limit: 10, 
+      limit: $limit, 
       where: {_and: [
+        {gender: {_eq: "Man"}}
         {userVideos: {status: {_eq: "ready"}}}, 
+        {_not: {id: {_eq: $userId}}},        
+        {_not: {likesByLikedid: {Liker: {id: {_eq: $userId}}}}},
+        {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}},
+        {lastUploaded: {_lt: $lastUploaded}}
       ]}, 
       order_by: {lastUploaded: desc_nulls_last}
     ) {
       firstName
-      userVideos(limit: 4, where: {status: {_eq: "ready"}}) {
+      userVideos(limit: 4, where: {status: {_eq: "ready"}}, order_by: {views: asc}) {
         muxPlaybackId
         videoQuestion {
           questionText
         }
         id
         flags
+        likes
+        views
       }
       id
+      lastUploaded
     }
   }
-`;
+`
+
+
+export const GET_VIDEOS_WOMAN = gql`
+  query GetVideos ($userId: Int, $limit: Int, $lastUploaded: timestamptz) { 
+    users(
+      limit: $limit, 
+      where: {_and: [
+        {_not: {likesByLikedid: {Liker: {id: {_eq: $userId}}}}},
+        {gender: {_eq: "Woman"}}
+        {userVideos: {status: {_eq: "ready"}}}, 
+        {_not: {id: {_eq: $userId}}},        
+        {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}},
+        {lastUploaded: {_lt: $lastUploaded}}
+      ]}, 
+      order_by: {lastUploaded: desc_nulls_last}
+    ) {
+      firstName
+      userVideos(limit: 4, where: {status: {_eq: "ready"}}, order_by: {views: asc}) {
+        muxPlaybackId
+        videoQuestion {
+          questionText
+        }
+        id
+        flags
+        likes
+        views
+      }
+      id
+      lastUploaded
+    }
+  }
+`
 
 export const GET_VIDEOS_NEARBY = gql`
   query GetVideos ($userId: Int, $point: geography!) { 
@@ -74,7 +118,7 @@ export const GET_VIDEOS_NEARBY = gql`
       order_by: {lastUploaded: desc_nulls_last}
     ) {
       firstName
-      userVideos(limit: 4, where: {status: {_eq: "ready"}}) {
+      userVideos(limit: 4, where: {status: {_eq: "ready"}}, order_by: {views: asc}) {
         muxPlaybackId
         videoQuestion {
           questionText
@@ -87,15 +131,41 @@ export const GET_VIDEOS_NEARBY = gql`
   }
 `; 
 
-export const GET_PROFILE_VIDEOS = gql`
-  query GetUserVideos ($userId: Int){
-    videos(where: {userId: {_eq: $userId}, status: {_eq: "ready"}}, order_by: {created_at: desc}){
+export const GET_LAST_DAY_VIDEOS = gql`
+  query GetLastDayVideos ($userId: Int, $yesterday: timestamptz){
+    videos(where: 
+      {userId: {_eq: $userId}, 
+      status: {_eq: "ready"},
+      created_at: {_gt: $yesterday}}
+    , order_by: {created_at: desc}){
       id
       muxPlaybackId
       status
       videoQuestion {
         questionText
       }
+      likes
+      views
+    }
+  }
+`
+
+export const GET_PAST_VIDEOS = gql`
+  query GetLastDayVideos ($userId: Int, $yesterday: timestamptz){
+    videos(where: 
+      {userId: {_eq: $userId}, 
+      status: {_eq: "ready"},
+      created_at: {_lte: $yesterday}}
+    , order_by: {created_at: desc}){
+      id
+      muxPlaybackId
+      status
+      rank
+      videoQuestion {
+        questionText
+      }
+      likes
+      views
     }
   }
 `
@@ -150,6 +220,15 @@ query GetUserVideos($userId: Int) {
 }
 `
 
+export const GET_USER_INFO = gql`
+  query GetUserName($userId: Int) {
+    users(where: {id: {_eq: $userId}}) {
+      firstName
+      bio
+    }
+  }
+`
+
 export const GET_ASSET_STATUS = `
     query GetAssetStatus ($muxAssetId: String) {    
         videos(where: {muxAssetId: {_eq: $muxAssetId}}) {
@@ -158,12 +237,12 @@ export const GET_ASSET_STATUS = `
         }
     }
 `
+        // {Liker: {userVideos: {}}}, 
 
 
 export const GET_LIKES = gql`
     query GetLikes ($userId: Int) {
       likes(where: {_and: [
-        {Liker: {userVideos: {}}}, 
         {likedId: {_eq: $userId}},
         {Liker: {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}}}, 
         {likerId: {_neq: $userId}}
@@ -173,6 +252,7 @@ export const GET_LIKES = gql`
         likerId
         created_at
         Liker {
+          firstName
           id
           messages(where: {receiverId: {_eq: $userId}}, limit: 1, order_by: {created_at: desc}) {
             message
@@ -307,6 +387,14 @@ export const UPDATE_NAME = gql`
   }
 `
 
+export const UPDATE_BIO = gql`
+  mutation UpdateName ($userId: Int, $bio: String) {
+    update_users(where: {id: {_eq: $userId}}, _set: {bio: $bio}) {
+      affected_rows
+    }
+  }
+`
+
 export const UPDATE_GENDER = gql`
   mutation UpdateGender ($userId: Int, $gender: String) {
     update_users(where: {id: {_eq: $userId}}, _set: {gender: $gender}) {
@@ -323,9 +411,41 @@ export const UPDATE_GENDER_INTEREST = gql`
   }
 `
 
+export const GET_GENDER_INTEREST = gql`
+  query GetGenderInterest($userId: Int){
+    users(where: {id: {_eq: $userId}}) {
+      genderInterest
+    }
+  }
+`
+
 export const UPDATE_SHOW_TO_PEOPLE = gql`
   mutation UpdateShowToPeople ($userId: Int, $showToPeopleLookingFor: String) {
     update_users(where: {id: {_eq: $userId}}, _set: {showToPeopleLookingFor: $showToPeopleLookingFor}) {
+      affected_rows
+    }
+  }
+`
+
+export const UPDATE_PUSH_TOKEN = gql`
+  mutation UpdatePushToken($userId: Int, $expoPushToken: String) {
+    update_users(where: {id: {_eq: $userId}}, _set: {expoPushToken: $expoPushToken}) {
+      affected_rows
+    }
+  }
+`
+
+export const UPDATE_VIDEO_LIKES = gql`
+  mutation UpdateVideoLikes($id: Int, $likes: Int){
+    update_videos(where: {id: {_eq: $id}}, _set: {likes: $likes}) {
+      affected_rows
+    }
+  }
+`
+
+export const UPDATE_VIDEO_VIEWS = gql`
+  mutation UpdateVideoViews($id: Int, $views: Int){
+    update_videos(where: {id: {_eq: $id}}, _set: {views: $views}) {
       affected_rows
     }
   }

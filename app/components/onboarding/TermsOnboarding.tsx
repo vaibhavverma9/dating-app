@@ -8,6 +8,7 @@ import { UPDATE_ONBOARDED } from '../../utils/graphql/GraphqlClient';
 import { useMutation } from '@apollo/client';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { Linking } from 'expo';
+import { colors } from '../../styles/colors';
 
 export default function TermsOnboarding() {
 
@@ -55,8 +56,8 @@ export default function TermsOnboarding() {
     }
 }
 
-const primaryColor = "#E6E6FA";
-const secondaryColor = "#734f96"; 
+const primaryColor = colors.primaryPurple;
+const secondaryColor = colors.secondaryWhite; 
 
 const styles = StyleSheet.create({
     acceptContainer: { 

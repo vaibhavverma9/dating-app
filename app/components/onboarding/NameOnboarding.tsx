@@ -6,11 +6,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { useMutation } from '@apollo/client';
 import { UPDATE_NAME } from '../../utils/graphql/GraphqlClient';
-import { _storeLatitude, _storeLongitude } from '../../utils/asyncStorage'; 
+import { _storeLatitude, _storeLongitude, _storeName } from '../../utils/asyncStorage'; 
 import GenderOnboarding from './GenderOnboarding';
+import { colors } from '../../styles/colors';
 
 
-export default function LocationServices() {
+export default function NameOnboarding() {
 
     const [userId, setUserId] = useContext(UserIdContext);
     const [updateName, { updateNameData }] = useMutation(UPDATE_NAME);
@@ -20,6 +21,7 @@ export default function LocationServices() {
     const submitName = () => {
          console.log("submitName"); 
          console.log(userId, name); 
+         _storeName(name); 
          updateName({ variables: { userId, firstName: name }});
          setNameSubmitted(true); 
     }
@@ -65,8 +67,8 @@ export default function LocationServices() {
     } 
 }
 
-const primaryColor = "#E6E6FA";
-const secondaryColor = "#734f96"; 
+const primaryColor = colors.primaryPurple;
+const secondaryColor = colors.secondaryWhite; 
 
 const styles = StyleSheet.create({
     locationsContainer: { 
@@ -82,4 +84,4 @@ const styles = StyleSheet.create({
         color: secondaryColor,
         fontWeight: 'bold'
     }
-})
+});

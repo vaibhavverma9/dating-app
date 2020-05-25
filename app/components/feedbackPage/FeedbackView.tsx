@@ -5,7 +5,7 @@ import * as SMS from 'expo-sms';
 import * as Segment from 'expo-analytics-segment';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { useDoormanUser } from 'react-native-doorman'
-import { _clearDoormanUid, _clearOnboarded, _clearUserId } from '../../utils/asyncStorage'; 
+import { _clearDoormanUid, _clearOnboarded, _clearUserId, _clearBio, _clearName } from '../../utils/asyncStorage'; 
 
 export default function FeedbackView() {
 
@@ -15,6 +15,8 @@ export default function FeedbackView() {
     await _clearDoormanUid();
     await _clearOnboarded(); 
     await _clearUserId();  
+    await _clearBio();
+    await _clearName(); 
     signOut();
   }
   

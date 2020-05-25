@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useContext } from 'react'; 
-import { View, Text, TouchableOpacity } from 'react-native'; 
+import React, { useState, useEffect, useRef } from 'react'; 
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native'; 
 import { Camera } from 'expo-camera';
 import { BlurView } from 'expo-blur';
 import { fullPageVideoStyles } from '../../styles/fullPageVideoStyles';
@@ -9,17 +9,14 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Permissions from 'expo-permissions';
 import { Video } from 'expo-av'; 
 import { addStyles } from '../../styles/addStyles';
-import { INSERT_USER, GET_QUESTIONS, client } from '../../utils/graphql/GraphqlClient';
-import { useMutation } from '@apollo/client';
-import { UserIdContext } from '../../utils/context/UserIdContext'
+import { GET_QUESTIONS, client } from '../../utils/graphql/GraphqlClient';
 import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid } from '../../utils/asyncStorage'; 
-import { useDoormanUser } from 'react-native-doorman'
 import * as VideoThumbnails from 'expo-video-thumbnails'; 
+import * as Linking from 'expo-linking';
 
 export default function AddCameraView(props) {
 
     const [questionData, setQuestionData] = useState([]);
-    const [questionCount, setQuestionCount] = useState(0); 
     const [hasCameraPermission, setHasCameraPermission] = useState(null);
     const [hasAudioPermission, setHasAudioPermission] = useState(null);
     const [type, setType] = useState(Camera.Constants.Type.back);
@@ -28,26 +25,46 @@ export default function AddCameraView(props) {
     const [thumbnailUri, setThumbnailUri] = useState('');
     const [recording, setRecording] = useState(false); 
     const [shouldPlay, setShouldPlay] = useState(true);
-
-    const [userId, setUserId] = useContext(UserIdContext);
-    const [insertUser, { insertUserData }] = useMutation(INSERT_USER); 
-    const { uid, phoneNumber } = useDoormanUser();
+    const [initialized, setInitialized] = useState(false); 
 
     let camera = useRef(null);  
 
     useEffect(() => {
-        (async () => {
-            const { status } = await Permissions.askAsync(Permissions.CAMERA);
-            setHasCameraPermission(status === 'granted');
-        })();
-        (async () => {
-            const { status } = await Permissions.askAsync(Permissions.AUDIO_RECORDING);
-            setHasAudioPermission(status === 'granted');
-        })();
-        getQuestions()
-
+        getCameraPermission();
+        getAudioPermission(); 
+        getQuestions();
         Segment.screen('Add'); 
     }, []);
+
+    async function getCameraPermission(){
+        const { status } = await Permissions.getAsync(Permissions.CAMERA);
+        setHasCameraPermission(status === 'granted');
+    };
+
+    async function getAudioPermission(){
+        const { status } = await Permissions.getAsync(Permissions.AUDIO_RECORDING);
+        setHasAudioPermission(status === 'granted');
+    };
+
+    async function askCameraPermission(){
+        const { status } = await Permissions.askAsync(Permissions.CAMERA);
+        setHasCameraPermission(status === 'granted');
+        if(status !== 'granted'){
+            sendToSettings(); 
+        }
+    };
+
+    async function askAudioPermission(){
+        const { status } = await Permissions.askAsync(Permissions.AUDIO_RECORDING);
+        setHasAudioPermission(status === 'granted');
+        if(status !== 'granted'){
+            sendToSettings(); 
+        }
+    };
+
+    function sendToSettings(){
+        Linking.openURL('app-settings://')
+    }
 
     // changes in tabs will affect shouldPlay 
     useEffect(() => {
@@ -57,6 +74,13 @@ export default function AddCameraView(props) {
 
         props.navigation.addListener('focus', () => {
             setShouldPlay(true); 
+            if(hasCameraPermission === false){
+                getCameraPermission();
+            } 
+            if(hasAudioPermission === false){
+                getAudioPermission(); 
+            }
+
         });  
     }, [props.navigation])
 
@@ -64,17 +88,10 @@ export default function AddCameraView(props) {
         client.query({ query: GET_QUESTIONS})
         .then(response => {
             setQuestionData(response.data.questions); 
-            setQuestionCount(response.data.questions.length); 
             setIndex(Math.floor(Math.random() * response.data.questions.length)); 
+            setInitialized(true); 
         })
         .catch(error => console.log(error));
-    }
-
-    if (hasCameraPermission === null || hasAudioPermission === null) {
-        return <View />;
-    }
-    if (hasCameraPermission === false || hasAudioPermission === false) {
-        return <Text>No access to camera</Text>;
     }
 
     // tapping back arrow 
@@ -181,63 +198,125 @@ export default function AddCameraView(props) {
 
     function sendVideo() {
         const passthroughId = Math.floor(Math.random() * 1000000000) + 1; 
-        props.navigation.navigate('Videos', { videoUri: videoUri, thumbnailUri: thumbnailUri, questionText: questionData[index].questionText, questionId: index, status: 'waiting', passthroughId: passthroughId.toString() });
+        props.navigation.navigate('Videos', { screen: 'VideosView', params: {videoUri: videoUri, thumbnailUri: thumbnailUri, questionText: questionData[index].questionText, questionId: questionData[index].id, status: 'waiting', passthroughId: passthroughId.toString(), type: 'uploadedVideo', id: passthroughId }});
         setVideoUri(''); 
         setThumbnailUri(''); 
     }
+
+    function EnableCameraButton(){
+        if(hasCameraPermission === null){
+            return(
+                <TouchableOpacity onPress={askCameraPermission} style={{ padding: 30}}>
+                    <Text style={{ color: '#1da1f2', fontSize: 16 }}>Enable Camera Access</Text>
+                </TouchableOpacity>
+            )
+        } else if (hasCameraPermission === false){
+            return(
+                <TouchableOpacity onPress={askCameraPermission} style={{ padding: 30}}>
+                    <Text style={{ color: '#1da1f2', fontSize: 16 }}>Enable Camera Access</Text>
+                </TouchableOpacity>
+            )
+        } else {
+            return(
+                <View style={{ padding: 30}}>
+                    <Text style={{ color: '#696969', fontSize: 16 }}>Camera Access Enabled</Text>
+                </View>
+            )
+        }
+    }
+
+    function EnableAudioButton(){
+        if(hasAudioPermission === null){
+            return(
+                <TouchableOpacity onPress={askAudioPermission}>
+                    <Text style={{ color: '#1da1f2', fontSize: 16  }}>Enable Microphone Access</Text>
+                </TouchableOpacity>
+            )
+        } else if (hasAudioPermission === false){
+            return(
+                <TouchableOpacity onPress={askAudioPermission}>
+                    <Text style={{ color: '#1da1f2', fontSize: 16 }}>Enable Microphone Access</Text>
+                </TouchableOpacity>
+            )
+        } else {
+            return(
+                <View>
+                    <Text style={{ color: '#696969', fontSize: 16 }}>Microphone Access Enabled</Text>
+                </View>
+            )
+        }
+    }
     
-    if(videoUri == ""){
-        return(
-            <View style={{ flex: 1 }}>
-                <Camera 
-                    style={{ flex: 1 }} 
-                    type={type}
-                    ref={camera}
-                >
-                    <View
-                    style={{
-                        flex: 1,
-                        backgroundColor: 'transpare',
-                        flexDirection: 'row',
-                    }}>
-                        <RecordingIcon />
+    if(initialized){
+        if (hasCameraPermission !== true || hasAudioPermission !== true) {
+            return (
+            <View style={{ backgroundColor: '#000', flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+                <Text style={{ color: '#eee', fontSize: 22, fontWeight: 'bold', paddingBottom: 20}}>Share on Reeltalk</Text>
+                <Text style={{ color: '#eee', fontSize: 17, paddingBottom: 20}}>Enable access so you can start taking videos.</Text>
+                <EnableCameraButton />
+                <EnableAudioButton />
+            </View>)
+        }
+    
+        if(videoUri == ""){
+            return(
+                <View style={{ flex: 1 }}>
+                    <Camera 
+                        style={{ flex: 1 }} 
+                        type={type}
+                        ref={camera}
+                    >
+                        <View
+                        style={{
+                            flex: 1,
+                            backgroundColor: 'transpare',
+                            flexDirection: 'row',
+                        }}>
+                            <RecordingIcon />
+                        </View>
+                    </Camera>
+                    <BlurView tint="dark" intensity={20} style={fullPageVideoStyles.questionArrowsContainer}>
+                        <Question /> 
+                    </BlurView>
+                </View>
+            )
+        } else {
+            return (
+                <View style={{ flex: 1 }}>
+                    <Video
+                    source={{uri: videoUri}}
+                    rate={1.0}
+                    volume={1.0}
+                    isMuted={false}
+                    resizeMode="cover"
+                    usePoster={true}
+                    shouldPlay={shouldPlay}
+                    isLooping
+                    style={{ width: '100%', height: '100%'}}
+                    >
+                    </Video>
+                    <BlurView tint="dark" intensity={20} style={fullPageVideoStyles.questionArrowsContainer}>
+                        <Question /> 
+                    </BlurView>
+                    <View style={addStyles.uploadContainer}>
+                        <TouchableOpacity onPress={back} style={{ alignItems: 'center'}}>
+                            <MaterialIcons name="backspace" color={"#eee"} size={40}/>     
+                            <Text style={{ color: '#eee', fontSize: 15}}>Back</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={sendVideo} style={{ alignItems: 'center'}}>
+                            <MaterialIcons name="send" color={"#eee"} size={40}/>     
+                            <Text style={{ color: '#eee', fontSize: 15}}>Post</Text>
+                        </TouchableOpacity>
                     </View>
-                </Camera>
-                <BlurView tint="dark" intensity={20} style={fullPageVideoStyles.questionArrowsContainer}>
-                    <Question /> 
-                </BlurView>
-            </View>
-        )
+                </View>
+            )
+        }
     } else {
         return (
-            <View style={{ flex: 1 }}>
-                <Video
-                source={{uri: videoUri}}
-                rate={1.0}
-                volume={1.0}
-                isMuted={false}
-                resizeMode="cover"
-                usePoster={true}
-                shouldPlay={shouldPlay}
-                isLooping
-                style={{ width: '100%', height: '100%'}}
-                >
-                </Video>
-                <BlurView tint="dark" intensity={20} style={fullPageVideoStyles.questionArrowsContainer}>
-                    <Question /> 
-                </BlurView>
-                <View style={addStyles.uploadContainer}>
-                    <TouchableOpacity onPress={back} style={{ alignItems: 'center'}}>
-                        <MaterialIcons name="backspace" color={"#eee"} size={40}/>     
-                        <Text style={{ color: '#eee', fontSize: 15}}>Back</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={sendVideo} style={{ alignItems: 'center'}}>
-                        <MaterialIcons name="send" color={"#eee"} size={40}/>     
-                        <Text style={{ color: '#eee', fontSize: 15}}>Post</Text>
-                    </TouchableOpacity>
-                </View>
+            <View style={{ backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1}}>
+              <ActivityIndicator size="small" color="#eee" />
             </View>
-        )
+        )   
     }
 
     function Question () {

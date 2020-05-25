@@ -11,7 +11,6 @@ export default function SingleVideo(props) {
 
     return (
         <Video
-            ref={props.playbackObject}
             source={{uri: props.source}}
             rate={1.0}
             volume={1.0}
@@ -19,7 +18,6 @@ export default function SingleVideo(props) {
             resizeMode="cover"
             usePoster={true}
             shouldPlay={props.shouldPlay}
-            onPlaybackStatusUpdate={props._onPlaybackStatusUpdate}
             progressUpdateIntervalMillis={50}
             isLooping
             style={{ width: '100%', height: '100%'}}

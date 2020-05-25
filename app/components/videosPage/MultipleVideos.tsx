@@ -4,9 +4,20 @@ import { View } from 'react-native';
 
 export default function MultipleVideos(props) {
 
-    const renderedGroup = 3; 
+    const renderedGroup = props.limit; 
 
-    const renderedIndex = Math.floor(props.userIndex / renderedGroup); 
+
+    let initialIndex;
+    let indexLimit;  
+    if (props.first) {
+        const renderedIndex = Math.round(props.userIndex / renderedGroup); 
+        initialIndex = renderedIndex * renderedGroup;
+        indexLimit = renderedIndex * renderedGroup + renderedGroup / 2; 
+    } else {
+        const renderedIndex = Math.floor(props.userIndex / renderedGroup); 
+        initialIndex = renderedIndex * renderedGroup + renderedGroup / 2; 
+        indexLimit = renderedIndex * renderedGroup + renderedGroup; 
+    }
 
     useEffect(() => {
         Audio.setAudioModeAsync({
@@ -34,7 +45,7 @@ export default function MultipleVideos(props) {
 
     if(props.videoData) {
 
-        for(let i = renderedIndex * renderedGroup; i < renderedIndex * renderedGroup + renderedGroup; i++){
+        for(let i = initialIndex; i < indexLimit; i++){
             const user = props.videoData.users[i];
 
             if(user){
@@ -72,9 +83,6 @@ export default function MultipleVideos(props) {
             }
 
         }
-
-
-
         return(
             <View>
                 {renderedVideos}

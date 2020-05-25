@@ -5,7 +5,7 @@ export const addStyles = StyleSheet.create({
         flex: 1, 
         flexDirection: 'column', 
         justifyContent: 'space-evenly',
-        backgroundColor: '#E6E6FA'
+        backgroundColor: '#734f96'
     },
     questionArrowContainer: {
         // flex: 1,

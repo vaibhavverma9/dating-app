@@ -11,6 +11,7 @@ import { ActivityIndicator } from 'react-native'
 import * as firebase from 'firebase'; 
 import AppNavigator from './AppNavigator';
 import { LocationContextProvider } from './app/utils/context/LocationContext';
+import { colors } from './app/styles/colors';
 
 // Set the configuration for your app
 var firebaseConfig = {
@@ -76,8 +77,8 @@ export default function App() {
             
             // otherwise, send them to the auth flow
             return <AuthFlow 
-              backgroundColor="#734f96"
-              headerTintColor="#E6E6FA"
+              backgroundColor={colors.primaryPurple}
+              headerTintColor={colors.secondaryWhite}
             />
           }}
         </AuthGate>

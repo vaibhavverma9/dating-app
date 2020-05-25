@@ -3,15 +3,16 @@ import React from 'react';
 import SingleVideo from '../videosPage/SingleVideo';
 import { BlurView } from 'expo-blur';
 import { fullPageVideoStyles } from '../../styles/fullPageVideoStyles';
+import { colors } from '../../styles/colors';
 
-export default function FullPageVideoScreen(props) {
+export default function FullPageVideos(props) {
 
   return (
     <Modal
       animationType="slide"
       transparent={false}
       visible={props.visible}>
-      <View style={{ flex: 1}}>
+      <View style={{ flex: 1, backgroundColor: colors.primaryBlack }}>
           <TouchableOpacity onPress={() => { props.setVisible(false) }}>
               <SingleVideo
                 key={props.source}

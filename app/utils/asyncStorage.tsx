@@ -172,3 +172,117 @@ export const _retrieveLongitude = async () => {
         return null; 
     }
 };
+
+export const _storeName = async(name) => {
+    try {
+        await AsyncStorage.setItem('@name', name);
+    } catch (error){
+        console.log("error in _storeName", error)
+    }
+}
+
+export const _clearName = async () => {
+    try {
+        await AsyncStorage.setItem('@name', '');
+    } catch (error){
+        console.log("error in _clearName", error); 
+    }
+}
+
+export const _retrieveName = async () => {
+    try {
+      const value = await AsyncStorage.getItem('@name');
+      if (value !== null) {
+        return value; 
+      } else {
+          return ''; 
+      }
+    } catch (error) {
+        console.log("error in _retrieveName", error); 
+        return ''; 
+    }
+};
+
+export const _storePushShown = async(pushShown) => {
+    try {
+        await AsyncStorage.setItem('@pushShown', pushShown.toString());
+    } catch (error) {
+        console.log("error in _storePushShown", error); 
+    }
+}
+
+export const _retrievePushShown = async() => {
+    try {
+        const value = await AsyncStorage.getItem('@pushShown');
+        if (value !== null) {
+            console.log(value, value == "true"); 
+            return value == "true"; 
+        } else {
+            console.log("pushShown not availale");
+            return false; 
+        }
+    } catch (error) {
+        console.log("error in _retrievePushShown", error); 
+        return false; 
+    }
+}
+
+export const _storeBio = async(bio) => {
+    try {
+        await AsyncStorage.setItem('@bio', bio);
+    } catch (error){
+        console.log("error in _storeBio", error)
+    }
+}
+
+export const _clearBio = async () => {
+    try {
+        await AsyncStorage.setItem('@bio', '');
+    } catch (error){
+        console.log("error in _clearBio", error); 
+    }
+}
+
+export const _retrieveBio = async () => {
+    try {
+      const value = await AsyncStorage.getItem('@bio');
+      if (value !== null) {
+        return value; 
+      } else {
+          return ''; 
+      }
+    } catch (error) {
+        console.log("error in _retrieveBio", error); 
+        return ''; 
+    }
+};
+
+export const _storeGenderInterest = async(genderInterest) => {
+    try {
+        await AsyncStorage.setItem('@genderInterest', genderInterest);
+    } catch (error){
+        console.log("error in _storeGenderInterest", error)
+    }
+}
+
+export const _clearGenderInterest = async () => {
+    try {
+        await AsyncStorage.setItem('@genderInterest', '');
+    } catch (error){
+        console.log("error in _clearGenderInterest", error); 
+    }
+}
+
+export const _retrieveGenderInterest = async () => {
+    try {
+      const value = await AsyncStorage.getItem('@genderInterest');
+      if (value !== null) {
+        return value; 
+      } else {
+          return ''; 
+      }
+    } catch (error) {
+        console.log("error in _retrieveGenderInterest", error); 
+        return ''; 
+    }
+};

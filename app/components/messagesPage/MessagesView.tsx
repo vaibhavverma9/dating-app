@@ -1,15 +1,16 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { FlatList, StyleSheet, View, Button, Image, Text, TextInput } from 'react-native';
+import { FlatList, StyleSheet, View, Button, Image, Text, TextInput, ActivityIndicator } from 'react-native';
 import { Divider } from 'react-native-paper';
 import { GET_LIKES, INSERT_LIKE, INSERT_USER, client, INSERT_MESSAGE, UPDATE_LIKE } from '../../utils/graphql/GraphqlClient';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { useMutation } from '@apollo/client';
 import { UserIdContext } from '../../utils/context/UserIdContext'
-import { Ionicons } from '@expo/vector-icons'
+import { Ionicons, MaterialIcons } from '@expo/vector-icons'
 import MessagesOptions from './MessagesOptions'; 
-import FullPageVideoScreen from '../modals/FullPageVideoScreen';
+import FullPageVideos from '../modals/FullPageVideos';
 import * as Segment from 'expo-analytics-segment';
 import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid } from '../../utils/asyncStorage'; 
+import { colors } from '../../styles/colors';
 
 export default function MessagesView(props) {
 
@@ -26,11 +27,13 @@ export default function MessagesView(props) {
 
   const initDisabled = {all: true, matches: false, likes: false };
   const [disabled, setDisabled] = useState(initDisabled);
+  const [initialized, setInitialized] = useState(false); 
 
   const getData = (userId: number) => {
     client.query({ query: GET_LIKES, variables: { userId: userId}})
     .then(response => {
       setAllData(response.data.likes);
+      setInitialized(true); 
     })
     .catch(error => console.log(error)); 
   }
@@ -73,24 +76,29 @@ export default function MessagesView(props) {
 
     if(item){
       const video = item.Liker.userVideos;
-  
+      const name = item.Liker.firstName;
+      console.log(name); 
+      
       if(video && video.length > 0){
         const muxPlaybackId = video[0].muxPlaybackId;
         const questionText = video[0].videoQuestion.questionText
         const muxPlaybackUrl = 'https://image.mux.com/' + muxPlaybackId + '/thumbnail.jpg?time=0';
         return (
           <View style={{flexDirection: 'row', flex: 1}}>
-            <TouchableOpacity onPress={goToVideo}>
+            <TouchableOpacity onPress={goToVideo} style={{ alignItems: 'center', justifyContent: 'space-around' }}>
               <Image
-                style={{ width: 75, height: 75, borderRadius: 75/ 2 }}
+                style={{ width: 70, height: 70, borderRadius: 70/ 2 }}
                 source={{ uri: muxPlaybackUrl }}
               />
+              <View style={{paddingTop: 3}}>
+                <Text style={{ fontWeight: 'bold', color: colors.primaryWhite}}>{name}</Text>
+              </View>
             </TouchableOpacity>
             <View style={{flex: 6, justifyContent: 'center', alignContent: 'center'}}>
               <ItemButton item={item}/>
             </View>
             <View style={{flex: 2, justifyContent: 'center', alignContent: 'center', paddingBottom: '10%'}}>
-            <Ionicons name="ios-more" onPress={moreOptions} size={25} color="#303030"/>
+            <Ionicons name="ios-more" onPress={moreOptions} size={25} color={colors.primaryWhite}/>
             </View>
             <MessagesOptions 
               visible={messagesOptionsVisible} 
@@ -100,7 +108,7 @@ export default function MessagesView(props) {
               allData={allData}
               setAllData={setAllData}
             />
-            <FullPageVideoScreen 
+            <FullPageVideos 
               visible={fullVideoVisible} 
               setVisible={setFullVideoVisible} 
               source={'https://stream.mux.com/' + muxPlaybackId + '.m3u8'}
@@ -111,7 +119,35 @@ export default function MessagesView(props) {
           
         );
       } else {
-        return null;
+        return (
+          <View style={{flexDirection: 'row', flex: 1}}>
+            <TouchableOpacity onPress={goToVideo} style={{ alignItems: 'center', justifyContent: 'space-around' }}>
+              <View
+                style={{ width: 70, height: 70, borderRadius: 70/2, backgroundColor: colors.secondaryGray, justifyContent: 'center', alignItems: 'center' }}                
+              >                    
+                <MaterialIcons name="person" color={colors.secondaryWhite} size={50}/>  
+              </View>
+              <View style={{paddingTop: 3}}>
+                <Text style={{ fontWeight: 'bold', color: colors.primaryWhite}}>{name}</Text>
+              </View>
+            </TouchableOpacity>
+            <View style={{flex: 6, justifyContent: 'center', alignContent: 'center'}}>
+              <ItemButton item={item}/>
+            </View>
+            <View style={{flex: 2, justifyContent: 'center', alignContent: 'center', paddingBottom: '10%'}}>
+            <Ionicons name="ios-more" onPress={moreOptions} size={25} color={colors.primaryWhite}/>
+            </View>
+            <MessagesOptions 
+              visible={messagesOptionsVisible} 
+              setVisible={setMessagesOptionsVisible} 
+              userId={userId}
+              currentUserId={item.Liker.id}
+              allData={allData}
+              setAllData={setAllData}
+            />            
+          </View>
+          
+        );
       };
     } else {
       return null; 
@@ -122,27 +158,36 @@ export default function MessagesView(props) {
     if(item.matched){
 
       const [contactFlow, setContactFlow] = useState(false); 
-      const [value, onChangeText] = React.useState('(Send IG or #)');
+      const [value, onChangeText] = useState('(Send IG or #)');
 
       if(contactFlow){
         return(
           <View style={{ paddingLeft: '5%', paddingRight: '5%'}}>
             <TextInput
-              style={{ height: 40, borderColor: 'gray', borderWidth: 1 }}
+              style={{ height: 40, borderColor: 'gray', borderWidth: 1, borderRadius: 4, color: colors.primaryWhite, padding: 5 }}
               onChangeText={text => onChangeText(text)}
               value={value}
+              onFocus={() => onChangeText('')}
             />
-            <Button title="Send message!" onPress={() => {
+            <TouchableOpacity onPress={() => {
               setContactFlow(false);
               insertMessage({ variables: { message: value, receiverId: item.likerId, senderId: userId }});
-            }}/>
+            }} style={{ alignItems: 'center', justifyContent: 'center', paddingTop: 10}}>
+              <Text style={{ color: colors.primaryWhite, fontSize: 17 }}>
+                Send message!
+              </Text>
+            </TouchableOpacity>
           </View>
         )
       } else{
         return(
           <View style={{alignItems: 'center'}}>
-            <Button title="Contact" onPress={() => {setContactFlow(true)}}/>
-            <Text>{item.Liker.messages.length == 1 ? item.Liker.messages[0].message : ''}</Text>
+            <TouchableOpacity onPress={() => {setContactFlow(true)}} style={{ alignItems: 'center', justifyContent: 'center'}}>
+              <Text style={{ color: colors.primaryWhite, fontSize: 20 }}>
+                Contact
+              </Text>
+            </TouchableOpacity>
+            <Text style={{ color: colors.primaryWhite }}>{item.Liker.messages.length == 1 ? item.Liker.messages[0].message : ''}</Text>
           </View>
         )      
       }
@@ -208,7 +253,8 @@ export default function MessagesView(props) {
     } else { return null; }
   }
 
-  return (
+  if(initialized){
+    return (
       <View style={styles.container}>
         <View style={{paddingBottom: '1%', flexDirection: 'row', justifyContent: 'space-around'}}>
           <HeaderButton text={'ALL'} disabled={disabled.all} />
@@ -227,6 +273,13 @@ export default function MessagesView(props) {
         />
       </View>
     );
+  } else {
+    return (
+      <View style={{ backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1}}>
+        <ActivityIndicator size="small" color="#eee" />
+      </View>
+    )
+  }
 }
 
 
@@ -236,7 +289,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: '15%',
     paddingLeft: '2%',
-    backgroundColor: '#E6E6FA'
+    backgroundColor: colors.primaryBlack
   },
   item: {
     padding: 10,
@@ -248,10 +301,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold'
   },
   headerText: {
-    margin: 8, textAlign: 'center', fontSize: 15, color: '#841584'
+    margin: 8, textAlign: 'center', fontSize: 15, color: colors.primaryWhite
   },
   disabledHeaderText: {
-    margin: 8, textAlign: 'center', fontSize: 15, color: '#007AFF'
+    margin: 8, textAlign: 'center', fontSize: 15, color: colors.secondaryGray
   }
 
 });

@@ -9,6 +9,7 @@ import { useMutation } from '@apollo/client';
 import { UPDATE_LATITUDE_LONGITUDE } from '../../utils/graphql/GraphqlClient';
 import { _storeLatitude, _storeLongitude } from '../../utils/asyncStorage'; 
 import TermsOnboarding from './TermsOnboarding';
+import { colors } from '../../styles/colors';
 
 export default function LocationOnboarding() {
 
@@ -75,8 +76,8 @@ export default function LocationOnboarding() {
     } 
 }
 
-const primaryColor = "#E6E6FA";
-const secondaryColor = "#734f96"; 
+const primaryColor = colors.primaryPurple;
+const secondaryColor = colors.secondaryWhite; 
 
 const styles = StyleSheet.create({
     locationsContainer: { 

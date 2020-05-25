@@ -1,11 +1,11 @@
 import { View, Modal, Text, TouchableHighlight, StyleSheet } from 'react-native';
 import React from 'react'; 
 import { TouchableWithoutFeedback } from 'react-native-gesture-handler';
+import { colors } from '../../styles/colors';
 
 export default function AddVideoPopup(props) {
 
     function onScreenPress(){
-        console.log("onScreenPress"); 
         props.setVisible(false); 
     }   
 
@@ -20,12 +20,12 @@ export default function AddVideoPopup(props) {
                     <View style={{ height: '80%', width: '100%'}}>
                     </View>
                 </TouchableWithoutFeedback>
-                <View style={{ backgroundColor: '#fff', padding: 20, height: '20%', justifyContent: 'space-evenly', alignItems:'center'}}>
+                <View style={{ backgroundColor: colors.secondaryBlack, padding: 20, height: '20%', justifyContent: 'space-evenly', alignItems:'center', borderRadius: 5}}>
                     <TouchableHighlight onPress={props.goToAddVideo} style={styles.facebookContainer}>
                         <Text style={styles.facebookText}>Add Video</Text>
                     </TouchableHighlight>
-                    <Text>
-                        Users won't see your likes until you add a video!
+                    <Text style={{ color: colors.secondaryWhite}}>
+                        Users won't see a profile until you add a video!
                     </Text>
                 </View>
             </View> 
@@ -35,7 +35,7 @@ export default function AddVideoPopup(props) {
 
 const styles = StyleSheet.create({
     facebookContainer: { 
-        backgroundColor: '#734f96', 
+        backgroundColor: colors.secondaryWhite, 
         borderRadius: 5,
         width: 300,
         height: 50, 
@@ -45,6 +45,6 @@ const styles = StyleSheet.create({
     }, 
     facebookText: {
         fontSize: 17,
-        color: '#fff'
+        color: colors.primaryBlack
     }
 })

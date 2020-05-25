@@ -5,8 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { useMutation } from '@apollo/client';
 import { UPDATE_GENDER_INTEREST } from '../../utils/graphql/GraphqlClient';
-import { _storeLatitude, _storeLongitude } from '../../utils/asyncStorage'; 
+import { _storeGenderInterest } from '../../utils/asyncStorage'; 
 import LocationOnboarding from './LocationOnboarding';
+import { colors } from '../../styles/colors';
 
 export default function GenderInterestOnboarding() {
 
@@ -16,16 +17,19 @@ export default function GenderInterestOnboarding() {
 
     const interestMan = () => {
         updateGenderInterest({ variables: { userId, genderInterest: 'Men' }});
+        _storeGenderInterest('Men'); 
         setGenderInterestSubmitted(true); 
     };
 
     const interestWoman = () => {
         updateGenderInterest({ variables: { userId, genderInterest: 'Women' }});
+        _storeGenderInterest('Women');
         setGenderInterestSubmitted(true); 
     };
 
     const interestEveryone = () => {
         updateGenderInterest({ variables: { userId, genderInterest: 'Everyone' }});
+        _storeGenderInterest('Everyone');
         setGenderInterestSubmitted(true); 
     }; 
 
@@ -61,8 +65,8 @@ export default function GenderInterestOnboarding() {
     }
 }
 
-const primaryColor = "#E6E6FA";
-const secondaryColor = "#734f96"; 
+const primaryColor = colors.primaryPurple;
+const secondaryColor = colors.secondaryWhite; 
 
 const styles = StyleSheet.create({
     genderContainer: { 

@@ -2,30 +2,57 @@ import React, { useEffect, useState, useContext } from 'react';
 import { View, Image, Text, TouchableOpacity, ImageBackground, ActivityIndicator } from 'react-native';
 import * as Segment from 'expo-analytics-segment';
 import { Dimensions } from "react-native"; 
-import { GET_PROFILE_VIDEOS, INSERT_INIT_VIDEO, UPDATE_LAST_UPLOADED, ON_VIDEO_UPDATED, INSERT_USER, GET_USERS_BY_UID, client } from '../../utils/graphql/GraphqlClient';
+import { GET_LAST_DAY_VIDEOS, INSERT_INIT_VIDEO, UPDATE_LAST_UPLOADED, ON_VIDEO_UPDATED, INSERT_USER, GET_USERS_BY_UID, GET_PAST_VIDEOS, client } from '../../utils/graphql/GraphqlClient';
 import { UserIdContext } from '../../utils/context/UserIdContext'
-import { FlatList } from 'react-native-gesture-handler';
+import { ScrollView } from 'react-native-gesture-handler';
 import { useMutation, useSubscription } from '@apollo/client';
-import FullPageVideoScreen from '../modals/FullPageVideoScreen';
-import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid } from '../../utils/asyncStorage'; 
-import { useDoormanUser } from 'react-native-doorman'
+import FullPageVideos from '../modals/FullPageVideos';
+import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid, _retrieveName, _retrieveBio } from '../../utils/asyncStorage'; 
 import axios from 'axios';
-import { BlurView } from 'expo-blur';
+import { Ionicons, MaterialIcons, Entypo, SimpleLineIcons } from '@expo/vector-icons'
+import { colors } from '../../styles/colors'; 
+import SettingsPopup from '../modals/SettingsPopup';
 
 export default function VideosView(props) {
 
-    const [videos, setVideos] = useState([]); 
-    const [muxVideos, setMuxVideos] = useState([]);
+    const [lastDayVideos, setLastDayVideos] = useState([]); 
+    const [storedLastDayVideos, setStoredLastDayVideos] = useState([]);
+    const [pastVideos, setPastVideos] = useState([]); 
     const [userId, setUserId] = useContext(UserIdContext);
     const [insertInitVideo, { insertInitVideoData }] = useMutation(INSERT_INIT_VIDEO); 
     const [updateLastUploaded, { updateLastUploadedData }] = useMutation(UPDATE_LAST_UPLOADED);
     const [uploadedVideos, setUploadedVideos] = useState([]); 
+    const [name, setName] = useState(''); 
+    const [bio, setBio] = useState(''); 
+    const [initialized, setInitialized] = useState(false); 
+    const [settingsVisible, setSettingsVisible] = useState(false); 
+
+    const [bestVideos, setBestVideos] = useState([]);
+    const [averageVideos, setAverageVideos] = useState([]);
+    const [worstVideos, setWorstVideos] = useState([]);
+
+    let yesterday = new Date(Date.now() - 86400000); 
+    const thumbnailPadding = '0.2%'; 
 
     useEffect(() => {
-        console.log(userId); 
         Segment.screen('Videos'); 
-        getVideos(); 
+        getStoredLastDayVideos(); 
+        getPastVideos(); 
+        initProfile(); 
     }, [])
+
+    useEffect(() => {
+        props.navigation.addListener('focus', () => {
+            initProfile(); 
+        });  
+      }, [props.navigation]);
+
+    async function initProfile(){
+        const name = await _retrieveName(); 
+        const bio = await _retrieveBio(); 
+        setName(name);
+        setBio(bio);
+    }
 
     // changes in routes
     useEffect(() => {
@@ -37,38 +64,49 @@ export default function VideosView(props) {
     }, [props.route])
 
     useEffect(() => {
-        setVideos([...uploadedVideos, ...muxVideos]); 
-    }, [muxVideos, uploadedVideos])
+        const blankVideo = { type: 'blankVideo', id: 0 }
+        setLastDayVideos([blankVideo, ...uploadedVideos, ...storedLastDayVideos]); 
+    }, [storedLastDayVideos, uploadedVideos])
 
-    function getVideos(){
-        client.query({ query: GET_PROFILE_VIDEOS, variables: { userId: userId}} )
+    function getStoredLastDayVideos(){
+        client.query({ query: GET_LAST_DAY_VIDEOS, variables: { userId, yesterday}} )
         .then((response) => {
-            setMuxVideos(response.data.videos); 
+            setStoredLastDayVideos(response.data.videos); 
         })
         .catch((error) => {
           console.log(error);
         });
     };
 
-      // changes in tabs will affect shouldPlay 
-    useEffect(() => {
-        props.navigation.addListener('focus', () => {
-            getVideos(); 
-        });  
-    }, [props.navigation])
+    function getPastVideos(){
+        client.query({ query: GET_PAST_VIDEOS, variables: { userId, yesterday}} )
+        .then((response) => {
+            // setBestVideos(response.data.videos); 
+            // setBestVideos(response.data.videos.filter(video => { return video.rank == 1 }));
+            // setAverageVideos(response.data.videos.filter(video => { return video.rank == 2 }));
+            // setWorstVideos(response.data.videos.filter(video => { return video.rank == 3 }));
+            setInitialized(true); 
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    };
 
-    const screenWidth = Math.round(Dimensions.get('window').width);
-    const squareWidth = screenWidth * 0.33; 
+    const windowWidth = Math.round(Dimensions.get('window').width);
+    const thumbnailWidth = windowWidth * 0.33; 
+    const thumbnailHeight = windowWidth * 0.4; 
 
     function goToAddPage(){
         props.navigation.navigate('Add');
     }
 
     function VideoView({ video }){
-        if(video.item.thumbnailUri){
-            return <UploadingView uploadingVideo={video.item} />
+        if(video.type == 'blankVideo') {
+            return <BlankVideoView /> 
+        } else if(video.type == 'uploadedVideo'){
+            return <UploadingView uploadingVideo={video} />
         } else {
-            return <MuxVideosView video={video} />
+            return <IndividualVideoView video={video} />
         }
     }
 
@@ -117,14 +155,14 @@ export default function VideosView(props) {
 
         if (status == "ready"){
             return(
-                <View style={{ padding: '0.1%'}}>
+                <View style={{ padding: thumbnailPadding}}>
                     <TouchableOpacity onPress={goToVideo}>
                         <Image 
-                            style={{ width: squareWidth, height: squareWidth }}
+                            style={{ width: thumbnailWidth, height: thumbnailHeight }}
                             source={{uri: thumbnailUri }}
                         />
                     </TouchableOpacity>
-                    <FullPageVideoScreen 
+                    <FullPageVideos 
                         visible={fullVideoVisible} 
                         setVisible={setFullVideoVisible} 
                         source={videoUri}
@@ -135,9 +173,9 @@ export default function VideosView(props) {
         } else {
             return (
                 // <BlurView tint="dark" intensity={40} style={{padding: '0.1%', width: squareWidth, height: squareWidth }}>
-                <View style={{ padding: '0.1%'}}>
+                <View style={{ padding: thumbnailPadding}}>
                     <ImageBackground
-                        style={{width: squareWidth, height: squareWidth }}
+                        style={{width: thumbnailWidth, height: thumbnailHeight }}
                         source={{uri: thumbnailUri}}
                     >
                         <View style={{ backgroundColor: 'rgba(0,0,0,.6)', flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -151,26 +189,31 @@ export default function VideosView(props) {
         }
     }
 
-    function MuxVideosView({ video }){
+    function IndividualVideoView({ video }){
         function goToVideo(){
             setFullVideoVisible(true); 
         }
     
         const [fullVideoVisible, setFullVideoVisible] = useState(false);
 
-        const muxPlaybackId = video.item.muxPlaybackId;
-        const questionText = video.item.videoQuestion ? video.item.videoQuestion.questionText : ""; 
+        const muxPlaybackId = video.muxPlaybackId;
+        const questionText = video.videoQuestion ? video.videoQuestion.questionText : ""; 
 
         const muxPlaybackUrl = 'https://image.mux.com/' + muxPlaybackId + '/thumbnail.jpg?time=0';
         return(
-            <View style={{ padding: '0.1%'}}>
+            <View style={{ padding: thumbnailPadding}}>
                 <TouchableOpacity onPress={goToVideo}>
-                    <Image 
-                        style={{ width: squareWidth, height: squareWidth }}
+                    <ImageBackground 
+                        style={{ width: thumbnailWidth, height: thumbnailHeight, justifyContent: 'flex-end' }}
                         source={{uri: muxPlaybackUrl }}
-                    />
+                    >
+                        <View style={{ flexDirection: 'row', padding: 4, alignItems: 'center'}}>
+                            <SimpleLineIcons name="control-play" color={colors.secondaryWhite} size={14}/>
+                            <Text style={{ color: colors.secondaryWhite, paddingLeft: 2, fontSize: 14 }}>{video.views}</Text>
+                        </View>
+                    </ImageBackground>
                 </TouchableOpacity>
-                <FullPageVideoScreen 
+                <FullPageVideos 
                     visible={fullVideoVisible} 
                     setVisible={setFullVideoVisible} 
                     source={'https://stream.mux.com/' + muxPlaybackId + '.m3u8'}
@@ -180,21 +223,14 @@ export default function VideosView(props) {
         )
     }
 
-    function AddVideosContent(){
-        if(videos.length == 0){
-            return(
-                    <View style={{ flex: 1}}>
-                        <TouchableOpacity onPress={goToAddPage}>
-                            <View style={{ alignItems: 'center'}}>
-                                <Text style={{ fontSize: 16, color: "#2196F3" }}>Add videos to get discovered!</Text>
-                                <Text style={{ fontSize: 16 }}>We show your best videos to your likes. </Text>
-                            </View>
-                        </TouchableOpacity>
-                    </View>
-            )    
-        } else {
-            return null; 
-        }
+    function BlankVideoView(){
+        return(
+            <View style={{ padding: thumbnailPadding}}>
+                <TouchableOpacity onPress={goToAddPage} style={{backgroundColor: colors.secondaryBlack, width: thumbnailWidth, height: thumbnailHeight, justifyContent: 'center', alignItems: 'center' }}>
+                    <Ionicons name="ios-add" color={"#eee"} size={60} />
+                </TouchableOpacity>
+            </View>
+        )
     }
 
     async function postVideo(params){
@@ -251,16 +287,216 @@ export default function VideosView(props) {
         updateLastUploaded({ variables: {userId: userId, timestamp: timestamp}})
     }
 
-    return (
-        <View style={{ flex: 1, backgroundColor: '#E6E6FA'}}>
-            <FlatList
-                style={{ marginTop: '15%'}}
-                data={videos}
-                numColumns={3}
-                renderItem={( video ) => <VideoView video={video} />}
-                keyExtractor={video => video.id} 
+    function VideoSection ({ videos }) {        
+        return (
+            <View style={{ flex: 1, flexDirection: 'row' }}>
+                {videos.map(video => <VideoView key={video.id} video={video} />)}
+            </View>
+        )
+    }
+
+    function LastDayVideosSubtitle({ videosLength }) {
+        if(videosLength == 0){
+            return null;
+        } else if (videosLength == 1){
+            return (
+                <Text style={{ color: colors.secondaryWhite }}>Add new videos to get likes</Text>
+            )    
+        } else {
+            return (
+                <Text style={{ color: colors.secondaryWhite }}>Add more videos to get more likes</Text>
+            )
+        }
+    }
+
+    function ProfilePicture() {
+        const length = 110; 
+
+        let muxPlaybackId = ""; 
+        if(pastVideos.length > 0){
+            muxPlaybackId = pastVideos[0].muxPlaybackId;
+        }
+        else if(storedLastDayVideos.length > 0){
+            muxPlaybackId = storedLastDayVideos[0].muxPlaybackId;
+        } else {
+            return (
+                <View
+                    style={{ 
+                        width: length, 
+                        height: length, 
+                        borderRadius: length/2, 
+                        backgroundColor: colors.secondaryGray, 
+                        justifyContent: 'center', 
+                        alignItems: 'center'
+                    }}                
+                 >                    
+                    <MaterialIcons name="person" color={colors.secondaryWhite} size={50}/>  
+                </View>
+            )
+        }
+
+        const muxPlaybackUrl = 'https://image.mux.com/' + muxPlaybackId + '/thumbnail.jpg?time=0';
+        return (
+            <Image
+                style={{ width: length, height: length, borderRadius: length/ 2 }}
+                source={{ uri: muxPlaybackUrl }}
             />
-            <AddVideosContent />
-        </View>
-    );
+        )
+    }
+
+    function Name () {
+        if(name == ''){
+            return (
+                <TouchableOpacity onPress={goToEditName} style={{ padding: 15}}>
+                    <Text style={{ fontWeight: '600', fontSize: 20, color: colors.primaryWhite }}>Tap to add name</Text>
+                </TouchableOpacity>
+            )
+        } else {
+            return (
+                <View style={{ padding: 15}}>
+                    <Text style={{ fontWeight: 'bold', fontSize: 20, color: colors.primaryWhite }}>{name}</Text>
+                </View>
+            )
+        }
+    }
+
+    function Bio (){
+        if(bio == ''){
+            return (
+                <TouchableOpacity onPress={goToEditBio} style={{ paddingBottom: 25}}>
+                    <Text style={{ fontWeight: '200', fontSize: 14, color: colors.primaryWhite  }}>Tap to add bio</Text>
+                </TouchableOpacity>
+            )
+        } else {
+            return (
+                <View style={{ paddingBottom: 25}}>
+                    <Text style={{ fontWeight: '200', fontSize: 14, color: colors.primaryWhite  }}>{bio}</Text>
+                </View>
+            )
+        }
+    }
+
+    function goToEditName(){
+        props.navigation.navigate('Name', {name});
+    }
+
+    function goToEditBio(){
+        props.navigation.navigate('Bio', {bio}); 
+    }
+
+    function goToEditProfile(){
+        props.navigation.navigate("Edit profile", {name, bio});
+    }
+
+    function goToNewVideos(){
+        const title = 'New Videos'; 
+        props.navigation.navigate('VideosDetail', {title, videos: lastDayVideos}); 
+    }
+
+    function goToBestVideos(){
+        const title = 'Best Performing Videos'; 
+        props.navigation.navigate('VideosDetail', {title, videos: bestVideos});
+    }
+
+    function goToAverageVideos(){
+        const title = 'Average Performing Videos'; 
+        props.navigation.navigate('VideosDetail', {title, videos: averageVideos});
+    }
+
+    function goToWorstVideos(){
+        const title = 'Worst Performing Videos'; 
+        props.navigation.navigate('VideosDetail', {title, videos: worstVideos});
+    }
+
+    function EditProfileButton () {
+        return (
+            <TouchableOpacity onPress={goToEditProfile} style={{  borderWidth: 1, borderRadius: 3, height: 30, width: 130, justifyContent: 'center', alignItems: 'center', borderColor: colors.primaryWhite}}>
+                <Text style={{ fontSize: 16, fontWeight: '200', color: colors.primaryWhite  }}>Edit Profile</Text>
+            </TouchableOpacity>
+        )
+    }
+
+    function openSettings(){
+        console.log("openSettings"); 
+        setSettingsVisible(true); 
+    }
+
+    function ExplanationText(){
+        return (
+            <View style={{ paddingHorizontal: 50, paddingVertical: 30 }}>
+                <Text style={{ color: colors.chineseWhite, textAlign: 'center' }}>We show your best videos to users.</Text>
+            </View>
+        )
+    }
+
+    function SectionTitle({text, videos}){
+        if(videos.length > 0){
+            return (
+                <View style={{ flexDirection: 'row', alignItems: 'flex-end'}}>
+                    <Text style={{ fontWeight: 'bold', fontSize: 20, color: colors.primaryWhite }}>{text}</Text>
+                    <Entypo name="chevron-right" color={colors.primaryWhite} size={17}/>  
+                </View>
+            )    
+        } else {
+            return null; 
+        }
+    }
+    
+    if(initialized){
+        return (
+                <ScrollView style={{ flex: 1, backgroundColor: colors.primaryBlack}}>
+                    <View style={{ justifyContent: 'flex-start'}}>
+                        <View style={{ paddingTop: 50, alignItems: 'center'}}>
+                            <ProfilePicture />  
+                            <Name />
+                            <Bio /> 
+                            <EditProfileButton /> 
+                            <ExplanationText />
+                        </View>
+                        <View style={{ paddingTop: 10, paddingLeft: thumbnailPadding }}>
+                            <TouchableOpacity onPress={goToNewVideos}>
+                                <View style={{ flexDirection: 'row', alignItems: 'flex-end'}}>
+                                    <Text style={{ fontWeight: 'bold', fontSize: 20, color: colors.primaryWhite }}>New Videos</Text>
+                                    <Entypo name="chevron-right" color={colors.primaryWhite} size={17}/>  
+                                </View>
+                                <LastDayVideosSubtitle videosLength={lastDayVideos.length} />
+                            </TouchableOpacity>
+                            <VideoSection videos={lastDayVideos.slice(0, 3)}/>
+                            <VideoSection videos={lastDayVideos.slice(4, 6)}  />
+                        </View>
+                        <View style={{ paddingTop: 30, paddingLeft: thumbnailPadding }}>
+                            <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'flex-end'}} onPress={goToBestVideos}>
+                                <SectionTitle text={'Best Performing'} videos={bestVideos} />
+                            </TouchableOpacity>
+                            <VideoSection videos={bestVideos.slice(0, 3)}  />
+                            <VideoSection videos={bestVideos.slice(4, 6)}  />
+                        </View>
+                        <View style={{ paddingTop: 30, paddingLeft: thumbnailPadding }}>
+                            <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'flex-end'}} onPress={goToAverageVideos}>
+                                <SectionTitle text={'Average Performing'} videos={averageVideos} />
+                            </TouchableOpacity>
+                            <VideoSection videos={averageVideos.slice(0, 3)}  />
+                            <VideoSection videos={averageVideos.slice(4, 6)}  />
+                        </View>
+                        <View style={{ paddingTop: 30, paddingLeft: thumbnailPadding }}>
+                            <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'flex-end'}} onPress={goToWorstVideos}>
+                                <SectionTitle text={'Worst Performing'} videos={worstVideos} />
+                            </TouchableOpacity>
+                            <VideoSection videos={worstVideos.slice(0, 3)}  />
+                            <VideoSection videos={worstVideos.slice(4, 6)}  />
+                        </View>
+                    </View>
+                    <TouchableOpacity onPress={openSettings} style={{ position: "absolute", top: 50, right: 15}}>
+                        <MaterialIcons name="menu" color={colors.secondaryWhite} size={30}/>  
+                    </TouchableOpacity>
+                    <SettingsPopup visible={settingsVisible} setVisible={setSettingsVisible} />
+                </ScrollView>
+        );
+    } else {
+        return (
+            <View style={{ backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1}}>
+              <ActivityIndicator size="small" color="#eee" />
+            </View>
+        )      
+    }
 }

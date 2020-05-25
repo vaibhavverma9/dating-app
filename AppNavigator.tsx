@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { View } from 'react-native'; 
 import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid, _retrieveOnboarded, _storeOnboarded, _storeLatitude, _storeLongitude, _retrieveLatitude, _retrieveLongitude } from './app/utils/asyncStorage'; 
 import { useDoormanUser } from 'react-native-doorman'
 import { UserIdContext } from './app/utils/context/UserIdContext'
@@ -7,6 +8,7 @@ import { useMutation } from '@apollo/client';
 import TabStack from './app/stacks/TabStack'; 
 import OnboardingStack from './app/stacks/OnboardingStack';
 import { LocationContext } from './app/utils/context/LocationContext';
+import { colors } from './app/styles/colors';
 
 export default function AppNavigator(){
 
@@ -80,7 +82,7 @@ export default function AppNavigator(){
     )
   } else if (onboarded == true){
     return <TabStack />
-  } else if (onboarded == null){
-    return null; 
+  } else {
+    return <View style={{ flex: 1, backgroundColor: colors.primaryPurple }} />
   }
 }
