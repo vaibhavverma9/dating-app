@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'; 
-import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native'; 
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native'; 
 import { Camera } from 'expo-camera';
 import { BlurView } from 'expo-blur';
 import { fullPageVideoStyles } from '../../styles/fullPageVideoStyles';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons'
+import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons'
 import * as Segment from 'expo-analytics-segment';
 import * as ImagePicker from 'expo-image-picker';
 import * as Permissions from 'expo-permissions';
@@ -13,6 +13,8 @@ import { GET_QUESTIONS, client } from '../../utils/graphql/GraphqlClient';
 import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid } from '../../utils/asyncStorage'; 
 import * as VideoThumbnails from 'expo-video-thumbnails'; 
 import * as Linking from 'expo-linking';
+import Constants from 'expo-constants';
+import { colors } from '../../styles/colors';
 import ViewAllPopup from '../modals/ViewAllPopup';
 
 export default function AddCameraView(props) {
@@ -87,20 +89,22 @@ export default function AddCameraView(props) {
     }, [props.navigation])
 
     function getQuestions(){
+        const date = new Date(); 
+        const day = date.getDate(); 
+        
         client.query({ query: GET_QUESTIONS})
         .then(response => {
-            setQuestionData(response.data.questions); 
-            setIndex(Math.floor(Math.random() * response.data.questions.length)); 
+            setQuestionData(response.data.questions);             
+            setIndex(Math.floor(day / 31 * response.data.questions.length)); 
             setInitialized(true); 
         })
-        .catch(error => {});
     }
 
     // tapping back arrow 
     const goBack = () => {
         const rem = (index - 1) % questionData.length;
         if (rem < 0) { setIndex(rem + questionData.length)}
-        else { setIndex(rem) }
+        else { setIndex(rem) }``
     }
 
     // tapping forward arrow
@@ -154,10 +158,10 @@ export default function AddCameraView(props) {
     async function record(){
         if(camera){
             setRecording(true); 
-            let recording = await camera.current.recordAsync();
-            setVideoUri(recording.uri); 
-            const { uri, width, height } = await VideoThumbnails.getThumbnailAsync(recording.uri, { time: 0 }); 
-            setThumbnailUri(uri);           
+            // let recording = await camera.current.recordAsync();
+            // setVideoUri(recording.uri); 
+            // const { uri, width, height } = await VideoThumbnails.getThumbnailAsync(recording.uri, { time: 0 }); 
+            // setThumbnailUri(uri);           
         }
     }
 
@@ -171,31 +175,30 @@ export default function AddCameraView(props) {
     function RecordingIcon (){
         if(recording){            
             return (
-                <View style={styles.recordingIconSingle}>
-                    <MaterialIcons name="fiber-manual-record" onPress={stopRecording} color={"#FF0000"} size={60}/>  
+                <View style={{ alignSelf: 'flex-end', alignItems: 'center', padding: 20, flexDirection: 'row', justifyContent: 'center', width: '100%'}}>
+                    <MaterialIcons name="fiber-manual-record" onPress={() => stopRecording()} color={"#FF0000"} size={60}/>  
                 </View>
             )
         } else {
             return (
-                <View style={styles.recordingIconMultiple}>
-                    <TouchableOpacity onPress={pickVideo} style={styles.iconGroup}>
+                <View style={{ alignSelf: 'flex-end', alignItems: 'center', padding: 20, flexDirection: 'row', justifyContent: 'space-between', width: '100%'}}>
+                    <TouchableOpacity onPress={pickVideo} style={{ alignItems: 'center'}}>
                         <MaterialIcons name="video-library" color={"#eee"} size={40}/> 
-                        <Text style={styles.iconText}>Library</Text>
+                        <Text style={{ color: '#eee', fontSize: 12}}>Library</Text>
                     </TouchableOpacity>
-                    <MaterialIcons name="fiber-manual-record" onPress={record} color={"#eee"} size={60}/>  
-                    <TouchableOpacity onPress={setCameraType} style={styles.iconGroup}>
+                    <MaterialIcons name="fiber-manual-record" onPress={() => record()} color={"#eee"} size={60}/>  
+                    <TouchableOpacity onPress={setCameraType} style={{ alignItems: 'center'}}>
                         <MaterialIcons name="switch-camera" color={"#eee"} size={40}/>                     
-                        <Text style={styles.iconText}>Reverse</Text>
+                        <Text style={{ color: '#eee', fontSize: 12}}>Reverse</Text>
                     </TouchableOpacity>
                 </View>
-
                 )
         }
     }
 
     function sendVideo() {
         const passthroughId = Math.floor(Math.random() * 1000000000) + 1; 
-        props.navigation.navigate('Videos', { screen: 'VideosView', params: {videoUri: videoUri, thumbnailUri: thumbnailUri, questionText: questionData[index].questionText, questionId: questionData[index].id, status: 'waiting', passthroughId: passthroughId.toString(), type: 'uploadedVideo', id: passthroughId, videoId: null }});
+        props.navigation.navigate('Videos', { screen: 'VideosView', params: {videoUri: videoUri, thumbnailUri: thumbnailUri, questionText: questionData[index].questionText, questionId: questionData[index].id, status: 'waiting', passthroughId: passthroughId.toString(), type: 'uploadedVideo', id: passthroughId }});
         setVideoUri(''); 
         setThumbnailUri(''); 
     }
@@ -204,24 +207,23 @@ export default function AddCameraView(props) {
         setViewAllVisible(true); 
     }
 
-
     function EnableCameraButton(){
         if(hasCameraPermission === null){
             return(
-                <TouchableOpacity onPress={askCameraPermission} style={styles.cameraPermissionsPadding}>
-                    <Text style={styles.permissionDisabled}>Enable Camera Access</Text>
+                <TouchableOpacity onPress={askCameraPermission} style={{ padding: 30}}>
+                    <Text style={{ color: '#1da1f2', fontSize: 16 }}>Enable Camera Access</Text>
                 </TouchableOpacity>
             )
         } else if (hasCameraPermission === false){
             return(
-                <TouchableOpacity onPress={askCameraPermission} style={styles.cameraPermissionsPadding}>
-                    <Text style={styles.permissionDisabled}>Enable Camera Access</Text>
+                <TouchableOpacity onPress={askCameraPermission} style={{ padding: 30}}>
+                    <Text style={{ color: '#1da1f2', fontSize: 16 }}>Enable Camera Access</Text>
                 </TouchableOpacity>
             )
         } else {
             return(
-                <View style={styles.cameraPermissionsPadding}>
-                    <Text style={styles.permissionEnabled}>Camera Access Enabled</Text>
+                <View style={{ padding: 30}}>
+                    <Text style={{ color: '#696969', fontSize: 16 }}>Camera Access Enabled</Text>
                 </View>
             )
         }
@@ -231,53 +233,46 @@ export default function AddCameraView(props) {
         if(hasAudioPermission === null){
             return(
                 <TouchableOpacity onPress={askAudioPermission}>
-                    <Text style={styles.permissionDisabled}>Enable Microphone Access</Text>
+                    <Text style={{ color: '#1da1f2', fontSize: 16  }}>Enable Microphone Access</Text>
                 </TouchableOpacity>
             )
         } else if (hasAudioPermission === false){
             return(
                 <TouchableOpacity onPress={askAudioPermission}>
-                    <Text style={styles.permissionDisabled}>Enable Microphone Access</Text>
+                    <Text style={{ color: '#1da1f2', fontSize: 16 }}>Enable Microphone Access</Text>
                 </TouchableOpacity>
             )
         } else {
             return(
                 <View>
-                    <Text style={styles.permissionEnabled}>Microphone Access Enabled</Text>
+                    <Text style={{ color: '#696969', fontSize: 16 }}>Microphone Access Enabled</Text>
                 </View>
             )
         }
     }
-    
-    if(initialized){
-        if (hasCameraPermission !== true || hasAudioPermission !== true) {
-            return (
-            <View style={styles.permissionsViewBackground}>
-                <Text style={styles.permissionsTitle}>Share on Reeltalk</Text>
-                <Text style={styles.permissionsSubtitle}>Enable access so you can start taking videos.</Text>
-                <EnableCameraButton />
-                <EnableAudioButton />
-            </View>)
-        }
-    
-        if(videoUri == ""){
+
+    function InAppRecording(){
+        if('ios' in Constants.platform){
             return(
-                <View style={styles.viewBackground}>
+                <View style={{ flex: 1 }}>
                     <Camera 
-                        style={styles.cameraFlex} 
+                        style={{ flex: 1 }} 
                         type={type}
                         ref={camera}
                     >
                         <View
-                        style={styles.cameraView}>
+                        style={{
+                            flex: 1,
+                            backgroundColor: 'transparent',
+                            flexDirection: 'row',
+                        }}>
                             <RecordingIcon />
                         </View>
                     </Camera>
                     <BlurView tint="dark" intensity={20} style={fullPageVideoStyles.questionArrowsContainer}>
                         <TouchableOpacity onPress={viewAll}>
-                            <Text style={styles.viewAllText}>View All</Text>
+                            <Text style={{ color: '#eee'}}>View All</Text>
                         </TouchableOpacity>
-
                         <Question /> 
                     </BlurView>
                     <ViewAllPopup 
@@ -288,9 +283,51 @@ export default function AddCameraView(props) {
                     />
                 </View>
             )
+        } 
+        else {
+            return (
+                <View style={{ flex: 1, backgroundColor: colors.primaryBlack, justifyContent: 'center', alignItems: 'center' }}>
+                    <BlurView tint="dark" intensity={20} style={fullPageVideoStyles.questionArrowsContainer}>
+                        <TouchableOpacity onPress={viewAll}>
+                            <Text style={{ color: '#eee'}}>View All</Text>
+                        </TouchableOpacity>
+                        <Question /> 
+                    </BlurView>
+                    <Text style={{ color: '#eee' }}>We do not yet support in-app recording on Android. </Text>
+                    <Text style={{ color: '#eee' }}>Please record video separately and upload. </Text>
+                    <TouchableOpacity onPress={pickVideo} style={{ paddingTop: 40, alignItems: 'center'}}>
+                        <Feather name="upload" color={"#eee"} size={40}/> 
+                        <Text style={{ color: '#eee', fontSize: 12}}>Upload</Text>
+                    </TouchableOpacity>
+                    <ViewAllPopup 
+                        visible={viewAllVisible} 
+                        setVisible={setViewAllVisible} 
+                        questionData={questionData}
+                        setIndex={setIndex}
+                    />
+                </View>
+            )
+        }
+    }
+    
+    if(initialized){
+        if (hasCameraPermission !== true || hasAudioPermission !== true) {
+            return (
+            <View style={{ backgroundColor: '#000', flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+                <Text style={{ color: '#eee', fontSize: 22, fontWeight: 'bold', paddingBottom: 20}}>Share on Reeltalk</Text>
+                <Text style={{ color: '#eee', fontSize: 17, paddingBottom: 20}}>Enable access so you can start taking videos.</Text>
+                <EnableCameraButton />
+                <EnableAudioButton />
+            </View>)
+        }
+    
+        if(videoUri == ""){
+            return(
+                <InAppRecording />
+            )
         } else {
             return (
-                <View style={styles.viewBackground}>
+                <View style={{ flex: 1 }}>
                     <Video
                     source={{uri: videoUri}}
                     rate={1.0}
@@ -300,34 +337,28 @@ export default function AddCameraView(props) {
                     usePoster={true}
                     shouldPlay={shouldPlay}
                     isLooping
-                    style={styles.videoDimensions}
+                    style={{ width: '100%', height: '100%'}}
                     >
                     </Video>
                     <BlurView tint="dark" intensity={20} style={fullPageVideoStyles.questionArrowsContainer}>
                         <Question /> 
                     </BlurView>
                     <View style={addStyles.uploadContainer}>
-                        <TouchableOpacity onPress={back} style={styles.iconGroup}>
+                        <TouchableOpacity onPress={back} style={{ alignItems: 'center'}}>
                             <MaterialIcons name="backspace" color={"#eee"} size={40}/>     
-                            <Text style={styles.iconTextRecorded}>Back</Text>
+                            <Text style={{ color: '#eee', fontSize: 15}}>Back</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={sendVideo} style={styles.iconGroup}>
+                        <TouchableOpacity onPress={sendVideo} style={{ alignItems: 'center'}}>
                             <MaterialIcons name="send" color={"#eee"} size={40}/>     
-                            <Text style={styles.iconTextRecorded}>Post</Text>
+                            <Text style={{ color: '#eee', fontSize: 15}}>Post</Text>
                         </TouchableOpacity>
                     </View>
-                    <ViewAllPopup 
-                        visible={viewAllVisible} 
-                        setVisible={setViewAllVisible} 
-                        questionData={questionData}
-                        setIndex={setIndex}
-                    />
                 </View>
             )
         }
     } else {
         return (
-            <View style={styles.activityView}>
+            <View style={{ backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1}}>
               <ActivityIndicator size="small" color="#eee" />
             </View>
         )   
@@ -335,25 +366,25 @@ export default function AddCameraView(props) {
 
     function Question () {
         if(questionData.length == 0){
-            return(<Text style={styles.loadingText}>Loading...</Text>)
+            return(<Text style={{fontSize: 18,color: "#eee", padding: 15, textAlign: 'center'}}>Loading...</Text>)
         } else if(videoUri == ""){
             return(
-                <View style={styles.questionView}>
-                    <View style={styles.backPadding}>
+                <View style={{ flexDirection: 'row', height:90, alignItems: 'center'}}>
+                    <View style={{ paddingRight: 15}}>
                         <Ionicons name="ios-arrow-round-back" color={"#eee"} onPress={goBack} size={45} />
                     </View>
-                    <Text style={styles.questionText}>
+                    <Text style={{fontSize: 20, color: "#eee", textAlign: 'center', width: '75%'}}>
                         {questionData[index].questionText}
                     </Text>
-                    <View style={styles.forwardPadding}>
+                    <View style={{ paddingLeft: 15}}>
                         <Ionicons name="ios-arrow-round-forward"  color={"#eee"} onPress={goForward} size={45}/>
                     </View>
                 </View>
             )    
         } else {
             return(
-                <View style={styles.questionView}>
-                    <Text style={styles.questionText}>
+                <View style={{ flexDirection: 'row', height:90, alignItems: 'center'}}>
+                    <Text style={{fontSize: 20, color: "#eee", textAlign: 'center', width: '75%'}}>
                         {questionData[index].questionText}
                     </Text>
                 </View>
@@ -361,57 +392,3 @@ export default function AddCameraView(props) {
         }
     }
 }
-
-const styles = StyleSheet.create({
-    recordingIconSingle: { 
-        alignSelf: 'flex-end', 
-        alignItems: 'center', 
-        padding: 20, 
-        flexDirection: 'row', 
-        justifyContent: 'center', 
-        width: '100%'
-    },
-    recordingIconMultiple: { 
-        alignSelf: 'flex-end', 
-        alignItems: 'center', 
-        padding: 20, 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        width: '100%'
-    },
-    iconGroup: { 
-        alignItems: 'center'
-    },
-    iconText: { 
-        color: '#eee', 
-        fontSize: 12
-    },
-    iconTextRecorded: { color: '#eee', fontSize: 15},
-    permissionDisabled: { 
-        color: '#1da1f2', 
-        fontSize: 16 
-    },
-    permissionEnabled: { 
-        color: '#696969', 
-        fontSize: 16 
-    },
-    cameraPermissionsPadding: { padding: 30},
-    permissionsViewBackground: { backgroundColor: '#000', flex: 1, justifyContent: 'center', alignItems: 'center'},
-    permissionsTitle: { color: '#eee', fontSize: 22, fontWeight: 'bold', paddingBottom: 20},
-    permissionsSubtitle: { color: '#eee', fontSize: 17, paddingBottom: 20},
-    viewBackground: { flex: 1, backgroundColor: '#000' },
-    cameraFlex: { flex: 1 },
-    cameraView: {
-        flex: 1,
-        backgroundColor: 'transparent',
-        flexDirection: 'row',
-    },
-    viewAllText: { color: '#eee'},
-    videoDimensions: { width: '100%', height: '100%'},
-    activityView: { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1},
-    loadingText: {fontSize: 18,color: "#eee", padding: 15, textAlign: 'center'},
-    questionView: { flexDirection: 'row', height:90, alignItems: 'center'},
-    questionText: {fontSize: 20, color: "#eee", textAlign: 'center', width: '75%'},
-    backPadding: { paddingRight: 15},
-    forwardPadding: { paddingLeft: 15}
-});

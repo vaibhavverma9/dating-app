@@ -14,5 +14,12 @@ export const fullPageVideoStyles = StyleSheet.create({
         justifyContent: 'flex-end',
         height: '15%'
     },
+    likesViewsContainer: {
+        ...StyleSheet.absoluteFill, 
+        justifyContent: 'flex-end', 
+        height: '96%',
+        // alignItems: 'flex-end',
+        padding: 20
+    }
 
 });

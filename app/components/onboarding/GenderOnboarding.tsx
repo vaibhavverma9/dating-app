@@ -40,13 +40,11 @@ export default function GenderOnboarding() {
     };
 
     const moreMenInterest = () => {
-        console.log("moreMenInterest");
         updateShowToPeople({ variables: { userId, showToPeopleLookingFor: 'Men'}})
         setMoreGenders(false); 
     };
 
     const moreWomenInterest = () => {
-        console.log("moreWomenInterest");
         updateShowToPeople({ variables: { userId, showToPeopleLookingFor: 'Women'}})
         setMoreGenders(false); 
     }

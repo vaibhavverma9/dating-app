@@ -1,19 +1,20 @@
 import React from 'react';
-import { Text, View, Button, TouchableOpacity } from 'react-native';
 import HomeView from '../components/homePage/HomeView';
 import AddCameraView from '../components/addPage/AddCameraView'
-import FeedbackView from '../components/feedbackPage/FeedbackView'; 
 import MessagesView from '../components/messagesPage/MessagesView'; 
 import VideosView from '../components/videosPage/VideosView'; 
 import EditProfileView from '../components/videosPage/EditProfileView'; 
 import EditNameView from '../components/videosPage/EditNameView';
 import EditBioView from '../components/videosPage/EditBioView';
+import VideosDetailView from '../components/videosPage/VideosDetailView';
+import EditLocationView from '../components/videosPage/EditLocationView'; 
 import { MaterialIcons } from '@expo/vector-icons';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { colors } from '../styles/colors';
-import VideosDetailView from '../components/videosPage/VideosDetailView';
+import EditGenderInterestView from '../components/videosPage/EditGenderInterestView';
+
 
 const Tab = createBottomTabNavigator(); 
 const Stack = createStackNavigator(); 
@@ -41,7 +42,9 @@ export default function TabStack (){
                 <Stack.Screen options={editProfileStyles} name="Edit profile" component={EditProfileView} />
                 <Stack.Screen options={editProfileStyles} name="Name" component={EditNameView} />
                 <Stack.Screen options={editProfileStyles} name="Bio" component={EditBioView} />
-                <Stack.Screen options={videoDetailStyles} name="VideosDetail" component={VideosDetailView} />
+                <Stack.Screen options={editProfileStyles} name="Gender Preferences" component={EditGenderInterestView} />
+                <Stack.Screen options={videoDetailStyles} name="Location" component={EditLocationView} />
+                <Stack.Screen options={videoDetailStyles} name="VideosDetail" component={VideosDetailView} />                
             </Stack.Navigator>
         )
     }

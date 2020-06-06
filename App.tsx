@@ -1,3 +1,4 @@
+// import './wdyr'; 
 import React from 'react';
 import * as Sentry from 'sentry-expo'; 
 import 'react-native-gesture-handler';

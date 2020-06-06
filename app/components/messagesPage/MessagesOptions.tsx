@@ -8,6 +8,22 @@ export default function MessagesOptions(props) {
   const [updateVideos, { updateVideosData }] = useMutation(UPDATE_VIDEOS);
   const [insertBlock, { insertBlockData }] = useMutation(INSERT_BLOCK);
 
+  function blockUser(){
+    insertBlock({ variables: { blockedId: props.currentUserId, blockerId: props.userId }});
+    const filteredData = props.allData.filter((like) => { return like.likerId != props.currentUserId });
+    props.setAllData(filteredData); 
+    props.setVisible(!props.visible);
+  }
+
+  function removeUser(){
+    insertBlock({ variables: { blockedId: props.currentUserId, blockerId: props.userId }});
+    props.setVisible(!props.visible);
+  }
+
+  function cancel(){
+    props.setVisible(!props.visible);
+  }
+
   return (
     <Modal
       animationType="slide"
@@ -16,27 +32,17 @@ export default function MessagesOptions(props) {
       <View style={homeStyles.optionsModalView}>
 
         <TouchableHighlight
-          onPress={() => {
-            insertBlock({ variables: { blockedId: props.currentUserId, blockerId: props.userId }});
-            const filteredData = props.allData.filter((like) => { return like.likerId != props.currentUserId });
-            props.setAllData(filteredData); 
-            props.setVisible(!props.visible);
-          }}>
+          onPress={blockUser}>
           <Text style={homeStyles.optionsModalButtons}>Block User</Text>
         </TouchableHighlight>
 
         <TouchableHighlight
-          onPress={() => {
-            insertBlock({ variables: { blockedId: props.currentUserId, blockerId: props.userId }});
-            props.setVisible(!props.visible);
-          }}>
+          onPress={removeUser}>
           <Text style={homeStyles.optionsModalButtons}>Remove User</Text>
         </TouchableHighlight>
 
         <TouchableHighlight
-          onPress={() => {
-            props.setVisible(!props.visible);
-          }}>
+          onPress={cancel}>
           <Text style={homeStyles.optionsModalButtons}>Cancel</Text>
         </TouchableHighlight>
       </View>

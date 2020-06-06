@@ -1,9 +1,9 @@
 import React from 'react';
-import VideoContents from './HomeContents';
+import HomeContents from './HomeContents';
 
 export default function HomeView({ route, navigation }) {
   return (
-    <VideoContents 
+    <HomeContents 
       route={route}
       navigation={navigation}
     />

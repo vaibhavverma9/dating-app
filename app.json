@@ -1,26 +1,26 @@
 {
   "expo": {
-    "name": "Reeltalk",
-    "description": "The most authentic, least superficial dating app ever.",
-    "slug": "reeltalk",
-    "backgroundColor" : "#734f96", 
-    "primaryColor" : "#734f96", 
+    "name": "Realtalk",
+    "description": "The least superficial dating app ever.",
+    "slug": "realtalk",
+    "backgroundColor": "#734f96",
+    "primaryColor": "#734f96",
     "platforms": [
       "ios",
       "android",
       "web"
     ],
-    "version": "1.1.1",
+    "version": "1.1.7",
     "orientation": "portrait",
     "icon": "./app/assets/icon.png",
-    "scheme" : "reeltalk", 
+    "scheme": "reeltalk",
     "splash": {
       "image": "./app/assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#734f96"
     },
-    "notification" : {
-      "iosDisplayInForeground" : true
+    "notification": {
+      "iosDisplayInForeground": true
     },
     "updates": {
       "fallbackToCacheTimeout": 0
@@ -30,27 +30,31 @@
     ],
     "ios": {
       "bundleIdentifier": "com.dating.reeltalk",
-      "buildNumber": "1.1.3",
+      "buildNumber": "1.1.7",
       "supportsTablet": true,
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "Reeltalk accesses your library so you can upload videos of you answering questions.",
-        "NSCameraUsageDescription": "Reeltalk accesses your camera so you can record videos answering questions.",
-        "NSMicrophoneUsageDescription" : "Reeltalk accesses your microphone to record the audio of your videos.",
-        "NSLocationWhenInUseUsageDescription": "Reeltalk uses your location to find matches near you."
+        "NSPhotoLibraryUsageDescription": "Realtalk accesses your library so you can upload videos of you answering questions.",
+        "NSCameraUsageDescription": "Realtalk accesses your camera so you can record videos answering questions.",
+        "NSMicrophoneUsageDescription": "Realtalk accesses your microphone to record the audio of your videos.",
+        "NSLocationWhenInUseUsageDescription": "Realtalk uses your location to find matches near you."
       },
-      "config" : {
-        "branch" : {
-          "apiKey" : "key_live_ocPH66UNo92tAuH6QURJFaknssmyp7AS"
+      "config": {
+        "branch": {
+          "apiKey": "key_live_ocPH66UNo92tAuH6QURJFaknssmyp7AS"
         }
       }
     },
     "android": {
       "package": "com.dating.reeltalk",
-      "versionCode": 5,
-      "permissions": ["RECORD_AUDIO", "CAMERA", "READ_EXTERNAL_STORAGE"],
-      "config" : {
-        "branch" : {
-          "apiKey" : "key_live_ocPH66UNo92tAuH6QURJFaknssmyp7AS"
+      "versionCode": 6,
+      "permissions": [
+        "RECORD_AUDIO",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE"
+      ],
+      "config": {
+        "branch": {
+          "apiKey": "key_live_ocPH66UNo92tAuH6QURJFaknssmyp7AS"
         }
       }
     },
@@ -68,6 +72,6 @@
     },
     "facebookScheme": "fb281059376262031",
     "facebookAppId": "281059376262031",
-    "facebookDisplayName": "Reeltalk"  
+    "facebookDisplayName": "Reeltalk"
   }
 }

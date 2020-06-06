@@ -35,7 +35,7 @@ export default function MessagesView(props) {
       setAllData(response.data.likes);
       setInitialized(true); 
     })
-    .catch(error => console.log(error)); 
+    .catch(error => {}); 
   }
 
   useEffect(() => {
@@ -77,7 +77,6 @@ export default function MessagesView(props) {
     if(item){
       const video = item.Liker.userVideos;
       const name = item.Liker.firstName;
-      console.log(name); 
       
       if(video && video.length > 0){
         const muxPlaybackId = video[0].muxPlaybackId;
@@ -209,7 +208,6 @@ export default function MessagesView(props) {
   }
   
   async function likeBack(existingLikerId: number) {
-    console.log(existingLikerId, userId); 
     
     const allDataTemp = allData.map(like => { 
       if(like.likerId == existingLikerId){

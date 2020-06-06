@@ -6,8 +6,8 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import TabStack from '../../stacks/TabStack';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { useMutation } from '@apollo/client';
-import { UPDATE_LATITUDE_LONGITUDE } from '../../utils/graphql/GraphqlClient';
-import { _storeLatitude, _storeLongitude } from '../../utils/asyncStorage'; 
+import { UPDATE_LATITUDE_LONGITUDE, UPDATE_CITY, UPDATE_REGION } from '../../utils/graphql/GraphqlClient';
+import { _storeLatitude, _storeLongitude, _storeCity, _storeRegion } from '../../utils/asyncStorage'; 
 import TermsOnboarding from './TermsOnboarding';
 import { colors } from '../../styles/colors';
 
@@ -16,6 +16,8 @@ export default function LocationOnboarding() {
     const [errorMsg, setErrorMsg] = useState(null);
     const [userId, setUserId] = useContext(UserIdContext);
     const [updateLatitudeLongitude, { updateLatitudeLongitudeData }] = useMutation(UPDATE_LATITUDE_LONGITUDE);
+    const [updateCity, { updateCityData }] = useMutation(UPDATE_CITY);
+    const [updateRegion, { updateRegionData }] = useMutation(UPDATE_REGION);
     const [locationServices, setLocationServices] = useState(false); 
 
     const enableLocation = () => {
@@ -25,23 +27,37 @@ export default function LocationOnboarding() {
                 setErrorMsg('Permission to access location was denied');
             }
 
+            setLocationServices(true); 
+
             let location = await Location.getCurrentPositionAsync({});
 
-            setLocationServices(true); 
-            _storeLatitude(location.coords.latitude); 
-            _storeLongitude(location.coords.longitude); 
+            const latitude = location.coords.latitude; 
+            const longitude = location.coords.longitude; 
+
+            _storeLatitude(latitude); 
+            _storeLongitude(longitude); 
 
             const point = {
                 "type" : "Point", 
                 properties: {
                     name: "EPSG:4326"
                   },
-                "coordinates": [location.coords.longitude, location.coords.latitude]
+                "coordinates": [longitude, latitude]
             }; 
 
-            console.log(point); 
-
             updateLatitudeLongitude({ variables: { userId, point }});
+
+            let postalAddress = await Location.reverseGeocodeAsync({ latitude, longitude });
+
+            const city = postalAddress[0].city; 
+            const region = postalAddress[0].region; 
+
+            _storeCity(city);
+            _storeRegion(region); 
+
+            updateCity({ variables: { userId, city }}); 
+            updateRegion({ variables: { userId, region }}); 
+
         })();
     }
 
@@ -60,8 +76,8 @@ export default function LocationOnboarding() {
                     <View style={{ paddingTop: '10%', height: '25%'}}>
                         <FontAwesome5 name="city" size={45} color={primaryColor} />
                     </View>        
-                    <Text style={{ fontSize: 25, fontWeight: 'bold', padding: 15, color: primaryColor }}>Get matches near you</Text>
-                    <Text style={{ textAlign: 'center', fontSize: 18, padding: 15, color: primaryColor}}>This app uses your location to find matches near you.</Text>
+                    <Text style={{ fontSize: 25, textAlign: 'center', padding: 15, color: primaryColor }}>Get matches near you</Text>
+                    <Text style={{ textAlign: 'center', fontSize: 14, padding: 15, color: primaryColor}}>This app uses your location to find matches near you.</Text>
                     <View style={{ paddingTop: '12%' }}>
                         <TouchableOpacity onPress={enableLocation} style={styles.locationsContainer}>
                             <Text style={styles.locationsText}>Enable Location</Text>

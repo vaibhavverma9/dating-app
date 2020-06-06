@@ -21,7 +21,6 @@ export default function VideosDetailView(props) {
     // changes in routes
     useEffect(() => {
         let params = props.route.params;
-        console.log(params); 
         if (params != undefined){
             setTitle(params.title); 
             setVideos(params.videos); 
@@ -50,7 +49,6 @@ export default function VideosDetailView(props) {
 
         function VideoSubscription({passthroughId}){
             const { data, loading, error } = useSubscription(ON_VIDEO_UPDATED, {variables: { passthroughId : passthroughId }}); 
-            console.log(data, loading, error); 
             if(loading){
                 return null; 
             } 

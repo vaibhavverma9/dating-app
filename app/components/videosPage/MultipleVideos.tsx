@@ -1,14 +1,16 @@
+
+
 import React, { useEffect, useRef, useState } from 'react'; 
 import { Video, Audio } from 'expo-av';   
-import { View } from 'react-native';
+import { View, Animated } from 'react-native';
 
 export default function MultipleVideos(props) {
 
     const renderedGroup = props.limit; 
 
-
     let initialIndex;
-    let indexLimit;  
+    let indexLimit; 
+
     if (props.first) {
         const renderedIndex = Math.round(props.userIndex / renderedGroup); 
         initialIndex = renderedIndex * renderedGroup;
@@ -18,12 +20,6 @@ export default function MultipleVideos(props) {
         initialIndex = renderedIndex * renderedGroup + renderedGroup / 2; 
         indexLimit = renderedIndex * renderedGroup + renderedGroup; 
     }
-
-    useEffect(() => {
-        Audio.setAudioModeAsync({
-            playsInSilentModeIOS: true
-        }); 
-    }, []);
 
     const playingData = { 
         isMuted: false, 
@@ -41,7 +37,14 @@ export default function MultipleVideos(props) {
         display: "none"
     }
 
-    const renderedVideos = [];
+
+    useEffect(() => {
+        Audio.setAudioModeAsync({
+            playsInSilentModeIOS: true
+        }); 
+    }, []);
+
+    const renderedVideos = []; 
 
     if(props.videoData) {
 
@@ -52,7 +55,7 @@ export default function MultipleVideos(props) {
                 for (let j = 0; j < user.userVideos.length; j++){
                     const muxPlaybackId = user.userVideos[j].muxPlaybackId; 
                     const muxPlaybackUrl = 'https://stream.mux.com/' + muxPlaybackId + '.m3u8';
-    
+
                     if(props.userIndex == i && props.videoIndex == j){
                         renderedVideos.push(
                             <PlayingVideo
@@ -83,21 +86,24 @@ export default function MultipleVideos(props) {
             }
 
         }
-        return(
-            <View>
-                {renderedVideos}
-            </View>
-        )    
-    } else {
-        return null; 
+
     }
+    return(
+        <View>
+            {renderedVideos}
+        </View>
+    )    
 }
 
 function PlayingVideo({playbackObject, source, isMuted, shouldPlay, _onPlaybackStatusUpdate, display}){
+
+    const videoStyle = { width: '100%', height: '100%', display: display}; 
     return(
         <Video
             ref={playbackObject}
             source={{uri: source}}
+            // posterSource={{ uri: posterSource}}
+            // posterStyle={{ width: '100%', height: '100%', display: display, flex: 1 }}
             rate={1.0}
             volume={1.0}
             isMuted={isMuted}
@@ -107,7 +113,7 @@ function PlayingVideo({playbackObject, source, isMuted, shouldPlay, _onPlaybackS
             onPlaybackStatusUpdate={_onPlaybackStatusUpdate}
             progressUpdateIntervalMillis={50}
             isLooping
-            style={{ width: '100%', height: '100%', display: display}}
+            style={videoStyle}
             >
         </Video>
     )

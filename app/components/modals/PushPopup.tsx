@@ -30,11 +30,11 @@ export default function PushPopup(props) {
                         Would you like to be notified when a user likes you?
                     </Text>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-around', width: '100%'}}>
-                        <TouchableHighlight onPress={pushPopup} style={styles.pushOptionsContainer}>
-                            <Text style={styles.pushOptionsText}>Yes</Text>
-                        </TouchableHighlight>
                         <TouchableHighlight onPress={props.setVisible} style={styles.pushOptionsContainer}>
                             <Text style={styles.pushOptionsText}>No</Text>
+                        </TouchableHighlight>
+                        <TouchableHighlight onPress={pushPopup} style={styles.pushOptionsContainer}>
+                            <Text style={styles.pushOptionsText}>Yes</Text>
                         </TouchableHighlight>
                     </View>
                 </View>

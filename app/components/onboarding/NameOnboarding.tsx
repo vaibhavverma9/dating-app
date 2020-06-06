@@ -19,8 +19,6 @@ export default function NameOnboarding() {
     const [name, setName] = useState('Ex: Kevin, Angela'); 
 
     const submitName = () => {
-         console.log("submitName"); 
-         console.log(userId, name); 
          _storeName(name); 
          updateName({ variables: { userId, firstName: name }});
          setNameSubmitted(true); 

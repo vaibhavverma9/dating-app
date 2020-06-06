@@ -11,51 +11,27 @@ export const client = new ApolloClient({
     })
 });
 
+
 export const GET_VIDEOS = gql`
-  query GetVideos ($userId: Int, $limit: Int, $lastUploaded: timestamptz) { 
+  query GetVideos ($userId: Int, $limit: Int, $lastUploaded: timestamptz, $notIntoGender: String, $point: geography!) { 
     users(
       limit: $limit, 
       where: {_and: [
-        {userVideos: {status: {_eq: "ready"}}}, 
+        {_or: [
+          {location: {_is_null: true}},
+          {_not: { location: {_st_d_within: {distance: 300000, from: $point }}}}
+        ]},
+        {gender: {_neq: $notIntoGender}},
+        {userVideos: {status: {_eq: "ready"}}},
         {_not: {id: {_eq: $userId}}},        
-        {_not: {likesByLikedid: {Liker: {id: {_eq: $userId}}}}},
         {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}},
         {lastUploaded: {_lt: $lastUploaded}}
       ]}, 
       order_by: {lastUploaded: desc_nulls_last}
     ) {
       firstName
-      userVideos(limit: 4, where: {status: {_eq: "ready"}}, order_by: {views: asc}) {
-        muxPlaybackId
-        videoQuestion {
-          questionText
-        }
-        id
-        flags
-        likes
-        views
-      }
-      id
-      lastUploaded
-    }
-  }
-`
-
-export const GET_VIDEOS_MAN = gql`
-  query GetVideos ($userId: Int, $limit: Int, $lastUploaded: timestamptz) { 
-    users(
-      limit: $limit, 
-      where: {_and: [
-        {gender: {_eq: "Man"}}
-        {userVideos: {status: {_eq: "ready"}}}, 
-        {_not: {id: {_eq: $userId}}},        
-        {_not: {likesByLikedid: {Liker: {id: {_eq: $userId}}}}},
-        {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}},
-        {lastUploaded: {_lt: $lastUploaded}}
-      ]}, 
-      order_by: {lastUploaded: desc_nulls_last}
-    ) {
-      firstName
+      city
+      region
       userVideos(limit: 4, where: {status: {_eq: "ready"}}, order_by: {views: asc}) {
         muxPlaybackId
         videoQuestion {
@@ -73,51 +49,24 @@ export const GET_VIDEOS_MAN = gql`
 `
 
 
-export const GET_VIDEOS_WOMAN = gql`
-  query GetVideos ($userId: Int, $limit: Int, $lastUploaded: timestamptz) { 
-    users(
-      limit: $limit, 
-      where: {_and: [
-        {_not: {likesByLikedid: {Liker: {id: {_eq: $userId}}}}},
-        {gender: {_eq: "Woman"}}
-        {userVideos: {status: {_eq: "ready"}}}, 
-        {_not: {id: {_eq: $userId}}},        
-        {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}},
-        {lastUploaded: {_lt: $lastUploaded}}
-      ]}, 
-      order_by: {lastUploaded: desc_nulls_last}
-    ) {
-      firstName
-      userVideos(limit: 4, where: {status: {_eq: "ready"}}, order_by: {views: asc}) {
-        muxPlaybackId
-        videoQuestion {
-          questionText
-        }
-        id
-        flags
-        likes
-        views
-      }
-      id
-      lastUploaded
-    }
-  }
-`
 
 export const GET_VIDEOS_NEARBY = gql`
-  query GetVideos ($userId: Int, $point: geography!) { 
+  query GetVideosNearby ($userId: Int, $limit: Int, $lastUploaded: timestamptz, $notIntoGender: String, $point: geography!) { 
     users(
-      limit: 10, 
+      limit: $limit, 
       where: {_and: [
-        {userVideos: {status: {_eq: "ready"}}}, 
-        {_not: {id: {_eq: $userId}}},        
-        {_not: {likesByLikedid: {Liker: {id: {_eq: $userId}}}}},
-        {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}},
-        { location: {_st_d_within: {distance: 20000, from: $point }}}
+        { location: {_st_d_within: {distance: 300000, from: $point }}},
+        {userVideos: {status: {_eq: "ready"}}},
+        {gender: {_neq: $notIntoGender}},
+        {lastUploaded: {_lt: $lastUploaded}},
+        {_not: {id: {_eq: $userId}}},
+        {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}}
       ]}, 
       order_by: {lastUploaded: desc_nulls_last}
     ) {
       firstName
+      city
+      region
       userVideos(limit: 4, where: {status: {_eq: "ready"}}, order_by: {views: asc}) {
         muxPlaybackId
         videoQuestion {
@@ -125,8 +74,11 @@ export const GET_VIDEOS_NEARBY = gql`
         }
         id
         flags
+        likes
+        views
       }
       id
+      lastUploaded
     }
   }
 `; 
@@ -237,38 +189,29 @@ export const GET_ASSET_STATUS = `
         }
     }
 `
-        // {Liker: {userVideos: {}}}, 
-
-
 export const GET_LIKES = gql`
-    query GetLikes ($userId: Int) {
-      likes(where: {_and: [
-        {likedId: {_eq: $userId}},
-        {Liker: {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}}}, 
-        {likerId: {_neq: $userId}}
-      ]}, 
-        order_by: {created_at: desc}) {
-        matched
-        likerId
-        created_at
-        Liker {
-          firstName
+  query GetLikes($userId: Int) {
+    likes(distinct_on: likerId, where: {_and: [{likedId: {_eq: $userId}}, {Liker: {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}}}, {likerId: {_neq: $userId}}]}) {
+      matched
+      likerId
+      created_at
+      Liker {
+        firstName
+        id
+        messages(where: {receiverId: {_eq: $userId}}, limit: 1, order_by: {created_at: desc}) {
+          message
+        }
+        userVideos(limit: 1, order_by: {created_at: asc}, where: {muxPlaybackId: {_is_null: false}}) {
+          videoQuestion {
+            questionText
+          }
           id
-          messages(where: {receiverId: {_eq: $userId}}, limit: 1, order_by: {created_at: desc}) {
-            message
-          }
-          userVideos(limit: 1, order_by: {created_at: desc}) {
-            videoQuestion {
-              questionText
-            }
-            muxPlaybackId
-          }
+          muxPlaybackId
         }
       }
-    }  
+    }
+  }
 `
-
-// likerId
 
 export const GET_LIKE = gql`
     query GetLike ($likerId: Int, $likedId: Int) {
@@ -339,6 +282,7 @@ export const ON_VIDEO_UPDATED = gql`
       questionId
       status
       userId
+      id
     }
   }
 `
@@ -374,6 +318,22 @@ export const UPDATE_LATITUDE_LONGITUDE = gql`
 export const UPDATE_ONBOARDED = gql`
   mutation UpdateOnboarded ($userId: Int, $onboarded: Boolean) {
     update_users(where: {id: {_eq: $userId}}, _set: {onboarded: $onboarded}) {
+      affected_rows
+    }
+  }
+`
+
+export const UPDATE_CITY = gql`
+  mutation UpdateName ($userId: Int, $city: String) {
+    update_users(where: {id: {_eq: $userId}}, _set: {city: $city}) {
+      affected_rows
+    }
+  }
+`
+
+export const UPDATE_REGION = gql`
+  mutation UpdateName ($userId: Int, $region: String) {
+    update_users(where: {id: {_eq: $userId}}, _set: {region: $region}) {
       affected_rows
     }
   }
@@ -446,6 +406,24 @@ export const UPDATE_VIDEO_LIKES = gql`
 export const UPDATE_VIDEO_VIEWS = gql`
   mutation UpdateVideoViews($id: Int, $views: Int){
     update_videos(where: {id: {_eq: $id}}, _set: {views: $views}) {
+      affected_rows
+    }
+  }
+`
+
+export const GET_CITY_REGION = gql`
+  query getCityRegion($userId: Int) {
+    users(where: {id: {_eq: $userId}}) {
+      city
+      region
+    }
+  }
+
+`
+
+export const DELETE_VIDEO = gql`
+  mutation DeleteVideos($videoId: Int) {
+    delete_videos(where: {id: {_eq: $videoId}}) {
       affected_rows
     }
   }

@@ -5,7 +5,7 @@ export const homeStyles = StyleSheet.create({
         ...StyleSheet.absoluteFill, 
         alignItems: 'center',
         justifyContent: 'flex-end',
-        height: '15%'
+        height: '18%'
     },
     optionsModalButtons: {
         fontSize: 24,
@@ -18,9 +18,17 @@ export const homeStyles = StyleSheet.create({
     },
     progressBarContainer: {
         position: 'absolute',
-        top: '15%',
+        top: '18%',
         left: 0,
         right: 0,
         flexDirection: 'row'
-    }
+    },
+    userInfoContainer: {
+        ...StyleSheet.absoluteFill, 
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '15%',
+        flexDirection: 'row'
+    },
+
 });

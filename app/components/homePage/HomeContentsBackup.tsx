@@ -1,19 +1,20 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import { Text, View, ActivityIndicator, StyleSheet } from 'react-native';
+import { Text, View, ActivityIndicator } from 'react-native';
 import { homeStyles } from '../../styles/homeStyles';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons'
-import { useMutation, useLazyQuery } from '@apollo/client';
+import { useMutation } from '@apollo/client';
 import { INSERT_LIKE, GET_LIKE, client, GET_VIDEOS, INSERT_USER, UPDATE_LIKE, GET_NUMBER_VIDEOS, UPDATE_PUSH_TOKEN, GET_USER_INFO, UPDATE_VIDEO_LIKES, UPDATE_VIDEO_VIEWS, GET_GENDER_INTEREST, GET_VIDEOS_WOMAN, GET_VIDEOS_MAN, GET_VIDEOS_NEARBY } from '../../utils/graphql/GraphqlClient';
 import OptionsModal from './OptionsModal'; 
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import * as Segment from 'expo-analytics-segment';
-// _storeLastWatchedUpper, _storeLastWatchedLower, _retrieveLastWatchedUpper, _retrieveLastWatchedLower
-import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid, _retrieveLatitude, _retrieveLongitude, _retrieveName, _retrievePushShown, _storePushShown, _storeName, _storeBio, _retrieveBio, _retrieveGenderInterest, _storeGenderInterest } from '../../utils/asyncStorage'; 
+import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid, _retrieveLatitude, _retrieveLongitude, _retrieveName, _retrievePushShown, _storePushShown, _storeName, _storeBio, _retrieveBio, _retrieveGenderInterest, _storeGenderInterest, _storeLastWatchedUpper, _storeLastWatchedLower, _retrieveLastWatchedUpper, _retrieveLastWatchedLower } from '../../utils/asyncStorage'; 
 import AddVideoPopup from '../modals/AddVideoPopup'; 
 import PushPopup from '../modals/PushPopup'; 
 import { PanResponder } from 'react-native'; 
+import AnimatedBar from "react-native-animated-bar";
 import MultipleVideos from '../videosPage/MultipleVideos'; 
+import { LocationContext } from '../../utils/context/LocationContext';
 import { useDoormanUser } from 'react-native-doorman'
 import { Notifications } from 'expo';
 import Constants from 'expo-constants';
@@ -22,14 +23,12 @@ import axios from 'axios';
 import * as Network from 'expo-network';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import SingleVideo from '../videosPage/SingleVideo';
-import ProgressBar from 'react-native-progress/Bar'
-import { Dimensions } from 'react-native';
 
 export default function HomeContents(props) {
 
   const { uid, phoneNumber } = useDoormanUser();
   const [videoData, setVideoData] = useState(null); 
-  const limit = 2;
+  const limit = 4;
   const [questionText, setQuestionText] = useState(''); 
   const [shouldPlay, setShouldPlay] = useState(true); 
 
@@ -43,10 +42,6 @@ export default function HomeContents(props) {
   
   const [userId, setUserId] = useContext(UserIdContext);
   const [name, setName] = useState(''); 
-  const [genderInterest, setGenderInterest] = useState(''); 
-  const [latitude, setLatitude] = useState(null);
-  const [longitude, setLongitude] = useState(null);
-
   const [userIndex, setUserIndex] = useState(0); 
   const [videoIndex, setVideoIndex] = useState(0);
   const [flags, setFlags] = useState(0); 
@@ -76,27 +71,20 @@ export default function HomeContents(props) {
 
   const [optionsModalVisible, setOptionsModalVisible] = useState(false); 
 
+  const [genderInterest, setGenderInterest] = useState(null);
+  const [lastWatchedUpper, setLastWatchedUpper] = useState(null); 
+  const [lastWatchedLower, setLastWatchedLower] = useState(null); 
+
   let playbackObject = useRef(null); 
 
   const [connectedInternet, setConnectedInternet] = useState(true); 
-  const [timedOut, setTimedOut] = useState(false);
-
-  const [getVideosNearby, { data: videosNearby }] = useLazyQuery(GET_VIDEOS_NEARBY, 
-    { 
-      onCompleted: (videosNearby) => { processVideosNearby(videosNearby) } 
-    }); 
-
-  const [getVideos, { data: videos }] = useLazyQuery(GET_VIDEOS, 
-    { 
-      onCompleted: (videos) => { processVideos(videos) } 
-    }); 
-    
 
   const _panResponder = PanResponder.create({
     onStartShouldSetPanResponder: (evt, gestureState) => true,
     onStartShouldSetPanResponderCapture: (evt, gestureState) => true,
     onMoveShouldSetPanResponder: (evt, gestureState) => {},
     onMoveShouldSetPanResponderCapture: (evt, gestureState) => {},
+
     onPanResponderGrant: (evt, gestureState) => {},
     onPanResponderMove: (evt, gestureState) => {},
     onPanResponderTerminationRequest: (evt, gestureState) => true,
@@ -123,7 +111,6 @@ export default function HomeContents(props) {
     initSegment(); 
     countProfileVideos(userId); 
     networkConnected(); 
-    setTimeout(() => { setTimedOut(true) }, 5000); 
   }, []);
 
   async function networkConnected(){
@@ -133,43 +120,27 @@ export default function HomeContents(props) {
 
   function reload(){
     setConnectedInternet(true); 
-    setTimedOut(false); 
     queryVideosGenderInterest();
     initSegment(); 
     networkConnected(); 
-    setTimeout(() => { setTimedOut(true) }, 5000); 
   }
 
   async function queryVideosGenderInterest(){
-
-    let genderInterestLocal = genderInterest; 
-    let latitudeLocal = latitude; 
-    let longitudeLocal = longitude; 
-
-    genderInterestLocal = await _retrieveGenderInterest(); 
-    if(genderInterestLocal == ''){
+    let genderInterest = await _retrieveGenderInterest(); 
+    if(genderInterest == ''){
       client.query({ query: GET_GENDER_INTEREST, variables: { userId }})
       .then(response => {
-        genderInterestLocal = response.data.users[0].genderInterest; 
-        _storeGenderInterest(genderInterestLocal); 
+        genderInterest = response.data.users[0].genderInterest; 
+        _storeGenderInterest(genderInterest); 
       })
-    }
-    setGenderInterest(genderInterestLocal); 
-
-    if(latitudeLocal == null){
-      latitudeLocal = await _retrieveLatitude(); 
-      setLatitude(latitudeLocal); 
-    }
-
-    if(longitudeLocal == null){
-      longitudeLocal = await _retrieveLongitude(); 
-      setLongitude(longitudeLocal); 
+    } else {
+      setGenderInterest(genderInterest); 
     }
 
     // let lastWatchedUpper = await _retrieveLastWatchedUpper(); 
     // let lastWatchedLower = await _retrieveLastWatchedLower(); 
 
-    queryVideos(userId, limit, lastUploaded, genderInterestLocal, nearbyResults, latitudeLocal, longitudeLocal);
+    queryVideos(userId, limit, lastUploaded, genderInterest, nearbyResults);
   }
 
   async function initSegment() {
@@ -178,6 +149,8 @@ export default function HomeContents(props) {
     if(name == '' || bio == ''){
       client.query({ query: GET_USER_INFO, variables: { userId }})
       .then(response => {
+
+
         if(response.data.users[0].firstName && name == ''){
           name = response.data.users[0].firstName; 
           setName(name); 
@@ -207,99 +180,97 @@ export default function HomeContents(props) {
     })
   }
 
-  async function queryVideos(userId, limit, lastUploaded, genderInterest, nearbyResults, latitude, longitude){
+  async function queryVideos(userId, limit, lastUploaded, genderInterest, nearbyResults){
+
+    const latitude = await _retrieveLatitude();
+    const longitude = await _retrieveLongitude();  
 
     const point = {
         "type" : "Point", 
         "coordinates": [latitude, longitude]
     }; 
 
-    let notIntoGender = ""; 
+    let notIntoGender = ''; 
     if(genderInterest == "Women"){
-      notIntoGender = "Man"; 
-    } else if(genderInterest == "Men"){
-      notIntoGender = "Woman"; 
+      notIntoGender = 'Man'; 
+    } else if(genderInterest == 'Men'){
+      notIntoGender = 'Woman'; 
     }
 
     if(nearbyResults){
-      getVideosNearby({ variables: { userId, limit, lastUploaded, notIntoGender, point } }); 
+      client.query({ query: GET_VIDEOS_NEARBY, variables: { userId, limit, lastUploaded, notIntoGender, point } })
+      .then((response) => {
+
+        if(!initialized){
+          if(response.data.users.length > 0){
+            setInitialized(true); 
+            setVideoData(response.data);
+            setCurrentUserId(response.data.users[0].id); 
+            setCurrentName(response.data.users[0].firstName);
+            setCurrentCity(response.data.users[0].city);
+            setCurrentRegion(response.data.users[0].region);
+  
+            setMuxPlaybackId(response.data.users[0].userVideos[0].muxPlaybackId); 
+            setUserCount(response.data.users.length); 
+            setLastUploaded(response.data.users[response.data.users.length - 1].lastUploaded)
+            setCurrentUserVideoCount(response.data.users[0].userVideos.length);
+            setQuestionText(response.data.users[0].userVideos[0].videoQuestion.questionText);  
+          } else {
+            setNearbyResults(false); 
+            queryVideos(userId, limit, lastUploaded, genderInterest, false); 
+          }   
+        } else {
+          const tempVideoData = { users: [...videoData.users, ...response.data.users] }
+          setVideoData(tempVideoData);
+          setUserCount(userCount + response.data.users.length); 
+  
+          if(response.data.users.length == 0){
+            setQuerying(true); 
+          } else {
+            setLastUploaded(response.data.users[response.data.users.length - 1].lastUploaded);
+            setQuerying(false);   
+          }
+        }
+      })
+      .catch((error) => {
+        return 0; 
+      });
     } else {
-      getVideos({ variables: { userId, limit, lastUploaded, notIntoGender, point } });
+      client.query({ query: GET_VIDEOS, variables: { userId, limit, lastUploaded, notIntoGender } })
+      .then((response) => {  
+        if(!initialized){
+          if(response.data.users.length > 0){
+            setInitialized(true); 
+            setVideoData(response.data);
+            setCurrentUserId(response.data.users[0].id); 
+            setCurrentName(response.data.users[0].firstName);
+            setCurrentCity(response.data.users[0].city);
+            setCurrentRegion(response.data.users[0].region);
+
+            setMuxPlaybackId(response.data.users[0].userVideos[0].muxPlaybackId); 
+            setUserCount(response.data.users.length); 
+            setLastUploaded(response.data.users[response.data.users.length - 1].lastUploaded)
+            setCurrentUserVideoCount(response.data.users[0].userVideos.length);
+            setQuestionText(response.data.users[0].userVideos[0].videoQuestion.questionText);  
+          } 
+        } else {
+          const tempVideoData = { users: [...videoData.users, ...response.data.users] }
+          setVideoData(tempVideoData);
+          setUserCount(userCount + response.data.users.length); 
+  
+          if(response.data.users.length == 0){
+            setQuerying(true); 
+          } else {
+            setLastUploaded(response.data.users[response.data.users.length - 1].lastUploaded);
+            setQuerying(false);   
+          }
+        }
+      })
+      .catch((error) => {
+        return 0; 
+      });
     }
   }
-
-  function processVideosNearby(data){
-    if(!initialized){
-
-      if(data.users.length == 0){
-        queryVideos(userId, limit, null, genderInterest, false, latitude, longitude); 
-        setLastUploaded(null); 
-      }
-
-      if(data.users.length > 0){
-        setInitialized(true); 
-        setVideoData(data);
-        setCurrentUserId(data.users[0].id); 
-        setCurrentName(data.users[0].firstName);
-        setCurrentCity(data.users[0].city);
-        setCurrentRegion(data.users[0].region);
-
-        setMuxPlaybackId(data.users[0].userVideos[0].muxPlaybackId); 
-        setUserCount(data.users.length); 
-        setLastUploaded(data.users[data.users.length - 1].lastUploaded)
-        setCurrentUserVideoCount(data.users[0].userVideos.length);
-        setQuestionText(data.users[0].userVideos[0].videoQuestion.questionText);  
-      }
-      
-      if(data.users.length < limit){
-        setNearbyResults(false); 
-        setLastUploaded(null); 
-      }
-
-    } else {
-      const tempVideoData = { users: [...videoData.users, ...data.users] }
-      setVideoData(tempVideoData);
-      setUserCount(userCount + data.users.length); 
-
-      if(data.users.length == 0){
-        setQuerying(true); 
-      } else {
-        setLastUploaded(data.users[data.users.length - 1].lastUploaded);
-        setQuerying(false);   
-      }
-    }
-  }
-
-  function processVideos(data){
-    if(!initialized){
-      if(data.users.length > 0){
-        setInitialized(true); 
-        setVideoData(data);
-        setCurrentUserId(data.users[0].id); 
-        setCurrentName(data.users[0].firstName);
-        setCurrentCity(data.users[0].city);
-        setCurrentRegion(data.users[0].region);
-
-        setMuxPlaybackId(data.users[0].userVideos[0].muxPlaybackId); 
-        setUserCount(data.users.length); 
-        setLastUploaded(data.users[data.users.length - 1].lastUploaded)
-        setCurrentUserVideoCount(data.users[0].userVideos.length);
-        setQuestionText(data.users[0].userVideos[0].videoQuestion.questionText);  
-      } 
-    } else {
-      const tempVideoData = { users: [...videoData.users, ...data.users] }
-      setVideoData(tempVideoData);
-      setUserCount(userCount + data.users.length); 
-
-      if(data.users.length == 0){
-        setQuerying(true); 
-      } else {
-        setLastUploaded(data.users[data.users.length - 1].lastUploaded);
-        setQuerying(false);   
-      }
-    }
-  }
-
 
   // changes in tabs will affect shouldPlay 
   useEffect(() => {
@@ -308,32 +279,9 @@ export default function HomeContents(props) {
     });
 
     props.navigation.addListener('focus', () => {
-      setShouldPlay(true);
-      checkGenderPreferences(); 
+      setShouldPlay(true); 
     });  
   }, [props.navigation])
-
-  async function checkGenderPreferences(){
-    const genderInterestLocal = await _retrieveGenderInterest(); 
-    if(genderInterestLocal != genderInterest){
-      setGenderInterest(genderInterestLocal); 
-
-      setInitialized(false); 
-      setVideoData(null);
-      setCurrentUserId(0); 
-      setCurrentName('');
-      setCurrentCity('');
-      setCurrentRegion('');
-      setUserIndex(0);
-      setVideoIndex(0);
-      setNearbyResults(true);
-      setMuxPlaybackId(''); 
-      setUserCount(0); 
-      setLastUploaded(null); 
-      setCurrentUserVideoCount(0);
-      setQuestionText('');  
-    }
-  }
 
   const registerForPushNotificationsAsync = async () => {
     if (Constants.isDevice) {
@@ -368,7 +316,7 @@ export default function HomeContents(props) {
     }); 
   }
 
-  async function onPressHeart () { 
+  const onPressHeart = async () => { 
     setHeartColor("#734f96"); 
 
     sendLike();
@@ -433,7 +381,7 @@ export default function HomeContents(props) {
 
     if(videoData && userIndex + limit > videoData.users.length && !querying){
       setQuerying(true); 
-      queryVideosGenderInterest(); 
+      queryVideos(userId, limit, lastUploaded, genderInterest, nearbyResults);
     }
 
   }, [videoIndex, userIndex, videoData])
@@ -491,7 +439,7 @@ export default function HomeContents(props) {
   }
 
 
-  function moreOptions() {
+  const moreOptions = () => {
     setOptionsModalVisible(true); 
   }
 
@@ -503,14 +451,12 @@ export default function HomeContents(props) {
   const [currentProgress, setCurrentProgress] = useState(0); 
 
   const progressBarWidth = () => {
-    const windowWidth = Dimensions.get('window').width;
-    return windowWidth / currentUserVideoCount;
-    // switch(currentUserVideoCount) {
-    //   case 1: return windowWidth;
-    //   case 2: return '50%'; 
-    //   case 3: return '33.3%';
-    //   case 4: return '25%'; 
-    // }
+    switch(currentUserVideoCount) {
+      case 1: return '100%';
+      case 2: return '50%'; 
+      case 3: return '33.3%';
+      case 4: return '25%'; 
+    }
   }
 
   function ProgressBarsContainer () {
@@ -529,44 +475,39 @@ export default function HomeContents(props) {
     for (let i = 0; i < currentUserVideoCount; i++){
       if(i < videoIndex){
         animatedBars.push(
-          <ProgressBar
-             progress={1}
-             width={width}
-             key={i}
-            
-             color="#734f96"
-             unfilledColor="#E6E6FA"
-             borderColor="#000"
-             borderRadius={1}
-             height={3}
-            />
+          <AnimatedBar 
+            key={i}
+            style={{ width }}
+            progress={1}
+            fillColor="#E6E6FA"
+            barColor="#734f96"
+            height={5}
+            duration={50}
+          />  
         )
       } else if (i == videoIndex) {
         animatedBars.push(
-          <ProgressBar
+          <AnimatedBar 
             key={i}
+            style={{ width }}
             progress={currentProgress}
-             width={width}
-             color="#734f96"
-             unfilledColor="#E6E6FA"
-             borderColor="#000"
-             borderRadius={1}
-             height={3}
-
-            />
+            fillColor="#E6E6FA"
+            barColor="#734f96"
+            height={5}
+            duration={50}
+          />  
         )
       } else {
         animatedBars.push(
-          <ProgressBar
-             progress={0}
-             width={width}
-             key={i}
-             color="#734f96"
-             unfilledColor="#E6E6FA"
-             borderColor="#000"
-             borderRadius={1}
-             height={3}
-            />
+          <AnimatedBar 
+            key={i}
+            style={{ width }}
+            progress={0}
+            fillColor="#E6E6FA"
+            barColor="#734f96"
+            height={5}
+            duration={50}
+          />  
         )
       }
     }
@@ -574,12 +515,8 @@ export default function HomeContents(props) {
   }
 
   const _onPlaybackStatusUpdate = playbackStatus => {
-    if(playbackStatus.positionMillis && playbackStatus.durationMillis){
-      const progress = playbackStatus.positionMillis / playbackStatus.durationMillis; 
-      setCurrentProgress(progress);   
-    } else {
-      setCurrentProgress(0); 
-    }
+    const progress = playbackStatus.positionMillis / playbackStatus.durationMillis; 
+    setCurrentProgress(progress); 
   };
 
   function UserInfo(){
@@ -587,15 +524,15 @@ export default function HomeContents(props) {
       if(currentCity && currentRegion){
         return (
           <View style={homeStyles.userInfoContainer}>
-            <Text style={styles.currentNameText}>{currentName}</Text>
-            <Text style={styles.separatorText}>{'\u2B24'}</Text>
-            <Text style={styles.locationText}>{currentCity}, {currentRegion}</Text>        
+            <Text style={{ color: '#eee', paddingRight: 5}}>{currentName}</Text>
+            <Text style={{ color: '#eee', fontSize: 5}}>{'\u2B24'}</Text>
+            <Text style={{ color: '#eee', paddingLeft: 5}}>{currentCity},{currentRegion}</Text>        
           </View>
         )    
       } else {
         return (
           <View style={homeStyles.userInfoContainer}>
-            <Text style={styles.currentNameTextNoPad}>{currentName}</Text>        
+            <Text style={{ color: '#eee'}}>{currentName}</Text>        
           </View>
         )    
       }
@@ -604,13 +541,11 @@ export default function HomeContents(props) {
     }
   }
 
-
-
   if(initialized){
     if('ios' in Constants.platform){
       return (
-        <View style={styles.viewBackground}>
-          <View style={styles.videosView} {..._panResponder.panHandlers}>
+        <View style={{ flex: 1, backgroundColor: '#eee'}}>
+          <View style={{ flex: 9, backgroundColor: '#000' }} {..._panResponder.panHandlers}>
             <MultipleVideos 
               key={Math.round(userIndex / limit)} 
               limit={limit}
@@ -638,12 +573,12 @@ export default function HomeContents(props) {
             />
             <ProgressBarsContainer />
             <BlurView tint="dark" intensity={20} style={homeStyles.questionContainer}>
-              <Text style={styles.questionText}>{questionText}</Text>
+              <Text style={{fontSize: 18,color: "#eee", padding: 15, paddingTop: 20, textAlign: 'center'}}>{questionText}</Text>
   
             </BlurView>
             <UserInfo />
           </View>
-          <View style={styles.heartView}>
+          <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center', paddingBottom: 20, flexDirection: 'row', justifyContent: 'space-evenly'}}>
               <Ionicons name='ios-more' onPress={moreOptions} size={30} color="#eee" />        
               <Ionicons name='md-heart' onPress={onPressHeart} size={45} color={heartColor} />        
           </View>
@@ -672,8 +607,8 @@ export default function HomeContents(props) {
       );
     } else {
       return (
-        <View style={styles.viewBackground}>
-          <View style={styles.videosView} {..._panResponder.panHandlers}>
+        <View style={{ flex: 1, backgroundColor: '#eee'}}>
+          <View style={{ flex: 9, backgroundColor: '#000' }} {..._panResponder.panHandlers}>
             <SingleVideo 
               shouldPlay={shouldPlay}
               source={'https://stream.mux.com/' + muxPlaybackId + '.m3u8'}
@@ -682,12 +617,12 @@ export default function HomeContents(props) {
             </SingleVideo>
             <ProgressBarsContainer />
             <BlurView tint="dark" intensity={20} style={homeStyles.questionContainer}>
-              <Text style={styles.questionText}>{questionText}</Text>
+              <Text style={{fontSize: 18,color: "#eee", padding: 15, paddingTop: 20, textAlign: 'center'}}>{questionText}</Text>
   
             </BlurView>
             <UserInfo />
           </View>
-          <View style={styles.heartView}>
+          <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center', paddingBottom: 20, flexDirection: 'row', justifyContent: 'space-evenly'}}>
               <Ionicons name='ios-more' onPress={moreOptions} size={30} color="#eee" />        
               <Ionicons name='md-heart' onPress={onPressHeart} size={45} color={heartColor} />        
           </View>
@@ -716,33 +651,20 @@ export default function HomeContents(props) {
       );    
     }
   } else {
-    if(connectedInternet && !timedOut){
+    if(connectedInternet){
       return (
-        <View style={styles.badInternetView}>
+        <View style={{ backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1}}>
           <ActivityIndicator size="small" color="#eee" />
         </View>
       )  
     } else {
       return (
-        <View style={styles.badInternetView}>
+        <View style={{ backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1}}>
           <TouchableOpacity onPress={reload} style={{ borderWidth: 1, borderColor: '#eee', justifyContent: 'center', borderRadius: 5}}>
-            <Text style={styles.reloadText}>Reload</Text>          
+            <Text style={{ color: '#eee', fontSize: 20, paddingHorizontal: 20, paddingVertical: 5}}>Reload</Text>          
           </TouchableOpacity>
         </View>
       )
     }
   }
 }
-
-const styles = StyleSheet.create({
-  currentNameText: { color: '#eee', paddingRight: 5},
-  separatorText: { color: '#eee', fontSize: 5},
-  locationText: { color: '#eee', paddingLeft: 5},
-  currentNameTextNoPad: { color: '#eee'},
-  viewBackground: { flex: 1, backgroundColor: '#eee'},
-  videosView: { flex: 9, backgroundColor: '#000' },
-  questionText: {fontSize: 18,color: "#eee", padding: 15, paddingTop: 20, textAlign: 'center'},
-  heartView: { position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center', paddingBottom: 20, flexDirection: 'row', justifyContent: 'space-evenly'},
-  badInternetView: { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1},
-  reloadText: { color: '#eee', fontSize: 20, paddingHorizontal: 20, paddingVertical: 5}
-});
