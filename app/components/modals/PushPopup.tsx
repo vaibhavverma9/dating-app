@@ -25,7 +25,7 @@ export default function PushPopup(props) {
                     <View style={{ height: '80%', width: '100%'}}>
                     </View>
                 </TouchableWithoutFeedback>
-                <View style={{ backgroundColor: colors.secondaryBlack, padding: 16, height: '25%', justifyContent: 'space-evenly', alignItems:'center', borderRadius: 4}}>
+                <View style={{ backgroundColor: colors.primaryPurple, padding: 16, height: '25%', justifyContent: 'space-evenly', alignItems:'center', borderRadius: 4}}>
                     <Text style={{ fontSize: 20, fontWeight: 'bold', textAlign: 'center', color: colors.secondaryWhite }}>
                         Would you like to be notified when a user likes you?
                     </Text>
@@ -45,7 +45,7 @@ export default function PushPopup(props) {
 
 const styles = StyleSheet.create({
     pushOptionsContainer: { 
-        backgroundColor: colors.secondaryGray, 
+        backgroundColor: colors.primaryWhite, 
         borderRadius: 5,
         width: 150,
         height: 50, 
@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
     }, 
     pushOptionsText: {
         fontSize: 18,
-        color: colors.primaryWhite,
+        color: colors.primaryPurple,
         fontWeight: '400'
     }
 })

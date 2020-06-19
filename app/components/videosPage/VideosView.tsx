@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { View, Image, Text, TouchableOpacity, ImageBackground, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Image, Text, TouchableOpacity, ImageBackground, ActivityIndicator, StyleSheet, RefreshControl } from 'react-native';
 import * as Segment from 'expo-analytics-segment';
 import { Dimensions } from "react-native"; 
-import { GET_LAST_DAY_VIDEOS, INSERT_INIT_VIDEO, UPDATE_LAST_UPLOADED, ON_VIDEO_UPDATED, INSERT_USER, GET_USERS_BY_UID, GET_PAST_VIDEOS, client } from '../../utils/graphql/GraphqlClient';
+import { GET_LAST_DAY_VIDEOS, INSERT_INIT_VIDEO, UPDATE_LAST_UPLOADED, ON_VIDEO_UPDATED, INSERT_USER, GET_USERS_BY_UID, GET_PAST_VIDEOS, DELETE_VIDEO_PASSTHROUGH_ID, client } from '../../utils/graphql/GraphqlClient';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { ScrollView } from 'react-native-gesture-handler';
-import { useMutation, useSubscription } from '@apollo/client';
+import { useMutation, useSubscription, useLazyQuery } from '@apollo/client';
 import FullPageVideos from '../modals/FullPageVideos';
 import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid, _retrieveName, _retrieveBio } from '../../utils/asyncStorage'; 
 import axios from 'axios';
@@ -21,11 +21,14 @@ export default function VideosView(props) {
     const [userId, setUserId] = useContext(UserIdContext);
     const [insertInitVideo, { insertInitVideoData }] = useMutation(INSERT_INIT_VIDEO); 
     const [updateLastUploaded, { updateLastUploadedData }] = useMutation(UPDATE_LAST_UPLOADED);
+    const [deleteVideoPassthrough, { deleteVideoPassthroughData }] = useMutation(DELETE_VIDEO_PASSTHROUGH_ID); 
+
     const [uploadedVideos, setUploadedVideos] = useState([]); 
     const [name, setName] = useState(''); 
     const [bio, setBio] = useState(''); 
     const [initialized, setInitialized] = useState(false); 
     const [settingsVisible, setSettingsVisible] = useState(false); 
+    const [timedOut, setTimedOut] = useState(false);
 
     const [bestVideos, setBestVideos] = useState([]);
     const [averageVideos, setAverageVideos] = useState([]);
@@ -35,12 +38,49 @@ export default function VideosView(props) {
     const thumbnailPadding = '0.2%'; 
     const length = 110; 
 
+    const [getStoredLastDayVideos, { data: storedLastDayVideosData }] = useLazyQuery(GET_LAST_DAY_VIDEOS, 
+    { 
+        onCompleted: (storedLastDayVideosData) => { setStoredLastDayVideos(storedLastDayVideosData.videos) } 
+    }); 
+
+    const [getPastVideos, { data: getPastVideosData }] = useLazyQuery(GET_PAST_VIDEOS, 
+    { 
+        onCompleted: (getPastVideosData) => { initPastVideos(getPastVideosData.videos) } 
+    }); 
+
+
+    function wait(timeout) {
+        return new Promise(resolve => {
+          setTimeout(resolve, timeout);
+        });
+    }
+
+    const [refreshing, setRefreshing] = React.useState(false);
+
+    const onRefresh = React.useCallback(() => {
+        setRefreshing(true);
+
+        getStoredLastDayVideos({variables: { userId, yesterday}}); 
+        getPastVideos({variables: { userId, yesterday}}); 
+
+        wait(2000).then(() => setRefreshing(false));
+    }, [refreshing]);
+
     useEffect(() => {
         Segment.screen('Videos'); 
-        getStoredLastDayVideos(); 
-        getPastVideos(); 
+        getStoredLastDayVideos({variables: { userId, yesterday}}); 
+        getPastVideos({variables: { userId, yesterday}}); 
         initProfile(); 
+        setTimeout(() => { setTimedOut(true) }, 3000); 
     }, [])
+
+    function reload(){
+        setTimedOut(false);   
+        getStoredLastDayVideos({variables: { userId, yesterday}}); 
+        getPastVideos({variables: { userId, yesterday}}); 
+        initProfile(); 
+        setTimeout(() => { setTimedOut(true) }, 3000);   
+    }
 
     useEffect(() => {
         props.navigation.addListener('focus', () => {
@@ -60,7 +100,7 @@ export default function VideosView(props) {
         let params = props.route.params;
         if (params != undefined){
             setUploadedVideos([params, ...uploadedVideos]);
-            postVideo(params, uploadedVideos);
+            postVideo(params);
         }
     }, [props.route])
 
@@ -69,24 +109,12 @@ export default function VideosView(props) {
         setLastDayVideos([blankVideo, ...uploadedVideos, ...storedLastDayVideos]); 
     }, [storedLastDayVideos, uploadedVideos])
 
-    function getStoredLastDayVideos(){
-        client.query({ query: GET_LAST_DAY_VIDEOS, variables: { userId, yesterday}} )
-        .then((response) => {
-            setStoredLastDayVideos(response.data.videos); 
-        })
-        .catch((error) => {});
-    };
-
-    function getPastVideos(){
-        client.query({ query: GET_PAST_VIDEOS, variables: { userId, yesterday}} )
-        .then((response) => {
-            setBestVideos(response.data.videos.filter(video => { return video.rank == 1 }));
-            setAverageVideos(response.data.videos.filter(video => { return video.rank == 2 }));
-            setWorstVideos(response.data.videos.filter(video => { return video.rank == 3 }));
-            setInitialized(true); 
-        })
-        .catch((error) => {});
-    };
+    function initPastVideos(videoData){
+        setBestVideos(videoData.filter(video => { return video.rank == 1 }));
+        setAverageVideos(videoData.filter(video => { return video.rank == 2 }));
+        setWorstVideos(videoData.filter(video => { return video.rank == 3 }));
+        setInitialized(true); 
+    }
 
     const windowWidth = Math.round(Dimensions.get('window').width);
     const thumbnailWidth = windowWidth * 0.33; 
@@ -127,7 +155,8 @@ export default function VideosView(props) {
                 if(videos.length > 0){
                     const video_data = videos[0];
                     const status = video_data.status;
-                    if(status == "ready"){
+                    console.log(status);
+                    if(status == "preparing" || status == "ready"){ 
                         const tempUploadedVideos = uploadedVideos.map(uploadedVideo => {
                             if(uploadedVideo.passthroughId == passthroughId){
                                 return {...uploadedVideo, status: status, id: video_data.id}
@@ -151,13 +180,39 @@ export default function VideosView(props) {
         const [fullVideoVisible, setFullVideoVisible] = useState(false);
         const [status, setStatus] = useState(uploadingVideo.status);
         const questionText = uploadingVideo.questionText;
+        const questionId = uploadingVideo.questionId; 
         const thumbnailUri = uploadingVideo.thumbnailUri;
         const videoUri = uploadingVideo.videoUri; 
         const passthroughId = uploadingVideo.passthroughId; 
+        console.log(uploadingVideo.id); 
         const id = uploadingVideo.id; 
 
+        async function reuploadVideo(){
 
-        if (status == "ready"){
+            const uploadedVideosFiltered = uploadedVideos.filter(video => { return video.id !== id })
+            deleteVideoPassthrough({ variables: { passthroughId: passthroughId }}); 
+
+            const newPassthroughId = Math.floor(Math.random() * 1000000000) + 1; 
+            console.log("newPassthroughId", newPassthroughId); 
+
+            const params = {
+                questionText: questionText,
+                questionId: questionId, 
+                thumbnailUri: thumbnailUri,
+                videoUri: videoUri,
+                passthroughId:  newPassthroughId.toString(),
+                status: 'waiting',
+                type: 'uploadedVideo',
+                id: newPassthroughId, 
+                videoId: null
+            }; 
+
+            setUploadedVideos([params, ...uploadedVideosFiltered]);
+            postVideo(params);
+        };
+
+
+        if (status == "ready" || status == "preparing"){
             return(
                 <View style={styles.thumbnailPaddingStyle}>
                     <TouchableOpacity onPress={goToVideo}>
@@ -177,25 +232,24 @@ export default function VideosView(props) {
                     />
                 </View>
             )
-        } else if(status == "removed") {
-            return null; 
         } else if(status == "errored") {
             return (
-                // <BlurView tint="dark" intensity={40} style={{padding: '0.1%', width: squareWidth, height: squareWidth }}>
-                <View style={styles.thumbnailPaddingStyle}>
+                <TouchableOpacity onPress={reuploadVideo} style={styles.thumbnailPaddingStyle}>
                     <ImageBackground
                         style={styles.thumbnailDimensions}
                         source={{uri: thumbnailUri}}
                     >
-                        <Text>Error!</Text>
+                        <View style={styles.activityView}>
+                            <Ionicons name="ios-refresh" color={"#eee"} size={40} />
+                            <Text style={{ color: '#eee', fontSize: 16 }}>Upload failed</Text>
+                        </View>
                     </ImageBackground>
                     <VideoSubscription passthroughId={passthroughId} />
-                </View>
+                </TouchableOpacity>
 
             )
         } else {
             return (
-                // <BlurView tint="dark" intensity={40} style={{padding: '0.1%', width: squareWidth, height: squareWidth }}>
                 <View style={styles.thumbnailPaddingStyle}>
                     <ImageBackground
                         style={styles.thumbnailDimensions}
@@ -212,13 +266,17 @@ export default function VideosView(props) {
         }
     }
 
-    function removeVideo(videoId){
-        setUploadedVideos(uploadedVideos.filter(video => {return video.id != videoId })); 
-        setLastDayVideos(lastDayVideos.filter(video => { return video.id != videoId }));
-        setBestVideos(bestVideos.filter(video => { return video.id != videoId }));
-        setAverageVideos(averageVideos.filter(video => { return video.id != videoId }));
-        setWorstVideos(worstVideos.filter(video => { return video.id != videoId }));
+    async function removeVideo(videoId){
+        setUploadedVideos(uploadedVideos.filter(video => { return video.id !== videoId })); 
+        setStoredLastDayVideos(storedLastDayVideos.filter(video => { return video.id !== videoId }));
+        setBestVideos(bestVideos.filter(video => { return video.id !== videoId }));
+        setAverageVideos(averageVideos.filter(video => { return video.id !== videoId }));
+        setWorstVideos(worstVideos.filter(video => { return video.id !== videoId }));
     }
+
+    useEffect(() => {
+        console.log(lastDayVideos)
+    }, [lastDayVideos]); 
 
     function IndividualVideoView({ video }){
         function goToVideo(){
@@ -275,7 +333,7 @@ export default function VideosView(props) {
         )
     }
 
-    async function postVideo(params, uploadedVideos){
+    async function postVideo(params){
         const questionText = params.questionText;
         const questionId = params.questionId; 
         const thumbnailUri = params.thumbnailUri;
@@ -350,32 +408,6 @@ export default function VideosView(props) {
         }
     }
 
-    function ProfilePicture() {
-
-        let muxPlaybackId = ""; 
-        if(pastVideos.length > 0){
-            muxPlaybackId = pastVideos[0].muxPlaybackId;
-        }
-        else if(storedLastDayVideos.length > 0){
-            muxPlaybackId = storedLastDayVideos[0].muxPlaybackId;
-        } else {
-            return (
-                <View
-                    style={styles.profilePictureStyle}                
-                 >                    
-                    <MaterialIcons name="person" color={colors.secondaryWhite} size={50}/>  
-                </View>
-            )
-        }
-
-        const muxPlaybackUrl = 'https://image.mux.com/' + muxPlaybackId + '/thumbnail.jpg?time=0';
-        return (
-            <Image
-                style={styles.profilePictureImageStyle}
-                source={{ uri: muxPlaybackUrl }}
-            />
-        )
-    }
 
     function Name () {
         if(name == ''){
@@ -456,7 +488,8 @@ export default function VideosView(props) {
     function ExplanationText(){
         return (
             <View style={styles.explanationPadding}>
-                <Text style={styles.explanationText}>We show a few of your best videos to each user.</Text>
+                <Text style={styles.explanationText}>Add more videos!</Text>
+                <Text style={styles.explanationText}>We only show your best videos to each user.</Text>
             </View>
         )
     }
@@ -485,15 +518,6 @@ export default function VideosView(props) {
         goToAddPageStyle: {backgroundColor: colors.secondaryBlack, width: thumbnailWidth, height: thumbnailHeight, justifyContent: 'center', alignItems: 'center' },
         videoSectionStyle: { flex: 1, flexDirection: 'row' },
         sectionSubtitles: { color: colors.secondaryWhite },
-        profilePictureStyle: { 
-            width: length, 
-            height: length, 
-            borderRadius: length/2, 
-            backgroundColor: colors.secondaryGray, 
-            justifyContent: 'center', 
-            alignItems: 'center'
-        }, 
-        profilePictureImageStyle: { width: length, height: length, borderRadius: length/ 2 },
         tapToAddName: { fontWeight: '600', fontSize: 20, color: colors.primaryWhite },
         title: { fontWeight: 'bold', fontSize: 20, color: colors.primaryWhite },
         namePadding: { padding: 15},
@@ -501,72 +525,87 @@ export default function VideosView(props) {
         bio: { fontWeight: '200', fontSize: 14, color: colors.primaryWhite },
         editProfileButtonStyle: {  borderWidth: 1, borderRadius: 3, height: 30, width: 130, justifyContent: 'center', alignItems: 'center', borderColor: colors.primaryWhite},
         editProfileText: { fontSize: 16, fontWeight: '200', color: colors.primaryWhite  },
-        explanationPadding: { paddingHorizontal: 50, paddingVertical: 30 },
+        explanationPadding: { paddingHorizontal: 40, paddingVertical: 30 },
         explanationText: { color: colors.chineseWhite, textAlign: 'center' },
         titleView: { flexDirection: 'row', alignItems: 'flex-end'},
-        scrollViewStyle: { flex: 1, backgroundColor: colors.primaryBlack},
+        scrollViewStyle: { flex: 1, backgroundColor: colors.primaryBlack },
         viewFlexStart: { justifyContent: 'flex-start'},
-        headerContainer: { paddingTop: 50, alignItems: 'center'},
+        headerContainer: { alignItems: 'center'},
         thumbnailPaddingTop: { paddingTop: 10, paddingLeft: thumbnailPadding },
         thumbnailPaddingTop2: { paddingTop: 30, paddingLeft: thumbnailPadding },
-        settingsContainer: { position: "absolute", top: 50, right: 15}
+        settingsContainer: { position: "absolute", top: 50, right: 15},
+        badInternetView: { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1},
+        reloadText: { color: '#eee', fontSize: 20, paddingHorizontal: 20, paddingVertical: 5}
+      
     });
 
     if(initialized){
         return (
-                <ScrollView style={styles.scrollViewStyle}>
-                    <View style={styles.viewFlexStart}>
-                        <View style={styles.headerContainer}>
-                            <ProfilePicture />  
-                            <Name />
-                            <Bio /> 
-                            <EditProfileButton /> 
-                            <ExplanationText />
-                        </View>
-                        <View style={styles.thumbnailPaddingTop}>
-                            <TouchableOpacity onPress={goToNewVideos}>
-                                <View style={styles.titleView}>
-                                    <Text style={styles.title}>New Videos</Text>
-                                    <Entypo name="chevron-right" color={colors.primaryWhite} size={17}/>  
-                                </View>
-                                <LastDayVideosSubtitle videosLength={lastDayVideos.length} />
-                            </TouchableOpacity>
-                            <VideoSection videos={lastDayVideos.slice(0, 3)}/>
-                            <VideoSection videos={lastDayVideos.slice(4, 6)}  />
-                        </View>
-                        <View style={styles.thumbnailPaddingTop2}>
-                            <TouchableOpacity style={styles.titleView} onPress={goToBestVideos}>
-                                <SectionTitle text={'Best Videos'} videos={bestVideos} />
-                            </TouchableOpacity>
-                            <VideoSection videos={bestVideos.slice(0, 3)}  />
-                            <VideoSection videos={bestVideos.slice(4, 6)}  />
-                        </View>
-                        <View style={styles.thumbnailPaddingTop2}>
-                            <TouchableOpacity style={styles.titleView} onPress={goToAverageVideos}>
-                                <SectionTitle text={'Good Videos'} videos={averageVideos} />
-                            </TouchableOpacity>
-                            <VideoSection videos={averageVideos.slice(0, 3)}  />
-                            <VideoSection videos={averageVideos.slice(4, 6)}  />
-                        </View>
-                        <View style={styles.thumbnailPaddingTop2}>
-                            <TouchableOpacity style={styles.titleView} onPress={goToWorstVideos}>
-                                <SectionTitle text={'Not-So-Great Videos'} videos={worstVideos} />
-                            </TouchableOpacity>
-                            <VideoSection videos={worstVideos.slice(0, 3)}  />
-                            <VideoSection videos={worstVideos.slice(4, 6)}  />
-                        </View>
+            <ScrollView 
+                style={styles.scrollViewStyle}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={'#eee'} />}
+            >
+                <View style={styles.viewFlexStart}>
+                    <View style={styles.headerContainer}>
+                        <Name />
+                        <Bio /> 
+                        <EditProfileButton /> 
+                        <ExplanationText />
                     </View>
-                    <TouchableOpacity onPress={openSettings} style={styles.settingsContainer}>
-                        <MaterialIcons name="menu" color={colors.secondaryWhite} size={30}/>  
-                    </TouchableOpacity>
-                    <SettingsPopup visible={settingsVisible} setVisible={setSettingsVisible} />
-                </ScrollView>
+                    <View style={styles.thumbnailPaddingTop}>
+                        <TouchableOpacity onPress={goToNewVideos}>
+                            <View style={styles.titleView}>
+                                <Text style={styles.title}>New Videos</Text>
+                                <Entypo name="chevron-right" color={colors.primaryWhite} size={17}/>  
+                            </View>
+                            <LastDayVideosSubtitle videosLength={lastDayVideos.length} />
+                        </TouchableOpacity>
+                        <VideoSection videos={lastDayVideos.slice(0, 3)}/>
+                        <VideoSection videos={lastDayVideos.slice(3, 6)}  />
+                    </View>
+                    <View style={styles.thumbnailPaddingTop2}>
+                        <TouchableOpacity style={styles.titleView} onPress={goToBestVideos}>
+                            <SectionTitle text={'Best Videos'} videos={bestVideos} />
+                        </TouchableOpacity>
+                        <VideoSection videos={bestVideos.slice(0, 3)}  />
+                        <VideoSection videos={bestVideos.slice(3, 6)}  />
+                    </View>
+                    <View style={styles.thumbnailPaddingTop2}>
+                        <TouchableOpacity style={styles.titleView} onPress={goToAverageVideos}>
+                            <SectionTitle text={'Good Videos'} videos={averageVideos} />
+                        </TouchableOpacity>
+                        <VideoSection videos={averageVideos.slice(0, 3)}  />
+                        <VideoSection videos={averageVideos.slice(3, 6)}  />
+                    </View>
+                    <View style={styles.thumbnailPaddingTop2}>
+                        <TouchableOpacity style={styles.titleView} onPress={goToWorstVideos}>
+                            <SectionTitle text={'Not-So-Great Videos'} videos={worstVideos} />
+                        </TouchableOpacity>
+                        <VideoSection videos={worstVideos.slice(0, 3)}  />
+                        <VideoSection videos={worstVideos.slice(3, 6)}  />
+                    </View>
+                </View>
+                <TouchableOpacity onPress={openSettings} style={styles.settingsContainer}>
+                    <MaterialIcons name="menu" color={colors.secondaryWhite} size={30}/>  
+                </TouchableOpacity>
+                <SettingsPopup visible={settingsVisible} setVisible={setSettingsVisible} />
+            </ScrollView>
         );
     } else {
-        return (
-            <View style={styles.activityView}>
-              <ActivityIndicator size="small" color="#eee" />
-            </View>
-        )      
+        if(!timedOut){
+            return (
+                <View style={styles.activityView}>
+                  <ActivityIndicator size="small" color="#eee" />
+                </View>
+            )          
+        } else {
+            return (
+                <View style={styles.badInternetView}>
+                  <TouchableOpacity onPress={reload} style={{ borderWidth: 1, borderColor: '#eee', justifyContent: 'center', borderRadius: 5}}>
+                    <Text style={styles.reloadText}>Reload</Text>          
+                  </TouchableOpacity>
+                </View>
+              )
+        }
     }
 }

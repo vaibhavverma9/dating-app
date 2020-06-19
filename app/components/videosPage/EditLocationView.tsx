@@ -54,7 +54,7 @@ export default function EditLocationView(props) {
                 let postalAddress = await Location.reverseGeocodeAsync({ latitude, longitude });
 
                 const city = postalAddress[0].city; 
-                const region = postalAddress[0].region; 
+                const region = postalAddress[0].region;  
    
                 setCity(city);
                 setRegion(region); 

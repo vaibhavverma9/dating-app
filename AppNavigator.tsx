@@ -19,7 +19,7 @@ export default function AppNavigator(){
   const [insertUser, { insertUserData }] = useMutation(INSERT_USER); 
 
   useEffect(() => {
-    doormanDatabaseAuth(); 
+    doormanDatabaseAuth();
   }, []);
 
   async function doormanDatabaseAuth() {
@@ -65,7 +65,9 @@ export default function AppNavigator(){
           setOnboarded(getUsersResponse.data.users[0].onboarded)
         }
       })
-      .catch(error => {});
+      .catch(error => {
+        setOnboarded(false); 
+      });
     }
   }
 

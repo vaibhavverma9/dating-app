@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { FlatList, StyleSheet, View, Button, Image, Text, TextInput, ActivityIndicator } from 'react-native';
+import { FlatList, StyleSheet, View, Button, Image, Text, TextInput, ActivityIndicator, ImageBackground } from 'react-native';
 import { Divider } from 'react-native-paper';
 import { GET_LIKES, INSERT_LIKE, INSERT_USER, client, INSERT_MESSAGE, UPDATE_LIKE } from '../../utils/graphql/GraphqlClient';
-import { TouchableOpacity } from 'react-native-gesture-handler';
-import { useMutation } from '@apollo/client';
+import { TouchableOpacity, TouchableWithoutFeedback } from 'react-native-gesture-handler';
+import { useMutation, useLazyQuery } from '@apollo/client';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { Ionicons, MaterialIcons } from '@expo/vector-icons'
 import MessagesOptions from './MessagesOptions'; 
@@ -11,6 +11,7 @@ import FullPageVideos from '../modals/FullPageVideos';
 import * as Segment from 'expo-analytics-segment';
 import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid } from '../../utils/asyncStorage'; 
 import { colors } from '../../styles/colors';
+import { Dimensions } from "react-native"; 
 
 export default function MessagesView(props) {
 
@@ -20,6 +21,7 @@ export default function MessagesView(props) {
   const [matchesData, setMatchesData] = useState([]);
   const [enabledData, setEnabledData] = useState([])
   const [userId, setUserId] = useContext(UserIdContext);
+  const [timedOut, setTimedOut] = useState(false);
 
   const [insertMessage, { insertMessageData }] = useMutation(INSERT_MESSAGE);
   const [insertUser, { insertUserData }] = useMutation(INSERT_USER); 
@@ -29,13 +31,14 @@ export default function MessagesView(props) {
   const [disabled, setDisabled] = useState(initDisabled);
   const [initialized, setInitialized] = useState(false); 
 
-  const getData = (userId: number) => {
-    client.query({ query: GET_LIKES, variables: { userId: userId}})
-    .then(response => {
-      setAllData(response.data.likes);
-      setInitialized(true); 
-    })
-    .catch(error => {}); 
+  const [getLikes, { data: likesQueried }] = useLazyQuery(GET_LIKES, 
+  { 
+    onCompleted: (likesQueried) => { initMessages(likesQueried) } 
+  }); 
+
+  function initMessages(likesQueried){
+    setAllData(likesQueried.likes); 
+    setInitialized(true); 
   }
 
   useEffect(() => {
@@ -57,113 +60,149 @@ export default function MessagesView(props) {
   }, [disabled, allData])
 
   useEffect(() => {
-    getData(userId); 
     Segment.screen('Messages'); 
+    getLikes({ variables: { userId }}); 
+    setTimeout(() => { setTimedOut(true) }, 3000); 
   }, [])
   
+  function reload(){
+    setTimedOut(false);   
+    getLikes({ variables: { userId }}); 
+    setTimeout(() => { setTimedOut(true) }, 3000); 
+  }
+
   function Item({ item }) {
 
     const [messagesOptionsVisible, setMessagesOptionsVisible] = useState(false); 
-    const [fullVideoVisible, setFullVideoVisible] = useState(false);
 
     const moreOptions = () => {
       setMessagesOptionsVisible(true); 
     }
 
-    const goToVideo = () => {
-      setFullVideoVisible(true); 
-    }
+    
 
     if(item){
-      const video = item.Liker.userVideos;
+      const videos = item.Liker.userVideos;
       const name = item.Liker.firstName;
-      
-      if(video && video.length > 0){
-        const muxPlaybackId = video[0].muxPlaybackId;
-        const questionText = video[0].videoQuestion.questionText
-        const muxPlaybackUrl = 'https://image.mux.com/' + muxPlaybackId + '/thumbnail.jpg?time=0';
-        return (
-          <View style={{flexDirection: 'row', flex: 1}}>
-            <TouchableOpacity onPress={goToVideo} style={{ alignItems: 'center', justifyContent: 'space-around' }}>
-              <Image
-                style={{ width: 70, height: 70, borderRadius: 70/ 2 }}
-                source={{ uri: muxPlaybackUrl }}
-              />
-              <View style={{paddingTop: 3}}>
-                <Text style={{ fontWeight: 'bold', color: colors.primaryWhite}}>{name}</Text>
+      const college = item.Liker.college;
+
+      function UserInfo(){
+        if(name){
+          if(college){
+            return (
+              <View>
+                <Text style={{ color: colors.chineseWhite, fontSize: 14}}>{name}</Text>
+                <Text style={{ color: colors.chineseWhite, fontSize: 12}}>{college}</Text>        
               </View>
+            )    
+          } else {
+            return (
+              <View>
+                <Text style={{ color: colors.chineseWhite, fontSize: 14}}>{name}</Text>
+              </View>
+            )    
+          }
+        } else {
+          return <Text style={{ color: colors.chineseWhite, fontSize: 14}}></Text>
+        }
+      }
+      
+      const [contactFlow, setContactFlow] = useState(false); 
+      // const muxPlaybackId = video[0].muxPlaybackId;
+      // const questionText = video[0].videoQuestion.questionText
+      // const muxPlaybackUrl = 'https://image.mux.com/' + muxPlaybackId + '/thumbnail.jpg?time=0';
+
+      return (
+        <TouchableWithoutFeedback style={{ paddingHorizontal: '2%' }} onPress={() => {setContactFlow(!contactFlow)}}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
+            {/* <Text style={{ color: colors.chineseWhite, fontSize: 14}}>{name}</Text> */}
+            <UserInfo />
+            <TouchableOpacity onPress={moreOptions}>
+              <Ionicons name="ios-more" size={20} color={colors.primaryWhite}/>
             </TouchableOpacity>
-            <View style={{flex: 6, justifyContent: 'center', alignContent: 'center'}}>
-              <ItemButton item={item}/>
-            </View>
-            <View style={{flex: 2, justifyContent: 'center', alignContent: 'center', paddingBottom: '10%'}}>
-            <Ionicons name="ios-more" onPress={moreOptions} size={25} color={colors.primaryWhite}/>
-            </View>
-            <MessagesOptions 
-              visible={messagesOptionsVisible} 
-              setVisible={setMessagesOptionsVisible} 
-              userId={userId}
-              currentUserId={item.Liker.id}
-              allData={allData}
-              setAllData={setAllData}
-            />
-            <FullPageVideos 
+          </View>
+          <View style={{ paddingBottom: '2%'}}>
+            <ItemButton item={item} contactFlow={contactFlow} setContactFlow={setContactFlow}/>
+          </View>
+          <VideosDisplay videos={videos} />
+          <MessagesOptions 
+            visible={messagesOptionsVisible} 
+            setVisible={setMessagesOptionsVisible} 
+            userId={userId}
+            currentUserId={item.Liker.id}
+            allData={allData}
+            setAllData={setAllData}
+          />
+            {/* <FullPageVideos 
               visible={fullVideoVisible} 
               setVisible={setFullVideoVisible} 
               source={'https://stream.mux.com/' + muxPlaybackId + '.m3u8'}
               questionText={questionText}
-            />
-            
-          </View>
+            /> */}
           
-        );
-      } else {
-        return (
-          <View style={{flexDirection: 'row', flex: 1}}>
-            <TouchableOpacity onPress={goToVideo} style={{ alignItems: 'center', justifyContent: 'space-around' }}>
-              <View
-                style={{ width: 70, height: 70, borderRadius: 70/2, backgroundColor: colors.secondaryGray, justifyContent: 'center', alignItems: 'center' }}                
-              >                    
-                <MaterialIcons name="person" color={colors.secondaryWhite} size={50}/>  
-              </View>
-              <View style={{paddingTop: 3}}>
-                <Text style={{ fontWeight: 'bold', color: colors.primaryWhite}}>{name}</Text>
-              </View>
-            </TouchableOpacity>
-            <View style={{flex: 6, justifyContent: 'center', alignContent: 'center'}}>
-              <ItemButton item={item}/>
-            </View>
-            <View style={{flex: 2, justifyContent: 'center', alignContent: 'center', paddingBottom: '10%'}}>
-            <Ionicons name="ios-more" onPress={moreOptions} size={25} color={colors.primaryWhite}/>
-            </View>
-            <MessagesOptions 
-              visible={messagesOptionsVisible} 
-              setVisible={setMessagesOptionsVisible} 
-              userId={userId}
-              currentUserId={item.Liker.id}
-              allData={allData}
-              setAllData={setAllData}
-            />            
-          </View>
-          
-        );
-      };
+        </TouchableWithoutFeedback>
+        
+      );
     } else {
       return null; 
     }
   }
 
-  function ItemButton({item}){
+  function VideosDisplay({videos}){
+
+    if(videos && videos.length > 0){
+
+      return (
+        <View style={styles.videoSectionStyle}>
+          {videos.map(video => <VideoView key={video.id} video={video} />)}
+        </View>
+      ) 
+    } else {
+        return null; 
+    }
+  }
+
+  function VideoView({ video }){
+
+    const muxPlaybackId = video.muxPlaybackId; 
+    const muxThumbnailUrl = 'https://image.mux.com/' + muxPlaybackId + '/thumbnail.jpg?time=0';
+    const [fullVideoVisible, setFullVideoVisible] = useState(false);
+
+    const goToVideo = () => {
+      setFullVideoVisible(true); 
+    }
+
+    return (
+      <View style={styles.thumbnailPaddingStyle}>
+        <TouchableOpacity onPress={goToVideo}>
+            <ImageBackground 
+                style={styles.thumbnailDimensions}
+                source={{uri: muxThumbnailUrl }}
+            >
+            </ImageBackground>
+        </TouchableOpacity>
+        <FullPageVideos 
+          visible={fullVideoVisible} 
+          setVisible={setFullVideoVisible} 
+          source={'https://stream.mux.com/' + muxPlaybackId + '.m3u8'}
+          questionText={video.videoQuestion.questionText}
+          videoId={video.id}
+        />
+      </View>
+    )
+  }
+ 
+  function ItemButton({item, contactFlow, setContactFlow}){
     if(item.matched){
 
-      const [contactFlow, setContactFlow] = useState(false); 
+      // const [contactFlow, setContactFlow] = useState(false); 
       const [value, onChangeText] = useState('(Send IG or #)');
 
       if(contactFlow){
         return(
-          <View style={{ paddingLeft: '5%', paddingRight: '5%'}}>
+          <View style={{ alignItems: 'flex-start'}}>
             <TextInput
-              style={{ height: 40, borderColor: 'gray', borderWidth: 1, borderRadius: 4, color: colors.primaryWhite, padding: 5 }}
+              style={{ height: 40, width: '40%', borderColor: colors.secondaryGray, borderWidth: 1, borderRadius: 4, color: colors.secondaryGray, padding: 5 }}
               onChangeText={text => onChangeText(text)}
               value={value}
               onFocus={() => onChangeText('')}
@@ -172,7 +211,7 @@ export default function MessagesView(props) {
               setContactFlow(false);
               insertMessage({ variables: { message: value, receiverId: item.likerId, senderId: userId }});
             }} style={{ alignItems: 'center', justifyContent: 'center', paddingTop: 10}}>
-              <Text style={{ color: colors.primaryWhite, fontSize: 17 }}>
+              <Text style={{ color: colors.secondaryGray, fontSize: 14 }}>
                 Send message!
               </Text>
             </TouchableOpacity>
@@ -180,29 +219,31 @@ export default function MessagesView(props) {
         )
       } else{
         return(
-          <View style={{alignItems: 'center'}}>
+          <View style={{alignItems: 'flex-start'}}>
             <TouchableOpacity onPress={() => {setContactFlow(true)}} style={{ alignItems: 'center', justifyContent: 'center'}}>
-              <Text style={{ color: colors.primaryWhite, fontSize: 20 }}>
-                Contact
-              </Text>
+              <Text style={{ color: colors.secondaryGray, fontSize: 14 }}>{item.Liker.messages.length == 1 ? item.Liker.messages[0].message : 'Message'}</Text>
             </TouchableOpacity>
-            <Text style={{ color: colors.primaryWhite }}>{item.Liker.messages.length == 1 ? item.Liker.messages[0].message : ''}</Text>
           </View>
         )      
       }
     } else {
       return(
-        <Button title="Like back" onPress={() => { 
-          likeBack(item.likerId); 
-        }}/>
+        <View style={{alignItems: 'flex-start'}}>
+          <TouchableOpacity onPress={() => {likeBack(item.likerId)}} style={{ alignItems: 'center', justifyContent: 'center'}}>
+            <Text style={{ color: colors.secondaryGray, fontSize: 14 }}>
+              Like back
+            </Text>
+          </TouchableOpacity>
+          <Text style={{ color: colors.secondaryGray }}>{item.Liker.messages.length == 1 ? item.Liker.messages[0].message : ''}</Text>
+        </View>
       )  
     }
   }
 
   const ItemSeparator = () => {
     return (
-      <View style={{ padding: '2%'}}>
-        <Divider /> 
+      <View style={{ paddingLeft: '2%', paddingVertical: '5%'}}>
+        <Divider style={{ backgroundColor: '#eee'}} /> 
       </View>
     );
   }
@@ -272,37 +313,46 @@ export default function MessagesView(props) {
       </View>
     );
   } else {
-    return (
-      <View style={{ backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1}}>
-        <ActivityIndicator size="small" color="#eee" />
-      </View>
-    )
+    if(!timedOut){
+      return (
+          <View style={styles.activityView}>
+            <ActivityIndicator size="small" color="#eee" />
+          </View>
+      )          
+    } else {
+      return (
+          <View style={styles.badInternetView}>
+            <TouchableOpacity onPress={reload} style={{ borderWidth: 1, borderColor: '#eee', justifyContent: 'center', borderRadius: 5}}>
+              <Text style={styles.reloadText}>Reload</Text>          
+            </TouchableOpacity>
+          </View>
+        )
+    }
   }
 }
 
 
 
+const windowWidth = Math.round(Dimensions.get('window').width);
+const thumbnailWidth = windowWidth * 0.33; 
+const thumbnailHeight = windowWidth * 0.4; 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: '15%',
-    paddingLeft: '2%',
     backgroundColor: colors.primaryBlack
-  },
-  item: {
-    padding: 10,
-    fontSize: 18,
-    height: 44,
-  },
-  title: {
-    fontSize: 20, 
-    fontWeight: 'bold'
   },
   headerText: {
     margin: 8, textAlign: 'center', fontSize: 15, color: colors.primaryWhite
   },
   disabledHeaderText: {
     margin: 8, textAlign: 'center', fontSize: 15, color: colors.secondaryGray
-  }
-
+  },
+  thumbnailPaddingStyle: { padding: '0.2%'}, 
+  thumbnailDimensions: { width: thumbnailWidth, height: thumbnailHeight },
+  videoSectionStyle: { flex: 1, flexDirection: 'row' },
+  badInternetView: { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1},
+  reloadText: { color: '#eee', fontSize: 20, paddingHorizontal: 20, paddingVertical: 5},
+  activityView: { backgroundColor: '#000', flex: 1, justifyContent: 'center', alignItems: 'center' }
 });

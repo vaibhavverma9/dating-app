@@ -278,62 +278,107 @@ export const _retrieveRegion = async () => {
     }
 };
 
-// export const _storeLastWatchedUpper = async(lastWatchedUpper) => {
-//     try {
-//         await AsyncStorage.setItem('@lastWatchedUpper', lastWatchedUpper);
-//     } catch (error){
-//         console.log("error in _storeLastWatchedUpper", error)
-//     }
-// };
+export const _storeCollege = async(college) => {
+    try {
+        await AsyncStorage.setItem('@college', college);
+    } catch (error){}
+}
 
-// export const _clearLastWatchedUpper = async () => {
-//     try {
-//         await AsyncStorage.setItem('@lastWatchedUpper', '');
-//     } catch (error){
-//         console.log("error in _clearLastWatchedUpper", error); 
-//     }
-// }
+export const _clearCollege = async () => {
+    try {
+        await AsyncStorage.setItem('@college', '');
+    } catch (error){
+    }
+}
 
-// export const _retrieveLastWatchedUpper = async () => {
-//     try {
-//       const value = await AsyncStorage.getItem('@lastWatchedUpper');
-//       if (value !== null) {
-//         return value; 
-//       } else {
-//           return null; 
-//       }
-//     } catch (error) {
-//         console.log("error in _retrieveLastWatchedUpper", error); 
-//         return null; 
-//     }
-// };
+export const _retrieveCollege = async () => {
+    try {
+      const value = await AsyncStorage.getItem('@college');
+      if (value !== null) {
+        return value; 
+      } else {
+          return ''; 
+      }
+    } catch (error) {
+        return ''; 
+    }
+};
 
-// export const _storeLastWatchedLower = async(lastWatchedLower) => {
-//     try {
-//         await AsyncStorage.setItem('@lastWatchedLower', lastWatchedLower);
-//     } catch (error){
-//         console.log("error in _storeLastWatchedLower", error)
-//     }
-// };
+export const _storeLastWatchedUpper = async(lastWatchedUpper) => {
+    try {
+        await AsyncStorage.setItem('@lastWatchedUpper', lastWatchedUpper);
+    } catch (error){}
+};
 
-// export const _clearLastWatchedLower = async () => {
-//     try {
-//         await AsyncStorage.setItem('@lastWatchedLower', '');
-//     } catch (error){
-//         console.log("error in _clearLastWatchedLower", error); 
-//     }
-// }
+export const _clearLastWatchedUpper = async () => {
+    try {
+        await AsyncStorage.setItem('@lastWatchedUpper', '');
+    } catch (error){}
+}
 
-// export const _retrieveLastWatchedLower = async () => {
-//     try {
-//       const value = await AsyncStorage.getItem('@lastWatchedLower');
-//       if (value !== null) {
-//         return value; 
-//       } else {
-//           return null; 
-//       }
-//     } catch (error) {
-//         console.log("error in _retrieveLastWatchedLower", error); 
-//         return null; 
-//     }
-// };
+export const _retrieveLastWatchedUpper = async () => {
+    try {
+      const value = await AsyncStorage.getItem('@lastWatchedUpper');
+      if (value !== null) {
+        return value; 
+      } else {
+          return null; 
+      }
+    } catch (error) {
+        return null; 
+    }
+};
+
+export const _storeLastWatchedLower = async(lastWatchedLower) => {
+    try {
+        await AsyncStorage.setItem('@lastWatchedLower', lastWatchedLower);
+    } catch (error){
+        console.log(error, "error in _storeLastWatchedLower"); 
+    }
+};
+
+export const _clearLastWatchedLower = async () => {
+    try {
+        await AsyncStorage.setItem('@lastWatchedLower', '');
+    } catch (error){}
+}
+
+export const _retrieveLastWatchedLower = async () => {
+    try {
+      const value = await AsyncStorage.getItem('@lastWatchedLower');
+      if (value !== null) {
+        return value; 
+      } else {
+          return null; 
+      }
+    } catch (error) {
+        return null; 
+    }
+};
+
+export const _storeStreamToken = async(streamToken) => {
+    try {
+        await AsyncStorage.setItem('@streamToken', streamToken);
+    } catch (error){
+        console.log(error, "error in _storeStreamToken"); 
+    }
+};
+
+export const _clearStreamToken = async () => {
+    try {
+        await AsyncStorage.setItem('@streamToken', '');
+    } catch (error){}
+}
+
+export const _retrieveStreamToken = async () => {
+    try {
+      const value = await AsyncStorage.getItem('@streamToken');
+      if (value !== null) {
+        return value; 
+      } else {
+          return null; 
+      }
+    } catch (error) {
+        return null; 
+    }
+};

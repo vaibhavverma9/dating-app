@@ -272,6 +272,67 @@ export default function HomeContents(props) {
     }
   }
 
+
+  function processVideosNearby(data){
+    if(!initialized){
+
+      if(data.users.length == 0){
+        queryVideos(userId, limit, null, null, genderInterest, false, latitude, longitude); 
+        setNearbyResults(false); 
+        setLastWatchedLower(null); 
+      }
+
+      if(data.users.length > 0){
+        setInitialized(true); 
+        setVideoData(data);
+        setCurrentUserId(data.users[0].id); 
+        setCurrentName(data.users[0].firstName);
+        setCurrentCollege(data.users[0].college); 
+
+        let currentLocation = data.users[0].location;
+        if(currentLocation){
+          const distance = getDistance(
+            { latitude: latitude, longitude: longitude }, 
+            { latitude: currentLocation.coordinates[1], longitude: currentLocation.coordinates[0] }
+          ); 
+          const distanceMiles = Math.round(distance / 1609); 
+          setCurrentDistance(distanceMiles); 
+        } else {
+          setCurrentDistance(null);
+        }
+        
+        setMuxPlaybackId(data.users[0].userVideos[0].muxPlaybackId); 
+        setUserCount(data.users.length); 
+        setLastWatchedLower(data.users[data.users.length - 1].lastUploaded)
+        setCurrentUserVideoCount(data.users[0].userVideos.length);
+        setQuestionText(data.users[0].userVideos[0].videoQuestion.questionText);  
+      }
+      
+      if(data.users.length < limit){
+        console.log("data users length is less than limit", data.users.length, limit); 
+        setNearbyResults(false); 
+        setLastWatchedLower(null); 
+      }
+
+    } else {
+      const tempVideoData = { users: [...videoData.users, ...data.users] }
+      setVideoData(tempVideoData);
+      setUserCount(userCount + data.users.length); 
+
+      if(data.users.length == 0){
+        setQuerying(true); 
+        if(nearbyResults == true){
+          setNearbyResults(false);
+          setQuerying(false); 
+          setLastWatchedLower(null); 
+        }
+      } else {
+        setLastWatchedLower(data.users[data.users.length - 1].lastUploaded);
+        setQuerying(false);   
+      }
+    }
+  }
+
   // changes in tabs will affect shouldPlay 
   useEffect(() => {
     props.navigation.addListener('blur', () => {
@@ -282,6 +343,29 @@ export default function HomeContents(props) {
       setShouldPlay(true); 
     });  
   }, [props.navigation])
+
+
+  async function checkGenderPreferences(){
+    const genderInterestLocal = await _retrieveGenderInterest(); 
+    if(genderInterestLocal !== genderInterest && genderInterest != ''){
+      setGenderInterest(genderInterestLocal); 
+
+      setInitialized(false); 
+      setVideoData(null);
+      setCurrentUserId(0); 
+      setCurrentName('');
+      setCurrentDistance(null); 
+      setCurrentCollege(''); 
+      setUserIndex(0);
+      setVideoIndex(0);
+      setNearbyResults(true);
+      setMuxPlaybackId(''); 
+      setUserCount(0); 
+      setLastWatchedLower(null); 
+      setCurrentUserVideoCount(0);
+      setQuestionText('');  
+    }
+  }
 
   const registerForPushNotificationsAsync = async () => {
     if (Constants.isDevice) {

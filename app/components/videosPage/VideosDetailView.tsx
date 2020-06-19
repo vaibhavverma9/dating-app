@@ -13,10 +13,11 @@ export default function VideosDetailView(props) {
 
     const [title, setTitle] = useState('');
     const [videos, setVideos] = useState([]); 
-    const [uploadedVideos, setUploadedVideos] = useState([]); 
+    // const [uploadedVideos, setUploadedVideos] = useState([]); 
     const thumbnailPadding = '0.2%'; 
     const screenWidth = Math.round(Dimensions.get('window').width);
-    const squareWidth = screenWidth * 0.33; 
+    const thumbnailWidth = screenWidth * 0.33; 
+    const thumbnailHeight = screenWidth * 0.4; 
 
     // changes in routes
     useEffect(() => {
@@ -31,15 +32,22 @@ export default function VideosDetailView(props) {
         props.navigation.navigate('Add');
     }
 
+    function removeVideo(videoId){
+        setVideos(videos.filter(video => {return video.id != videoId })); 
+    }
+
+
     function VideoView({ video }){
+        console.log(video);
         if(video.item.type == 'blankVideo') {
             return <BlankVideoView /> 
-        } else if(video.type == 'uploadedVideo'){
+        } else if(video.item.type == 'uploadedVideo'){
             return <UploadingView uploadingVideo={video.item} />
         } else {
             return <IndividualVideoView video={video.item} />
         }
     }
+
 
     function UploadingView({ uploadingVideo }){
 
@@ -82,13 +90,14 @@ export default function VideosDetailView(props) {
         const videoUri = uploadingVideo.videoUri; 
         const status = uploadingVideo.status; 
         const passthroughId = uploadingVideo.passthroughId; 
+        const id = uploadingVideo.id; 
 
         if (status == "ready"){
             return(
                 <View style={{ padding: thumbnailPadding}}>
                     <TouchableOpacity onPress={goToVideo}>
                         <Image 
-                            style={{ width: squareWidth, height: squareWidth }}
+                            style={{ width: thumbnailWidth, height: thumbnailHeight }}
                             source={{uri: thumbnailUri }}
                         />
                     </TouchableOpacity>
@@ -97,6 +106,9 @@ export default function VideosDetailView(props) {
                         setVisible={setFullVideoVisible} 
                         source={videoUri}
                         questionText={questionText}
+                        showOptions={true}
+                        videoId={id}
+                        removeVideo={removeVideo}
                     />
                 </View>
             )
@@ -105,7 +117,7 @@ export default function VideosDetailView(props) {
                 // <BlurView tint="dark" intensity={40} style={{padding: '0.1%', width: squareWidth, height: squareWidth }}>
                 <View style={{ padding: thumbnailPadding}}>
                     <ImageBackground
-                        style={{width: squareWidth, height: squareWidth }}
+                        style={{width: thumbnailWidth, height: thumbnailHeight }}
                         source={{uri: thumbnailUri}}
                     >
                         <View style={{ backgroundColor: 'rgba(0,0,0,.6)', flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -134,7 +146,7 @@ export default function VideosDetailView(props) {
             <View style={{ padding: thumbnailPadding}}>
                 <TouchableOpacity onPress={goToVideo}>
                     <Image 
-                        style={{ width: squareWidth, height: squareWidth }}
+                        style={{ width: thumbnailWidth, height: thumbnailHeight }}
                         source={{uri: muxPlaybackUrl }}
                     />
                 </TouchableOpacity>
@@ -143,6 +155,10 @@ export default function VideosDetailView(props) {
                     setVisible={setFullVideoVisible} 
                     source={'https://stream.mux.com/' + muxPlaybackId + '.m3u8'}
                     questionText={questionText}
+                    showOptions={true}
+                    videoId={video.id}
+                    removeVideo={removeVideo}
+
                 />
             </View>
         )
@@ -151,7 +167,7 @@ export default function VideosDetailView(props) {
     function BlankVideoView(){
         return(
             <View style={{ padding: thumbnailPadding}}>
-                <TouchableOpacity onPress={goToAddPage} style={{backgroundColor: colors.secondaryBlack, width: squareWidth, height: squareWidth, justifyContent: 'center', alignItems: 'center' }}>
+                <TouchableOpacity onPress={goToAddPage} style={{backgroundColor: colors.secondaryBlack, width: thumbnailWidth, height: thumbnailHeight, justifyContent: 'center', alignItems: 'center' }}>
                     <Ionicons name="ios-add" color={"#eee"} size={60} />
                 </TouchableOpacity>
             </View>

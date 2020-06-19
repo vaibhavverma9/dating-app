@@ -252,62 +252,27 @@ export default function AddCameraView(props) {
     }
 
     function InAppRecording(){
-        if('ios' in Constants.platform){
-            return(
-                <View style={{ flex: 1 }}>
-                    <Camera 
-                        style={{ flex: 1 }} 
-                        type={type}
-                        ref={camera}
-                    >
-                        <View
-                        style={{
-                            flex: 1,
-                            backgroundColor: 'transparent',
-                            flexDirection: 'row',
-                        }}>
-                            <RecordingIcon />
-                        </View>
-                    </Camera>
-                    <BlurView tint="dark" intensity={20} style={fullPageVideoStyles.questionArrowsContainer}>
-                        <TouchableOpacity onPress={viewAll}>
-                            <Text style={{ color: '#eee'}}>View All</Text>
-                        </TouchableOpacity>
-                        <Question /> 
-                    </BlurView>
-                    <ViewAllPopup 
-                        visible={viewAllVisible} 
-                        setVisible={setViewAllVisible} 
-                        questionData={questionData}
-                        setIndex={setIndex}
-                    />
-                </View>
-            )
-        } 
-        else {
-            return (
-                <View style={{ flex: 1, backgroundColor: colors.primaryBlack, justifyContent: 'center', alignItems: 'center' }}>
-                    <BlurView tint="dark" intensity={20} style={fullPageVideoStyles.questionArrowsContainer}>
-                        <TouchableOpacity onPress={viewAll}>
-                            <Text style={{ color: '#eee'}}>View All</Text>
-                        </TouchableOpacity>
-                        <Question /> 
-                    </BlurView>
-                    <Text style={{ color: '#eee' }}>We do not yet support in-app recording on Android. </Text>
-                    <Text style={{ color: '#eee' }}>Please record video separately and upload. </Text>
-                    <TouchableOpacity onPress={pickVideo} style={{ paddingTop: 40, alignItems: 'center'}}>
-                        <Feather name="upload" color={"#eee"} size={40}/> 
-                        <Text style={{ color: '#eee', fontSize: 12}}>Upload</Text>
+        return (
+            <View style={{ flex: 1, backgroundColor: colors.primaryBlack, justifyContent: 'center', alignItems: 'center' }}>
+                <BlurView tint="dark" intensity={20} style={fullPageVideoStyles.questionArrowsContainer}>
+                    <TouchableOpacity onPress={viewAll}>
+                        <Text style={{ color: '#eee'}}>View All</Text>
                     </TouchableOpacity>
-                    <ViewAllPopup 
-                        visible={viewAllVisible} 
-                        setVisible={setViewAllVisible} 
-                        questionData={questionData}
-                        setIndex={setIndex}
-                    />
-                </View>
-            )
-        }
+                    <Question /> 
+                </BlurView>
+                <Text style={{ color: '#eee' }}>Please record video on camera app and then upload. </Text>
+                <TouchableOpacity onPress={pickVideo} style={{ paddingTop: 40, alignItems: 'center'}}>
+                    <Feather name="upload" color={"#eee"} size={40}/> 
+                    <Text style={{ color: '#eee', fontSize: 12}}>Upload</Text>
+                </TouchableOpacity>
+                <ViewAllPopup 
+                    visible={viewAllVisible} 
+                    setVisible={setViewAllVisible} 
+                    questionData={questionData}
+                    setIndex={setIndex}
+                />
+            </View>
+        )
     }
     
     if(initialized){

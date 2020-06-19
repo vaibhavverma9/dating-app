@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'; 
+import React, { useState, useEffect, useContext, useRef } from 'react'; 
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native'; 
 import { Camera } from 'expo-camera';
 import { BlurView } from 'expo-blur';
@@ -10,10 +10,11 @@ import * as Permissions from 'expo-permissions';
 import { Video } from 'expo-av'; 
 import { addStyles } from '../../styles/addStyles';
 import { GET_QUESTIONS, client } from '../../utils/graphql/GraphqlClient';
-import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid } from '../../utils/asyncStorage'; 
 import * as VideoThumbnails from 'expo-video-thumbnails'; 
 import * as Linking from 'expo-linking';
 import ViewAllPopup from '../modals/ViewAllPopup';
+import { UserIdContext } from '../../utils/context/UserIdContext'
+import { useLazyQuery } from '@apollo/client';
 
 export default function AddCameraView(props) {
 
@@ -28,15 +29,33 @@ export default function AddCameraView(props) {
     const [shouldPlay, setShouldPlay] = useState(true);
     const [initialized, setInitialized] = useState(false); 
     const [viewAllVisible, setViewAllVisible] = useState(false); 
+    const [userId, setUserId] = useContext(UserIdContext);
+    const [timedOut, setTimedOut] = useState(false);
+
+    const [getQuestions, { data: getQuestionsData }] = useLazyQuery(GET_QUESTIONS, 
+    { 
+        onCompleted: (videosUpper) => { initQuestions(getQuestionsData) } 
+    }); 
+    
 
     let camera = useRef(null);  
 
     useEffect(() => {
         getCameraPermission();
         getAudioPermission(); 
-        getQuestions();
+        getQuestions({ variables: { userId }}); 
         Segment.screen('Add'); 
+        setTimeout(() => { setTimedOut(true) }, 3000); 
     }, []);
+
+    function reload(){
+        setTimedOut(false);   
+        getCameraPermission();
+        getAudioPermission(); 
+        getQuestions({ variables: { userId }}); 
+        Segment.screen('Add');
+        setTimeout(() => { setTimedOut(true) }, 3000); 
+    }
 
     async function getCameraPermission(){
         const { status } = await Permissions.getAsync(Permissions.CAMERA);
@@ -85,15 +104,11 @@ export default function AddCameraView(props) {
 
         });  
     }, [props.navigation])
-
-    function getQuestions(){
-        client.query({ query: GET_QUESTIONS})
-        .then(response => {
-            setQuestionData(response.data.questions); 
-            setIndex(Math.floor(Math.random() * response.data.questions.length)); 
-            setInitialized(true); 
-        })
-        .catch(error => {});
+ 
+    function initQuestions(questionData){
+        setQuestionData(questionData.questions); 
+        setIndex(Math.floor(Math.random() * questionData.questions.length)); 
+        setInitialized(true); 
     }
 
     // tapping back arrow 
@@ -326,12 +341,23 @@ export default function AddCameraView(props) {
             )
         }
     } else {
-        return (
-            <View style={styles.activityView}>
-              <ActivityIndicator size="small" color="#eee" />
-            </View>
-        )   
+        if(!timedOut){
+            return (
+                <View style={styles.activityView}>
+                  <ActivityIndicator size="small" color="#eee" />
+                </View>
+            )          
+          } else {
+            return (
+                <View style={styles.badInternetView}>
+                  <TouchableOpacity onPress={reload} style={{ borderWidth: 1, borderColor: '#eee', justifyContent: 'center', borderRadius: 5}}>
+                    <Text style={styles.reloadText}>Reload</Text>          
+                  </TouchableOpacity>
+                </View>
+              )
+          }  
     }
+
 
     function Question () {
         if(questionData.length == 0){
@@ -413,5 +439,7 @@ const styles = StyleSheet.create({
     questionView: { flexDirection: 'row', height:90, alignItems: 'center'},
     questionText: {fontSize: 20, color: "#eee", textAlign: 'center', width: '75%'},
     backPadding: { paddingRight: 15},
-    forwardPadding: { paddingLeft: 15}
+    forwardPadding: { paddingLeft: 15},
+    reloadText: { color: '#eee', fontSize: 20, paddingHorizontal: 20, paddingVertical: 5},
+    badInternetView: { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1}
 });

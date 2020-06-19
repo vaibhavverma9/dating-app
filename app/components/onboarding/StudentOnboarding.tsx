@@ -1,41 +1,34 @@
 import React, { useState, useContext } from 'react';
 import { Text, View, StyleSheet } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { TouchableOpacity, TouchableWithoutFeedback } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { useMutation } from '@apollo/client';
 import { UPDATE_GENDER_INTEREST } from '../../utils/graphql/GraphqlClient';
 import { _storeGenderInterest } from '../../utils/asyncStorage'; 
-import StudentOnboarding from './StudentOnboarding';
+import LocationOnboarding from './LocationOnboarding';
+import CollegeOnboarding from './CollegeOnboarding'; 
 import { colors } from '../../styles/colors';
 
 export default function GenderInterestOnboarding() {
 
-    const [userId, setUserId] = useContext(UserIdContext);
-    const [genderInterestSubmitted, setGenderInterestSubmitted] = useState(false); 
-    const [updateGenderInterest, { updateGenderInterestData }] = useMutation(UPDATE_GENDER_INTEREST);
+    const [student, setStudent] = useState(null); 
 
-    const interestMan = () => {
-        updateGenderInterest({ variables: { userId, genderInterest: 'Men' }});
-        _storeGenderInterest('Men'); 
-        setGenderInterestSubmitted(true); 
-    };
+    function yesStudent(){
+        setStudent(true); 
+    }
 
-    const interestWoman = () => {
-        updateGenderInterest({ variables: { userId, genderInterest: 'Women' }});
-        _storeGenderInterest('Women');
-        setGenderInterestSubmitted(true); 
-    };
+    function noStudent(){
+        setStudent(false); 
+    }
 
-    const interestEveryone = () => {
-        updateGenderInterest({ variables: { userId, genderInterest: 'Everyone' }});
-        _storeGenderInterest('Everyone');
-        setGenderInterestSubmitted(true); 
-    }; 
-
-    if(genderInterestSubmitted) {
+    if(student == true) {
         return (
-            <StudentOnboarding />
+            <CollegeOnboarding />
+        )
+    } else if(student == false) {
+        return (
+            <LocationOnboarding />
         )
     } else {
             return (
@@ -44,17 +37,16 @@ export default function GenderInterestOnboarding() {
                         <View style={{ paddingTop: '10%', height: '25%'}}>
                             <Ionicons name="md-person" size={45} color={primaryColor} />
                         </View>        
-                        <Text style={{ fontSize: 25, fontWeight: 'bold', paddingTop: 15, textAlign: 'center', color: primaryColor }}>I'm looking to date</Text>
+                        <Text style={{ fontSize: 25, fontWeight: 'bold', paddingTop: 15, textAlign: 'center', color: primaryColor }}>Are you a student?</Text>
                         <View style={{ justifyContent: 'space-evenly', height: '60%'}}>
-                            <TouchableOpacity onPress={interestWoman} style={styles.genderContainer}>
-                                <Text style={styles.genderText}>Women</Text>
+                            <TouchableOpacity onPress={yesStudent} style={styles.genderContainer}>
+                                <Text style={styles.genderText}>Yes</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={interestMan} style={styles.genderContainer}>
-                                <Text style={styles.genderText}>Men</Text>
+                            <TouchableOpacity onPress={noStudent} style={styles.genderContainer}>
+                                <Text style={styles.genderText}>No</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={interestEveryone} style={styles.genderContainer}>
-                                <Text style={styles.genderText}>Everyone</Text>
-                            </TouchableOpacity>
+                            <TouchableWithoutFeedback style={styles.emptyContainer}>
+                            </TouchableWithoutFeedback>
                         </View>
                     </View>
                     <TouchableOpacity style={{ height: '25%', justifyContent: 'center'}}>
@@ -77,6 +69,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center'
     }, 
+    emptyContainer: {
+        width: 250,
+        height: 40, 
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
     genderText: {
         fontSize: 17,
         color: secondaryColor,

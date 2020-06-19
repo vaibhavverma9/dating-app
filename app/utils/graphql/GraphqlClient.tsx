@@ -11,17 +11,21 @@ export const client = new ApolloClient({
     })
 });
 
+// {_or: [
+//   {location: {_is_null: true}},
+//   {_not: { location: {_st_d_within: {distance: 300000, from: $point }}}}
+// ]},
 
-export const GET_VIDEOS = gql`
+
+export const GET_VIDEOS_LOWER = gql`
   query GetVideos ($userId: Int, $limit: Int, $lastUploaded: timestamptz, $notIntoGender: String, $point: geography!) { 
     users(
       limit: $limit, 
       where: {_and: [
         {_or: [
-          {location: {_is_null: true}},
-          {_not: { location: {_st_d_within: {distance: 300000, from: $point }}}}
+          {gender: {_neq: $notIntoGender}},
+          {gender: {_is_null: true}}
         ]},
-        {gender: {_neq: $notIntoGender}},
         {userVideos: {status: {_eq: "ready"}}},
         {_not: {id: {_eq: $userId}}},        
         {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}},
@@ -32,6 +36,53 @@ export const GET_VIDEOS = gql`
       firstName
       city
       region
+      college
+      location
+      likesByLikedId(where: {likerId: {_eq: $userId}}, order_by: {created_at: desc}) {
+        dislike
+        matched
+      }
+      userVideos(limit: 4, where: {status: {_eq: "ready"}}, order_by: {views: asc}) {
+        muxPlaybackId
+        videoQuestion {
+          questionText
+        }
+        id
+        flags
+        likes
+        views
+      }
+      id
+      lastUploaded
+    }
+  }
+`
+
+export const GET_VIDEOS_UPPER = gql`
+  query GetVideos ($userId: Int, $limit: Int, $lastUploaded: timestamptz, $notIntoGender: String, $point: geography!) { 
+    users(
+      limit: $limit, 
+      where: {_and: [
+        {_or: [
+          {gender: {_neq: $notIntoGender}},
+          {gender: {_is_null: true}}
+        ]},
+        {userVideos: {status: {_eq: "ready"}}},
+        {_not: {id: {_eq: $userId}}},        
+        {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}},
+        {lastUploaded: {_gt: $lastUploaded}}
+      ]}, 
+      order_by: {lastUploaded: asc}
+    ) {
+      firstName
+      city
+      region
+      college
+      location
+      likesByLikedId(limit: 1, where: {likerId: {_eq: $userId}}, order_by: {created_at: desc}) {
+        dislike
+        matched
+      }
       userVideos(limit: 4, where: {status: {_eq: "ready"}}, order_by: {views: asc}) {
         muxPlaybackId
         videoQuestion {
@@ -67,6 +118,8 @@ export const GET_VIDEOS_NEARBY = gql`
       firstName
       city
       region
+      college
+      location
       userVideos(limit: 4, where: {status: {_eq: "ready"}}, order_by: {views: asc}) {
         muxPlaybackId
         videoQuestion {
@@ -123,11 +176,11 @@ export const GET_PAST_VIDEOS = gql`
 `
 
 export const GET_QUESTIONS = gql`
-  {
-    questions {
+  query GetQuestions ($userId: Int){
+    questions(where: {_not: {questionVideos: {userId: {_eq: $userId}}}}) {
       questionText
       id
-    }
+    }  
   }
 `
 
@@ -189,19 +242,25 @@ export const GET_ASSET_STATUS = `
         }
     }
 `
+
 export const GET_LIKES = gql`
   query GetLikes($userId: Int) {
-    likes(distinct_on: likerId, where: {_and: [{likedId: {_eq: $userId}}, {Liker: {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}}}, {likerId: {_neq: $userId}}]}) {
+    likes(distinct_on: likerId, where: {_and: [
+      {likedId: {_eq: $userId}}, 
+      {Liker: {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}}},
+      {Liker: {userVideos: {status: {_eq: "ready"}}}}
+    ]}) {
       matched
       likerId
       created_at
       Liker {
         firstName
         id
+        college
         messages(where: {receiverId: {_eq: $userId}}, limit: 1, order_by: {created_at: desc}) {
           message
         }
-        userVideos(limit: 1, order_by: {created_at: asc}, where: {muxPlaybackId: {_is_null: false}}) {
+        userVideos(limit: 3, order_by: {created_at: asc}, where: {muxPlaybackId: {_is_null: false}}) {
           videoQuestion {
             questionText
           }
@@ -214,16 +273,17 @@ export const GET_LIKES = gql`
 `
 
 export const GET_LIKE = gql`
-    query GetLike ($likerId: Int, $likedId: Int) {
-      likes(where: {_and: [{likerId: {_eq: $likerId}}, {likedId: {_eq: $likedId}}]}) {
+    query GetLike ($likerId: Int, $likedId: Int, $dislike: Boolean) {
+      likes(where: {_and: [{likerId: {_eq: $likerId}}, {likedId: {_eq: $likedId}}, {dislike: {_eq: $dislike}}]}) {
         matched
+        dislike
       }
     }  
 `
 
 export const INSERT_LIKE = gql`
-    mutation InsertLikes ($likedId: Int, $likerId: Int, $matched: Boolean) {
-      insert_likes(objects: {likedId: $likedId, likerId: $likerId, matched: $matched}) {
+    mutation InsertLikes ($likedId: Int, $likerId: Int, $matched: Boolean, $dislike: Boolean) {
+      insert_likes(objects: {likedId: $likedId, likerId: $likerId, matched: $matched, dislike: $dislike}) {
         returning {
           id
         }
@@ -347,6 +407,14 @@ export const UPDATE_NAME = gql`
   }
 `
 
+export const UPDATE_COLLEGE = gql`
+  mutation UpdateName ($userId: Int, $college: String, $collegeId: Int) {
+    update_users(where: {id: {_eq: $userId}}, _set: {college: $college, collegeId: $collegeId}) {
+      affected_rows
+    }
+  }
+`
+
 export const UPDATE_BIO = gql`
   mutation UpdateName ($userId: Int, $bio: String) {
     update_users(where: {id: {_eq: $userId}}, _set: {bio: $bio}) {
@@ -418,13 +486,38 @@ export const GET_CITY_REGION = gql`
       region
     }
   }
-
 `
 
 export const DELETE_VIDEO = gql`
   mutation DeleteVideos($videoId: Int) {
-    delete_videos(where: {id: {_eq: $videoId}}) {
+    update_videos(where: {id: {_eq: $videoId}}, _set: {status: "removed"}) {
       affected_rows
+    }
+  }
+`
+
+export const DELETE_VIDEO_PASSTHROUGH_ID = gql`
+  mutation DeleteVideos($passthroughId: String) {
+    update_videos(where: {passthroughId: {_eq: $passthroughId}}, _set: {status: "removed"}) {
+      affected_rows
+    }
+  }
+`
+
+export const GET_COLLEGES = gql`
+  query GetColleges {
+    colleges {
+      nickname
+      name
+      id
+    }
+  }
+`
+
+export const GET_STREAM_TOKEN = gql`
+  query getStreamToken($userId: Int) {
+    users(where: {id: {_eq: $userId}}) {
+      streamToken
     }
   }
 `
