@@ -21,12 +21,8 @@ export const client = new ApolloClient({
     })
 });
 
-// {_and: [
-//   { location: {_is_null: true}},
-//   { userCollege: { location: {_is_null: true}}}
-// ]}
 
-
+// {lastUploaded: {_lt: $lastLoadedLower}}
 // {
 //   _or: [
 //     { location: {_st_d_within: {distance: 300000, from: $collegePoint }}},
@@ -35,10 +31,10 @@ export const client = new ApolloClient({
 //     { userCollege : { location: {_st_d_within: {distance: 300000, from: $collegePoint }}}},
 //   ]
 // },
-
-//         {lastUploaded: {_lt: $lastLoadedLower}}
-// {_not: {id: {_eq: $userId}}},        
-// {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}}
+// {_or: [
+//   {gender: {_neq: $notIntoGender}},
+//   {gender: {_is_null: true}}
+// ]},
 
 
 export const GET_VIDEOS = gql`
@@ -69,9 +65,24 @@ export const GET_VIDEOS = gql`
 
   query GetVideos ($userId: Int, $noLocationLimit: Int, $lowerLimit: Int, $upperLimit: Int, $lastLoadedLower: timestamptz, $lastLoadedUpper: timestamptz, $lastLoadedNoLocation: timestamptz, $notIntoGender: String, $point: geography!, $collegePoint: geography!) { 
     lowerUsersLocation: users (
-      limit: 4, 
+      limit: $lowerLimit, 
       where: {_and: [
+        {_or: [
+          {gender: {_neq: $notIntoGender}},
+          {gender: {_is_null: true}}
+        ]},
         {userVideos: {status: {_eq: "ready"}}},
+        {_not: {id: {_eq: $userId}}},        
+        {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}},
+        {
+          _or: [
+            { location: {_st_d_within: {distance: 300000, from: $collegePoint }}},
+            { location: {_st_d_within: {distance: 300000, from: $point }}},
+            { userCollege : { location: {_st_d_within: {distance: 300000, from: $point }}}},
+            { userCollege : { location: {_st_d_within: {distance: 300000, from: $collegePoint }}}},
+          ]
+        },
+        {lastUploaded: {_lt: $lastLoadedLower}}
       ]}, 
       order_by: {lastUploaded: desc_nulls_last}
     ) {

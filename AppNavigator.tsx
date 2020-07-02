@@ -4,7 +4,7 @@ import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid, _
 import { useDoormanUser } from 'react-native-doorman'
 import { UserIdContext } from './app/utils/context/UserIdContext'
 import { client, GET_USERS_BY_UID, INSERT_USER } from './app/utils/graphql/GraphqlClient';
-import { useMutation } from '@apollo/client';
+import { useMutation, useLazyQuery } from '@apollo/client';
 import TabStack from './app/stacks/TabStack'; 
 import OnboardingStack from './app/stacks/OnboardingStack';
 // import { LocationContext } from './app/utils/context/LocationContext';
@@ -18,16 +18,50 @@ export default function AppNavigator(){
   // const [location, setLocation] = useContext(LocationContext); 
   const [insertUser, { insertUserData }] = useMutation(INSERT_USER); 
 
+  const [getUsersByUid, { data: usersByUid }] = useLazyQuery(GET_USERS_BY_UID,
+    {
+      onCompleted: (usersByUid) => {
+        initUser(usersByUid); 
+      }
+    })
+
   useEffect(() => {
     doormanDatabaseAuth();
   }, []);
+
+  async function initUser(usersByUid){
+    if(usersByUid.users == 0){
+      insertUser({variables: { uid, phoneNumber }})
+      .then(insertUserResponse => { 
+        _storeUserId(insertUserResponse.data.insert_users.returning[0].id); 
+        _storeDoormanUid(uid); 
+        _storeOnboarded(false); 
+
+        setUserId(insertUserResponse.data.insert_users.returning[0].id); 
+        setOnboarded(false); 
+      })
+      .catch(insertUserError => {})
+    } else {
+      _storeUserId(usersByUid.users[0].id);
+      _storeDoormanUid(uid); 
+      _storeOnboarded(usersByUid.users[0].onboarded); 
+
+      if(usersByUid.users[0].location){
+        _storeLatitude(usersByUid.users[0].location.coordinates[0]); 
+        _storeLongitude(usersByUid.users[0].location.coordinates[1]); 
+        // setLocation(getUsersResponse.data.users[0].location.coordinates[1]);  
+      }
+      setUserId(usersByUid.users[0].id);
+      setOnboarded(usersByUid.users[0].onboarded)
+    }
+  }
 
   async function doormanDatabaseAuth() {
     const localUserId = await _retrieveUserId();
     const localDoormanUid = await _retrieveDoormanUid();
     const localOnboarded = await _retrieveOnboarded(); 
 
-    if(localUserId > 0 && localDoormanUid != "" && localOnboarded != ""){ 
+    if(localUserId > 0 &usersByUid& localDoormanUid != "" && localOnboarded != ""){ 
       const localLatitude = await _retrieveLatitude(); 
       const localLongitude = await _retrieveLongitude(); 
 
@@ -38,36 +72,7 @@ export default function AppNavigator(){
       setUserId(localUserId); 
       setOnboarded(localOnboarded); 
     } else {
-      client.query({ query: GET_USERS_BY_UID , variables: { uid }})
-      .then(getUsersResponse => {
-        if(getUsersResponse.data.users == 0){
-          insertUser({variables: { uid, phoneNumber }})
-          .then(insertUserResponse => { 
-            _storeUserId(insertUserResponse.data.insert_users.returning[0].id); 
-            _storeDoormanUid(uid); 
-            _storeOnboarded(false); 
-
-            setUserId(insertUserResponse.data.insert_users.returning[0].id); 
-            setOnboarded(false); 
-          })
-          .catch(insertUserError => {})
-        } else {
-          _storeUserId(getUsersResponse.data.users[0].id);
-          _storeDoormanUid(uid); 
-          _storeOnboarded(getUsersResponse.data.users[0].onboarded); 
-
-          if(getUsersResponse.data.users[0].location){
-            _storeLatitude(getUsersResponse.data.users[0].location.coordinates[0]); 
-            _storeLongitude(getUsersResponse.data.users[0].location.coordinates[1]); 
-            // setLocation(getUsersResponse.data.users[0].location.coordinates[1]);  
-          }
-          setUserId(getUsersResponse.data.users[0].id);
-          setOnboarded(getUsersResponse.data.users[0].onboarded)
-        }
-      })
-      .catch(error => {
-        setOnboarded(false); 
-      });
+      getUsersByUid({variables: { uid }})
     }
   }
 

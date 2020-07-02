@@ -4,7 +4,7 @@ import { useQuery } from '@apollo/client';
 import { GET_VIDEOS, GET_BEST_VIDEOS, GET_GENDER_INTEREST, GET_COLLEGE_LOCATION, GET_NUMBER_VIDEOS, client } from '../../utils/graphql/GraphqlClient';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { _retrieveLatitude, _retrieveLongitude, _retrieveGenderInterest, _storeGenderInterest, _storeLastWatchedUpper, _storeLastWatchedLower, _retrieveLastWatchedUpper, _retrieveLastWatchedLower, _retrieveCollegeLatitude, _storeCollegeLatitude, _retrieveCollegeLongitude, _storeCollegeLongitude} from '../../utils/asyncStorage'; 
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Text } from 'react-native';
 
 export default function HomeView({ route, navigation }) {
 
@@ -172,23 +172,19 @@ export default function HomeView({ route, navigation }) {
     let lowerLimit = 0;
     let upperLimit = 0;
     let noLocationLimit = 0; 
-    let bestLimit = 0;  
-    let videoQuery; 
 
-    // if(profileVideoCount && profileVideoCount == 0){
-    //   bestLimit = 5; 
-    // } else if(profileVideoCount && profileVideoCount > 0) {
-      if(locationVideos){
-        if(upperVideos){
-          upperLimit = limit; 
-        } else {
-          lowerLimit = limit; 
-        }
+    if(locationVideos){
+      if(upperVideos){
+        upperLimit = limit; 
       } else {
-        noLocationLimit = limit; 
-      }  
-    // }
+        lowerLimit = limit; 
+      }
+    } else {
+      noLocationLimit = limit; 
+    }  
 
+
+    // console.log( userId, noLocationLimit, lowerLimit, upperLimit, lastLoadedLower, lastLoadedUpper, lastLoadedNoLocation, notIntoGender, point, collegePoint);
     const { loading, error, data } = useQuery(GET_VIDEOS, {
       variables: { userId, noLocationLimit: 0, lowerLimit: limit, upperLimit: limit, lastLoadedLower, lastLoadedUpper, lastLoadedNoLocation, notIntoGender, point, collegePoint }
     });   
@@ -207,6 +203,7 @@ export default function HomeView({ route, navigation }) {
       )
     } else if(data){
       if(data.lowerUsersLocation.length > 0 || data.upperUsersLocation.length > 0 || data.usersNoLocation.length > 0){
+        // console.log("pulling data", data); 
         return (
           <HomeContents 
             route={route}

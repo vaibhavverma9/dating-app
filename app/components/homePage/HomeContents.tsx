@@ -27,7 +27,7 @@ import { Dimensions } from 'react-native';
 import { getDistance } from 'geolib';
 import { colors } from '../../styles/colors';
 
-
+ 
 export default function HomeContents(props) {
 
   const { uid, phoneNumber } = useDoormanUser();
@@ -112,9 +112,18 @@ export default function HomeContents(props) {
   const [lastLoadedNoLocation, setLastLoadedNoLocation] = useState(props.lastLoadedNoLocation); 
 
   const [getVideosLower, { data: videosLower }] = useLazyQuery(GET_VIDEOS, 
-    { 
-      onCompleted: (videosLower) => { processVideos(videosLower, upperVideos) } 
-    }); 
+  { 
+    onCompleted: (videosLower) => { processVideos(videosLower, upperVideos) } 
+  }); 
+
+  const [getNumberVideos, { data: numberVideos }] = useLazyQuery(GET_NUMBER_VIDEOS,
+  {
+    onCompleted: (numberVideos) => {
+      const count = numberVideos.videos_aggregate.aggregate.count;
+      setProfileVideoCount(count); 
+    }
+  })
+
 
   const _panResponder = PanResponder.create({
     onStartShouldSetPanResponder: (evt, gestureState) => true,
@@ -139,17 +148,9 @@ export default function HomeContents(props) {
   useEffect(() => {
     initSegment(); 
     networkConnected(); 
-    countProfileVideos(userId);  
+    getNumberVideos({variables: { userId }})
     setTimeout(() => { setTimedOut(true) }, 3000); 
   }, []);
-
-  function countProfileVideos(userId){
-    client.query({ query: GET_NUMBER_VIDEOS, variables: { userId }})
-    .then(response => {
-      const profileVideoCount = response.data.videos_aggregate.aggregate.count; 
-      setProfileVideoCount(profileVideoCount); 
-    })
-  }
 
   useEffect(() => {
     processVideos(props.data, upperVideos); 
@@ -334,19 +335,23 @@ export default function HomeContents(props) {
   }
 
   function processVideos(data, upperVideos){
+    console.log("processingVideos");
+    console.log("locationVideos", locationVideos);
 
     if(locationVideos){
       if(upperVideos){
         let initialLowerVideosLocal = initialLowerVideos; 
 
-        if(!initLowerVideos){
+        if(!initLowerVideos){          
           initialLowerVideosLocal = data; 
           setInitialLowerVideos(data);
           setInitLowerVideos(true); 
         }
 
         const users = data.upperUsersLocation; 
-  
+
+        console.log("upperVideoData", users); 
+
         if (users.length > 0){
           if(!initialized){
             setInitialized(true); 
@@ -395,7 +400,9 @@ export default function HomeContents(props) {
           // queryVideosInit(lastLoadedUpper, lastLoadedLower, lastLoadedNoLocation, 0, props.limit, 0); 
         } 
       } else {
-        const users = data.lowerUsersLocation; 
+        const users = data.lowerUsersLocation;
+        
+        console.log("lowerVideo data", users); 
         if(users.length > 0){
           if(!initialized){
             setInitialized(true); 
@@ -438,6 +445,7 @@ export default function HomeContents(props) {
         } 
 
         if(users.length < lowerLimit){
+          console.log("no more lower videos");
           setLowerLimit(0);
           setNoLocationLimit(props.limit); 
           setLocationVideos(false); 
