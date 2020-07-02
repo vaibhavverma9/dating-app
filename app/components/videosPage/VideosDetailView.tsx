@@ -38,7 +38,6 @@ export default function VideosDetailView(props) {
 
 
     function VideoView({ video }){
-        console.log(video);
         if(video.item.type == 'blankVideo') {
             return <BlankVideoView /> 
         } else if(video.item.type == 'uploadedVideo'){

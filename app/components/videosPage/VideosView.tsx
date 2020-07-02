@@ -12,6 +12,9 @@ import axios from 'axios';
 import { Ionicons, MaterialIcons, Entypo, SimpleLineIcons } from '@expo/vector-icons'
 import { colors } from '../../styles/colors'; 
 import SettingsPopup from '../modals/SettingsPopup';
+import * as UpChunk from '@mux/upchunk';
+import * as FileSystem from 'expo-file-system';
+import RNFetchBlob from 'rn-fetch-blob'
 
 export default function VideosView(props) {
 
@@ -155,10 +158,9 @@ export default function VideosView(props) {
                 if(videos.length > 0){
                     const video_data = videos[0];
                     const status = video_data.status;
-                    console.log(status);
                     if(status == "preparing" || status == "ready"){ 
                         const tempUploadedVideos = uploadedVideos.map(uploadedVideo => {
-                            if(uploadedVideo.passthroughId == passthroughId){
+                            if(uploadedVideo.passthroughId == passthroughId && uploadedVideo.status != "errored"){
                                 return {...uploadedVideo, status: status, id: video_data.id}
                             } else { return uploadedVideo }
                         })
@@ -184,7 +186,6 @@ export default function VideosView(props) {
         const thumbnailUri = uploadingVideo.thumbnailUri;
         const videoUri = uploadingVideo.videoUri; 
         const passthroughId = uploadingVideo.passthroughId; 
-        console.log(uploadingVideo.id); 
         const id = uploadingVideo.id; 
 
         async function reuploadVideo(){
@@ -193,7 +194,6 @@ export default function VideosView(props) {
             deleteVideoPassthrough({ variables: { passthroughId: passthroughId }}); 
 
             const newPassthroughId = Math.floor(Math.random() * 1000000000) + 1; 
-            console.log("newPassthroughId", newPassthroughId); 
 
             const params = {
                 questionText: questionText,
@@ -274,10 +274,6 @@ export default function VideosView(props) {
         setWorstVideos(worstVideos.filter(video => { return video.id !== videoId }));
     }
 
-    useEffect(() => {
-        console.log(lastDayVideos)
-    }, [lastDayVideos]); 
-
     function IndividualVideoView({ video }){
         function goToVideo(){
             setFullVideoVisible(true); 
@@ -289,6 +285,7 @@ export default function VideosView(props) {
         const muxPlaybackId = video.muxPlaybackId;
         const questionText = video.videoQuestion ? video.videoQuestion.questionText : ""; 
         const muxPlaybackUrl = 'https://image.mux.com/' + muxPlaybackId + '/thumbnail.jpg?time=0';
+        const total = video.likes + video.dislikes; 
 
         if(status == "ready"){
             return(
@@ -300,17 +297,17 @@ export default function VideosView(props) {
                         >
                             <View style={styles.videoViews}>
                                 <SimpleLineIcons name="control-play" color={colors.secondaryWhite} size={14}/>
-                                <Text style={styles.videoViewsText}>{video.views}</Text>
+                                <Text style={styles.videoViewsText}>{total}</Text>
                             </View>
                         </ImageBackground>
                     </TouchableOpacity>
-                    <FullPageVideos 
-                        visible={fullVideoVisible} 
-                        setVisible={setFullVideoVisible} 
+                    <FullPageVideos
+                        visible={fullVideoVisible}
+                        setVisible={setFullVideoVisible}
                         source={'https://stream.mux.com/' + muxPlaybackId + '.m3u8'}
                         questionText={questionText}
                         likes={video.likes}
-                        views={video.views}
+                        views={total}
                         showOptions={true}
                         videoId={video.id}
                         removeVideo={removeVideo}
@@ -342,7 +339,6 @@ export default function VideosView(props) {
         
         Segment.trackWithProperties("Upload Video", { questionId: questionId}); 
 
-
         // Create a blob from the videoUri
         const blob = await new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest(); 
@@ -359,7 +355,7 @@ export default function VideosView(props) {
 
         // Create an authenticated Mux URL
         let res = await axios({
-            method: 'post', 
+            method: 'post',  
             url: 'https://api.mux.com/video/v1/uploads',
             headers: { 'content-type': 'application/json' },
             data: { "new_asset_settings": { "passthrough" : passthroughId,"playback_policy": ["public"] } },
@@ -371,14 +367,58 @@ export default function VideosView(props) {
         const status = res.data.data.status;
 
         await insertInitVideo({ variables: { questionId: questionId, userId: userId, passthroughId: passthroughId, status: status, uploadId: uploadId }})
-        .then(response => {})
-        .catch(error => {}); 
+        .then(response => { console.log(response) })
+        .catch(error => {console.error(error) }); 
 
-        // Use authenticated URL to upload file
-        await fetch(authenticatedUrl, {
-            method: 'PUT', 
-            body: blob, 
-            headers: { "content-type": blob.type }});
+        let offset = 0;
+        let chunkSize = 20971520; 
+
+        // if(blob.size < chunkSize){
+            try {
+                let res3 = await fetch(authenticatedUrl, {
+                    method: 'PUT', 
+                    body: blob, 
+                    headers: { "content-type": blob.type}});        
+            } catch(error){
+                console.error(error); 
+            }
+        // } else {
+        //     while(offset + chunkSize < blob.size){
+        //         let lowerRange = offset; 
+        //         let upperRange = offset + chunkSize; 
+        //         let chunk = blob.slice(lowerRange, upperRange, blob.type);
+        //         let rangeHeader = lowerRange.toString() + '-' + upperRange.toString() + '/' + blob.size.toString(); 
+        //         console.log(rangeHeader); 
+    
+        //         try {
+        //             fetch(authenticatedUrl, {
+        //                 method: 'PUT', 
+        //                 body: chunk, 
+        //                 headers: { "content-type": blob.type, "content-length" : chunkSize, "content-range" : rangeHeader}})
+        //             .then(response => { console.log(response)} )
+        //             .catch(error => console.error(error));           
+        //         } catch(error){
+        //             console.error(error); 
+        //         }
+    
+        //         offset += chunkSize; 
+        //     }
+        // }
+
+        // let file = new File([blob], {type: 'multipart/form-data', lastModified: Date.now()});
+
+        // let res2 = await axios({
+        //     method: 'PUT', 
+        //     url: authenticatedUrl,
+        //     data: blob,
+        //     headers: { "content-type": blob.type }
+        // })
+
+        // let res2 = await axios.put(authenticatedUrl, blob, { headers: { "content-type": blob.type } });
+
+        // console.log(res2); 
+
+        // console.log("response2", res2)
 
         blob.close();
 
@@ -485,15 +525,6 @@ export default function VideosView(props) {
         setSettingsVisible(true); 
     }
 
-    function ExplanationText(){
-        return (
-            <View style={styles.explanationPadding}>
-                <Text style={styles.explanationText}>Add more videos!</Text>
-                <Text style={styles.explanationText}>We only show your best videos to each user.</Text>
-            </View>
-        )
-    }
-
     function SectionTitle({text, videos}){
         if(videos.length > 0){
             return (
@@ -526,7 +557,6 @@ export default function VideosView(props) {
         editProfileButtonStyle: {  borderWidth: 1, borderRadius: 3, height: 30, width: 130, justifyContent: 'center', alignItems: 'center', borderColor: colors.primaryWhite},
         editProfileText: { fontSize: 16, fontWeight: '200', color: colors.primaryWhite  },
         explanationPadding: { paddingHorizontal: 40, paddingVertical: 30 },
-        explanationText: { color: colors.chineseWhite, textAlign: 'center' },
         titleView: { flexDirection: 'row', alignItems: 'flex-end'},
         scrollViewStyle: { flex: 1, backgroundColor: colors.primaryBlack },
         viewFlexStart: { justifyContent: 'flex-start'},
@@ -550,7 +580,6 @@ export default function VideosView(props) {
                         <Name />
                         <Bio /> 
                         <EditProfileButton /> 
-                        <ExplanationText />
                     </View>
                     <View style={styles.thumbnailPaddingTop}>
                         <TouchableOpacity onPress={goToNewVideos}>
@@ -567,6 +596,7 @@ export default function VideosView(props) {
                         <TouchableOpacity style={styles.titleView} onPress={goToBestVideos}>
                             <SectionTitle text={'Best Videos'} videos={bestVideos} />
                         </TouchableOpacity>
+                        <Text style={styles.sectionSubtitles}>We show your best videos to each user.</Text>
                         <VideoSection videos={bestVideos.slice(0, 3)}  />
                         <VideoSection videos={bestVideos.slice(3, 6)}  />
                     </View>
@@ -601,9 +631,10 @@ export default function VideosView(props) {
         } else {
             return (
                 <View style={styles.badInternetView}>
-                  <TouchableOpacity onPress={reload} style={{ borderWidth: 1, borderColor: '#eee', justifyContent: 'center', borderRadius: 5}}>
-                    <Text style={styles.reloadText}>Reload</Text>          
-                  </TouchableOpacity>
+                    <View style={{ borderWidth: 1, borderColor: '#eee', justifyContent: 'center', borderRadius: 5}}>
+                        <Text style={styles.reloadText}>Sorry for this bug!</Text>          
+                        <Text style={styles.reloadText}>Can you please reboot the app?</Text>          
+                    </View>
                 </View>
               )
         }

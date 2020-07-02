@@ -10,7 +10,7 @@
       "android",
       "web"
     ],
-    "version": "1.2.1",
+    "version": "1.2.3",
     "orientation": "portrait",
     "icon": "./app/assets/icon.png",
     "scheme": "reeltalk",
@@ -30,7 +30,7 @@
     ],
     "ios": {
       "bundleIdentifier": "com.dating.reeltalk",
-      "buildNumber": "1.2.1",
+      "buildNumber": "1.2.3",
       "supportsTablet": true,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Realtalk accesses your library so you can upload videos of you answering questions.",

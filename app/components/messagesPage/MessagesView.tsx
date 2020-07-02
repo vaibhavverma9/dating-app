@@ -258,7 +258,7 @@ export default function MessagesView(props) {
     setAllData(allDataTemp); 
     
     updateLike({ variables: { likedId: userId, likerId: existingLikerId, matched: true}});
-    insertLike({ variables: { likedId: existingLikerId, likerId: userId, matched: true }});
+    insertLike({ variables: { likedId: existingLikerId, likerId: userId, matched: true, dislike: false }});
   }
 
   function disableHeader({text}){
@@ -279,7 +279,7 @@ export default function MessagesView(props) {
         <View>
           <Text style={textStyle}>{text}</Text>
         </View>
-    </TouchableOpacity>)
+      </TouchableOpacity>)
   }
 
   function AnswerQuestionText (){
@@ -322,9 +322,10 @@ export default function MessagesView(props) {
     } else {
       return (
           <View style={styles.badInternetView}>
-            <TouchableOpacity onPress={reload} style={{ borderWidth: 1, borderColor: '#eee', justifyContent: 'center', borderRadius: 5}}>
-              <Text style={styles.reloadText}>Reload</Text>          
-            </TouchableOpacity>
+            <View style={{ borderWidth: 1, borderColor: '#eee', justifyContent: 'center', borderRadius: 5}}>
+              <Text style={styles.reloadText}>Sorry for this bug!</Text>          
+              <Text style={styles.reloadText}>Can you please reboot the app?</Text>          
+            </View>
           </View>
         )
     }

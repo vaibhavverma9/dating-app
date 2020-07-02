@@ -1,6 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { View, Text, TextInput, TouchableWithoutFeedback, TouchableOpacity, Keyboard, StyleSheet } from 'react-native';
-import { _storeCollege } from '../../utils/asyncStorage';
+import { _storeCollege, _storeCollegeLatitude, _storeCollegeLongitude  } from '../../utils/asyncStorage';
 import { useMutation, useLazyQuery } from '@apollo/client';
 import { UPDATE_COLLEGE, GET_COLLEGES } from '../../utils/graphql/GraphqlClient';
 import { UserIdContext } from '../../utils/context/UserIdContext'
@@ -17,6 +17,8 @@ export default function EditNameView(props) {
     const [filteredColleges, setFilteredColleges] = useState(null); 
     const [hideResults, setHideResults] = useState(true); 
     const [collegeId, setCollegeId] = useState(null); 
+    const [collegeLatitude, setCollegeLatitude] = useState(null); 
+    const [collegeLongitude, setCollegeLongitude] = useState(null); 
 
     const [getColleges, { data: collegeData }] = useLazyQuery(GET_COLLEGES, 
         { 
@@ -41,6 +43,8 @@ export default function EditNameView(props) {
 
     function onSubmit(){
         _storeCollege(college); 
+        _storeCollegeLatitude(collegeLatitude);
+        _storeCollegeLongitude(collegeLongitude);  
         updateCollege({ variables: { userId, college, collegeId: collegeId }});
         props.navigation.goBack(); 
     }
@@ -48,6 +52,8 @@ export default function EditNameView(props) {
     function handleSelectItem(item){
         setCollege(item.name); 
         setCollegeId(item.id); 
+        setCollegeLatitude(item.latitude);
+        setCollegeLongitude(item.longitude); 
         setHideResults(true); 
         setSubmitHidden(false); 
     }

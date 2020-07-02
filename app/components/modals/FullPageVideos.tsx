@@ -55,7 +55,6 @@ export default function FullPageVideos(props) {
   }
 
   function tapDeleteVideo(){
-    console.log("tapDeleteVideo"); 
     deleteVideo({ variables: { videoId: props.videoId }}); 
     props.removeVideo(props.videoId); 
     props.setVisible(false); 

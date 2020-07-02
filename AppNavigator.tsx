@@ -7,7 +7,7 @@ import { client, GET_USERS_BY_UID, INSERT_USER } from './app/utils/graphql/Graph
 import { useMutation } from '@apollo/client';
 import TabStack from './app/stacks/TabStack'; 
 import OnboardingStack from './app/stacks/OnboardingStack';
-import { LocationContext } from './app/utils/context/LocationContext';
+// import { LocationContext } from './app/utils/context/LocationContext';
 import { colors } from './app/styles/colors';
 
 export default function AppNavigator(){
@@ -15,7 +15,7 @@ export default function AppNavigator(){
   const [onboarded, setOnboarded] = useState(null);
   const { uid, phoneNumber } = useDoormanUser();
   const [userId, setUserId] = useContext(UserIdContext);
-  const [location, setLocation] = useContext(LocationContext); 
+  // const [location, setLocation] = useContext(LocationContext); 
   const [insertUser, { insertUserData }] = useMutation(INSERT_USER); 
 
   useEffect(() => {
@@ -32,7 +32,7 @@ export default function AppNavigator(){
       const localLongitude = await _retrieveLongitude(); 
 
       if (localLatitude != null && localLongitude != null){
-        setLocation([localLatitude, localLongitude]);
+        // setLocation([localLatitude, localLongitude]);
       }
   
       setUserId(localUserId); 
@@ -59,7 +59,7 @@ export default function AppNavigator(){
           if(getUsersResponse.data.users[0].location){
             _storeLatitude(getUsersResponse.data.users[0].location.coordinates[0]); 
             _storeLongitude(getUsersResponse.data.users[0].location.coordinates[1]); 
-            setLocation(getUsersResponse.data.users[0].location.coordinates[1]);  
+            // setLocation(getUsersResponse.data.users[0].location.coordinates[1]);  
           }
           setUserId(getUsersResponse.data.users[0].id);
           setOnboarded(getUsersResponse.data.users[0].onboarded)

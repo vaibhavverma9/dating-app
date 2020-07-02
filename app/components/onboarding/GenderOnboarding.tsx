@@ -7,7 +7,6 @@ import TabStack from '../../stacks/TabStack';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { useMutation } from '@apollo/client';
 import { UPDATE_GENDER, UPDATE_GENDER_INTEREST, UPDATE_SHOW_TO_PEOPLE } from '../../utils/graphql/GraphqlClient';
-import { _storeLatitude, _storeLongitude } from '../../utils/asyncStorage'; 
 import GenderInterestOnboarding from './GenderInterestOnboarding';
 import { colors } from '../../styles/colors';
 

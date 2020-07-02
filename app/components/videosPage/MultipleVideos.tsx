@@ -1,25 +1,10 @@
 
 
-import React, { useEffect, useRef, useState } from 'react'; 
+import React, { useEffect, useRef, useState, useMemo } from 'react'; 
 import { Video, Audio } from 'expo-av';   
 import { View, Animated } from 'react-native';
 
 export default function MultipleVideos(props) {
-
-    const renderedGroup = props.limit; 
-
-    let initialIndex;
-    let indexLimit; 
-
-    if (props.first) {
-        const renderedIndex = Math.round(props.userIndex / renderedGroup); 
-        initialIndex = renderedIndex * renderedGroup;
-        indexLimit = renderedIndex * renderedGroup + renderedGroup / 2; 
-    } else {
-        const renderedIndex = Math.floor(props.userIndex / renderedGroup); 
-        initialIndex = renderedIndex * renderedGroup + renderedGroup / 2; 
-        indexLimit = renderedIndex * renderedGroup + renderedGroup; 
-    }
 
     const playingData = { 
         isMuted: false, 
@@ -37,57 +22,81 @@ export default function MultipleVideos(props) {
         display: "none"
     }
 
-
     useEffect(() => {
         Audio.setAudioModeAsync({
             playsInSilentModeIOS: true
         }); 
-    }, []);
+    }, []);    
+    
+    const renderedVideos = [];
+    const videoData = props.videoData; 
+    const renderedUserIndex = props.renderedUserIndex; 
+    const userIndex = props.userIndex; 
+    const videoIndex = props.videoIndex;
+    const userCount = props.userCount;
 
-    const renderedVideos = []; 
+    if(videoData) {
+        const user = useMemo(() => videoData[renderedUserIndex], [renderedUserIndex, videoData]);
 
-    if(props.videoData) {
+        if(user) {
+            const videoCount = user.userVideos.length; 
+            if(userIndex == renderedUserIndex){
+                const renderedVideoIndexA = videoIndex; 
 
-        for(let i = initialIndex; i < indexLimit; i++){
-            const user = props.videoData.users[i];
+                const muxPlaybackIdA = user.userVideos[renderedVideoIndexA].muxPlaybackId; 
+                const muxPlaybackUrlA = 'https://stream.mux.com/' + muxPlaybackIdA + '.m3u8';
 
-            if(user){
-                for (let j = 0; j < user.userVideos.length; j++){
-                    const muxPlaybackId = user.userVideos[j].muxPlaybackId; 
-                    const muxPlaybackUrl = 'https://stream.mux.com/' + muxPlaybackId + '.m3u8';
+                renderedVideos.push(
+                    <PlayingVideo
+                        key={renderedVideoIndexA}
+                        playbackObject={playingData.playbackObject}
+                        source={muxPlaybackUrlA}
+                        isMuted={playingData.isMuted}
+                        shouldPlay={playingData.shouldPlay}
+                        _onPlaybackStatusUpdate={playingData._onPlaybackStatusUpdate}
+                        display={playingData.display}
+                    />
+                )
 
-                    if(props.userIndex == i && props.videoIndex == j){
-                        renderedVideos.push(
-                            <PlayingVideo
-                                key={muxPlaybackId}
-                                playbackObject={playingData.playbackObject}
-                                source={muxPlaybackUrl}
-                                isMuted={playingData.isMuted}
-                                shouldPlay={playingData.shouldPlay}
-                                _onPlaybackStatusUpdate={playingData._onPlaybackStatusUpdate}
-                                display={playingData.display}
-                            />
-                        )            
-                   } 
-                    else {
-                        renderedVideos.push(
-                            <PlayingVideo
-                                key={muxPlaybackId}
-                                playbackObject={nonplayingData.playbackObject}
-                                source={muxPlaybackUrl}
-                                isMuted={nonplayingData.isMuted}
-                                shouldPlay={nonplayingData.shouldPlay}
-                                _onPlaybackStatusUpdate={nonplayingData._onPlaybackStatusUpdate}
-                                display={nonplayingData.display}
-                            />
-                        )    
-                    }
+                const renderedVideoIndexB = videoIndex + 1; 
+
+                if(renderedVideoIndexB < videoCount){
+                    const muxPlaybackIdB = user.userVideos[renderedVideoIndexB].muxPlaybackId; 
+                    const muxPlaybackUrlB = 'https://stream.mux.com/' + muxPlaybackIdB + '.m3u8';
+    
+                    renderedVideos.push(
+                        <PlayingVideo
+                            key={renderedVideoIndexB}
+                            playbackObject={nonplayingData.playbackObject}
+                            source={muxPlaybackUrlB}
+                            isMuted={nonplayingData.isMuted}
+                            shouldPlay={nonplayingData.shouldPlay}
+                            _onPlaybackStatusUpdate={nonplayingData._onPlaybackStatusUpdate}
+                            display={nonplayingData.display}
+                        />
+                    )
                 }
+            } else if(renderedUserIndex < userCount) {
+                const renderedVideoIndex = 0; 
+                const muxPlaybackId = user.userVideos[renderedVideoIndex].muxPlaybackId; 
+                const muxPlaybackUrl = 'https://stream.mux.com/' + muxPlaybackId + '.m3u8';
+
+                renderedVideos.push(
+                    <PlayingVideo
+                        key={renderedVideoIndex}
+                        playbackObject={nonplayingData.playbackObject}
+                        source={muxPlaybackUrl}
+                        isMuted={nonplayingData.isMuted}
+                        shouldPlay={nonplayingData.shouldPlay}
+                        _onPlaybackStatusUpdate={nonplayingData._onPlaybackStatusUpdate}
+                        display={nonplayingData.display}
+                    />
+                )
+
             }
-
         }
-
     }
+
     return(
         <View>
             {renderedVideos}

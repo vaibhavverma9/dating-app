@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { useMutation, useLazyQuery } from '@apollo/client';
 import { UPDATE_COLLEGE, GET_COLLEGES } from '../../utils/graphql/GraphqlClient';
-import { _storeLatitude, _storeLongitude, _storeCollege } from '../../utils/asyncStorage'; 
+import { _storeLatitude, _storeLongitude, _storeCollege, _storeCollegeLatitude, _storeCollegeLongitude } from '../../utils/asyncStorage'; 
 import { colors } from '../../styles/colors';
 import LocationOnboarding from './LocationOnboarding';
 import Autocomplete from 'react-native-autocomplete-input';
@@ -22,6 +22,8 @@ export default function CollegeOnboarding() {
     const [filteredColleges, setFilteredColleges] = useState(null); 
     const [hideResults, setHideResults] = useState(true); 
     const [collegeId, setCollegeId] = useState(null); 
+    const [collegeLatitude, setCollegeLatitude] = useState(null); 
+    const [collegeLongitude, setCollegeLongitude] = useState(null); 
 
     const [getColleges, { data: collegeData }] = useLazyQuery(GET_COLLEGES, 
         { 
@@ -39,13 +41,18 @@ export default function CollegeOnboarding() {
 
     const submitCollege = () => {
         _storeCollege(college); 
-         updateCollege({ variables: { userId, college: college, collegeId: collegeId }});
-         setCollegeSubmitted(true); 
+        _storeCollegeLatitude(collegeLatitude);
+        _storeCollegeLongitude(collegeLongitude);  
+
+        updateCollege({ variables: { userId, college: college, collegeId: collegeId }});
+        setCollegeSubmitted(true); 
     }
 
     function handleSelectItem(item){
         setCollege(item.name); 
         setCollegeId(item.id); 
+        setCollegeLatitude(item.latitude);
+        setCollegeLongitude(item.longitude); 
         setHideResults(true); 
         setSubmitHidden(false); 
     }

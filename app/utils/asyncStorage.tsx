@@ -133,6 +133,44 @@ export const _retrieveLongitude = async () => {
     }
 };
 
+export const _storeCollegeLatitude = async(collegeLatitude) => {
+    try {
+        await AsyncStorage.setItem('@collegeLatitude', collegeLatitude.toString());
+    } catch (error){}
+}
+
+export const _retrieveCollegeLatitude = async () => {
+    try {
+      const value = await AsyncStorage.getItem('@collegeLatitude');
+      if (value !== null) {
+        return parseFloat(value); 
+      } else {
+          return null; 
+      }
+    } catch (error) {
+        return null; 
+    }
+};
+
+export const _storeCollegeLongitude = async(collegeLongitude) => {
+    try {
+        await AsyncStorage.setItem('@collegeLongitude', collegeLongitude.toString());
+    } catch (error){}
+}
+
+export const _retrieveCollegeLongitude = async () => {
+    try {
+      const value = await AsyncStorage.getItem('@collegeLongitude');
+      if (value !== null) {
+        return parseFloat(value); 
+      } else {
+          return null; 
+      }
+    } catch (error) {
+        return null; 
+    }
+};
+
 export const _storeName = async(name) => {
     try {
         await AsyncStorage.setItem('@name', name);

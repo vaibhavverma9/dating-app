@@ -1,5 +1,5 @@
 // import './wdyr'; 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import * as Sentry from 'sentry-expo'; 
 import 'react-native-gesture-handler';
 import { ApolloClient, ApolloProvider, HttpLink, InMemoryCache, gql } from '@apollo/client';
@@ -11,7 +11,7 @@ import { DoormanProvider, AuthFlow, AuthGate  } from 'react-native-doorman';
 import { ActivityIndicator } from 'react-native'
 import * as firebase from 'firebase'; 
 import AppNavigator from './AppNavigator';
-import { LocationContextProvider } from './app/utils/context/LocationContext';
+// import { LocationContextProvider } from './app/utils/context/LocationContext';
 import { colors } from './app/styles/colors';
 
 // Set the configuration for your app
@@ -51,31 +51,35 @@ const graphqlEndpoint = 'https://reel-talk-2.herokuapp.com/v1/graphql';
 
 // export const UserIdContext = createContext(0);
 
-const client = new ApolloClient({
-  cache: new InMemoryCache(),
-  link: new WebSocketLink({
-  // link: new HttpLink({
-    uri: graphqlEndpoint,
-  })
-});
+// console.log(authStateToken); 
+
 
 export default function App() {
 
+  return(
+    <AuthenticatedApp  />
+  ) 
+}
+
+function AuthenticatedApp (){
   
   return (
-    <ApolloProvider client={client}>
       <DoormanProvider 
         publicProjectId="zYoqBfXTFc7Ialp1SYGF"
       >
         <AuthGate>
           {({ user, loading }) => {
-            if (loading) return <ActivityIndicator />
-          
+            
+            if (loading) {
+              return <ActivityIndicator/>
+            }
+
             // if a user is authenticated
             if (user) {
-              return <AuthenticatedApp />
+              return <DoormanAuthenticatedApp />
             }
             
+
             // otherwise, send them to the auth flow
             return <AuthFlow 
               backgroundColor={colors.primaryPurple}
@@ -84,16 +88,75 @@ export default function App() {
           }}
         </AuthGate>
       </DoormanProvider>
-    </ApolloProvider>
   );
 }
 
-function AuthenticatedApp () {
+function DoormanAuthenticatedApp () {
+
+  const [authState, setAuthState] = useState({ status: "loading" });
+
+  useEffect(() => {
+    authenticateFirebaseToken();
+  }, []);
+
+  async function authenticateFirebaseToken(){
+    const user = firebase.auth().currentUser; 
+    if (user) {
+      const token = await user.getIdToken(); 
+      const idTokenResult = await user.getIdTokenResult();
+      const hasuraClaim = idTokenResult.claims["https://hasura.io/jwt/claims"];
+
+      
+      if(hasuraClaim){
+        setAuthState({ status: "in", token });
+      } else {
+        const metadataRef = firebase
+          .database()
+          .ref("metadata/" + user.uid + "/refreshTime");
+  
+        metadataRef.on("value", async (data) => {
+          if(!data.exists) return
+          // Force refresh to pick up the latest custom claims changes.
+          const token = await user.getIdToken(true);
+          console.log(token); 
+          setAuthState({ status: "in", token });
+        });
+      }
+    } else {
+      setAuthState({ status: "out" });
+    }
+  }
+
+  return(
+    <FirebaseAuthenticatedApp authState={authState} />
+  )
+}
+
+function FirebaseAuthenticatedApp({authState}){
+
+  const isIn = authState.status === "in";
+  const headers = isIn ? { Authorization: `Bearer ${authState.token}` } : {};
+
+  const client = new ApolloClient({
+    cache: new InMemoryCache(),
+    link: new WebSocketLink({
+      uri: graphqlEndpoint,
+      options: {
+        lazy: true,
+        reconnect: true,
+        connectionParams: {
+          headers
+        }
+      }
+    })
+  });
+
+
   return (
-    <UserIdContextProvider>
-      <LocationContextProvider>
-        <AppNavigator />
-      </LocationContextProvider>
-    </UserIdContextProvider>
+    <ApolloProvider client={client}>
+      <UserIdContextProvider>
+          <AppNavigator />
+      </UserIdContextProvider>
+    </ApolloProvider>
   )
 }

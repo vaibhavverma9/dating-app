@@ -6,6 +6,8 @@ import { Divider } from 'react-native-paper';
 
 export default function ViewAllPopup(props) {
 
+    const primaryColor = colors.primaryPurple;
+
     function onScreenPress(){
         props.setVisible(false); 
     }   
@@ -46,13 +48,13 @@ export default function ViewAllPopup(props) {
                 </TouchableWithoutFeedback>
                 <View style={{ backgroundColor: colors.primaryWhite, padding: 16, height: '100%', justifyContent: 'flex-start', alignItems:'center', borderRadius: 4}}>
                     <View style={{ flexDirection: 'row'}}>
-                        <Text style={{ color: colors.primaryBlack, paddingTop: 25, fontSize: 20, fontWeight: '500' }}>Select a Prompt</Text>
+                        <Text style={{ color: colors.primaryBlack, paddingTop: 25, fontSize: 20, fontWeight: '500' }}>Daily Questions</Text>
                     </View>
                     <FlatList
                         data={props.questionData}
                         renderItem={({ item, index }) => <Item question={item.questionText} index={index} />}
                         keyExtractor={item => item.id.toString()}
-                        style={{ paddingTop: 30 }}
+                        style={{ paddingTop: 40 }}
                         ItemSeparatorComponent={ItemSeparator}
                     />
                 </View>

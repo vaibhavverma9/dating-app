@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { useMutation } from '@apollo/client';
 import { UPDATE_NAME } from '../../utils/graphql/GraphqlClient';
-import { _storeLatitude, _storeLongitude, _storeName } from '../../utils/asyncStorage'; 
+import { _storeName } from '../../utils/asyncStorage'; 
 import GenderOnboarding from './GenderOnboarding';
 import { colors } from '../../styles/colors';
 
@@ -36,7 +36,7 @@ export default function NameOnboarding() {
                         <View style={{ paddingTop: '10%', height: '25%'}}>
                             <Ionicons name="md-person" size={45} color={primaryColor} />
                         </View>        
-                        <Text style={{ fontSize: 25, fontWeight: 'bold', padding: 15, height: '25%', color: primaryColor }}>What's your name?</Text>
+                        <Text style={{ fontSize: 22, fontWeight: 'bold', padding: 15, height: '25%', color: primaryColor }}>What's your first name?</Text>
                         <TextInput 
                             style={{ textAlign: 'center', 
                                     fontSize: 18, 
