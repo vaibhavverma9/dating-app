@@ -15,6 +15,7 @@ import * as Linking from 'expo-linking';
 import ViewAllPopup from '../modals/ViewAllPopup';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { useLazyQuery } from '@apollo/client';
+import { VideoCountContext } from '../../utils/context/VideoCountContext';
 
 export default function AddCameraContents(props) {
 
@@ -31,6 +32,7 @@ export default function AddCameraContents(props) {
     const [viewAllVisible, setViewAllVisible] = useState(false); 
     const [userId, setUserId] = useContext(UserIdContext);
     const [timedOut, setTimedOut] = useState(false);    
+    const [videoCount, setVideoCount] = useContext(VideoCountContext); 
 
     useEffect(() => {
         initQuestions(props.data); 
@@ -216,6 +218,9 @@ export default function AddCameraContents(props) {
         props.navigation.navigate('Videos', { screen: 'VideosView', params: {videoUri: videoUri, thumbnailUri: thumbnailUri, questionText: questionData[index].questionText, questionId: questionData[index].id, status: 'waiting', passthroughId: passthroughId.toString(), type: 'uploadedVideo', id: passthroughId, videoId: null }});
         setVideoUri(''); 
         setThumbnailUri(''); 
+        console.log(videoCount);
+        console.log(videoCount + 1);
+        setVideoCount(videoCount + 1); 
     }
 
     function viewAll(){
@@ -271,7 +276,7 @@ export default function AddCameraContents(props) {
         if (hasCameraPermission !== true || hasAudioPermission !== true) {
             return (
                 <View style={styles.permissionsViewBackground}>
-                    <Text style={styles.permissionsTitle}>Share on Reeltalk</Text>
+                    <Text style={styles.permissionsTitle}>Share on Realtalk</Text>
                     <Text style={styles.permissionsSubtitle}>Enable access so you can start taking videos.</Text>
                     <EnableCameraButton />
                     <EnableAudioButton />
@@ -355,8 +360,7 @@ export default function AddCameraContents(props) {
             return (
                 <View style={styles.badInternetView}>
                     <View style={{ borderWidth: 1, borderColor: '#eee', justifyContent: 'center', borderRadius: 5}}>
-                        <Text style={styles.reloadText}>Sorry for this bug!</Text>          
-                        <Text style={styles.reloadText}>Can you please reboot the app?</Text>          
+                        <Text style={styles.reloadText}>We're losing you. Please check your network connection.</Text>          
                     </View>
                 </View>
               )

@@ -4,7 +4,7 @@ import { homeStyles } from '../../styles/homeStyles';
 import { BlurView } from 'expo-blur';
 import { Ionicons, Entypo, MaterialCommunityIcons } from '@expo/vector-icons'
 import { useMutation, useLazyQuery, useQuery } from '@apollo/client';
-import { INSERT_LIKE, GET_LIKE, client, GET_VIDEOS, INSERT_USER, UPDATE_LIKE, GET_NUMBER_VIDEOS, UPDATE_PUSH_TOKEN, GET_USER_INFO, UPDATE_VIDEO_LIKES, UPDATE_VIDEO_VIEWS, GET_GENDER_INTEREST, GET_QUESTIONS, UPDATE_VIDEO_DISLIKES } from '../../utils/graphql/GraphqlClient';
+import { INSERT_LIKE, GET_LIKE, client, GET_VIDEOS, INSERT_USER, UPDATE_LIKE, GET_NUMBER_VIDEOS, UPDATE_PUSH_TOKEN, GET_USER_INFO, UPDATE_VIDEO_LIKES, UPDATE_VIDEO_VIEWS, GET_GENDER_INTEREST, GET_QUESTIONS, UPDATE_VIDEO_DISLIKES, GET_LIKE_COUNT } from '../../utils/graphql/GraphqlClient';
 import OptionsModal from './OptionsModal'; 
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import * as Segment from 'expo-analytics-segment';
@@ -26,6 +26,7 @@ import ProgressBar from 'react-native-progress/Bar'
 import { Dimensions } from 'react-native';
 import { getDistance } from 'geolib';
 import { colors } from '../../styles/colors';
+import { VideoCountContext } from '../../utils/context/VideoCountContext';
 
  
 export default function HomeContents(props) {
@@ -48,6 +49,7 @@ export default function HomeContents(props) {
   const [currentRegion, setCurrentRegion] = useState(null); 
   
   const [userId, setUserId] = useContext(UserIdContext);
+  const [videoCount, setVideoCount] = useContext(VideoCountContext); 
   const [name, setName] = useState(''); 
   const [latitude, setLatitude] = useState(props.latitude);
   const [longitude, setLongitude] = useState(props.longitude);
@@ -106,7 +108,8 @@ export default function HomeContents(props) {
   const [initLowerVideos, setInitLowerVideos] = useState(false);
   const [initialLowerVideos, setInitialLowerVideos] = useState(null);  
   const [noLikesLeft, setNoLikesLeft] = useState(false); 
-
+  const [likeCount, setLikeCount] = useState(0); 
+  const [likeLimit, setLikeLimit] = useState((videoCount + 1) * 5); 
 
   let currentDate = new Date();
   const [lastLoadedNoLocation, setLastLoadedNoLocation] = useState(props.lastLoadedNoLocation); 
@@ -122,8 +125,59 @@ export default function HomeContents(props) {
       const count = numberVideos.videos_aggregate.aggregate.count;
       setProfileVideoCount(count); 
     }
-  })
+  });
 
+  const [getUserInfo, { data: userInfo }] = useLazyQuery(GET_USER_INFO, 
+  {
+    onCompleted: (userInfo) => { 
+      const users = userInfo.users; 
+      
+      if(users[0].firstName){
+        setName(users[0].firstName); 
+        _storeName(users[0].firstName); 
+      };
+
+      if(users[0].bio){
+        _storeBio(users[0].bio); 
+      }
+
+      Segment.identifyWithTraits(userId.toString(), {'name' : name, 'phoneNumber' : phoneNumber});
+      Segment.screen('Home');   
+    } 
+  });
+
+  const [getLikes, { data: likesData }] = useLazyQuery(GET_LIKE, 
+  {
+    onCompleted: (likesData) => {
+
+      const likedId = currentUserId; 
+      const likedIndex = userIndex; 
+      const likedVideoIndex = videoIndex; 
+      const likerName = name;  
+      
+      if(likesData.likes.length == 0){
+        insertLike({ variables: { likedId: likedId, likerId: userId, matched: false, dislike: false }});
+        if(profileVideoCount > 0){
+          sendLike(likedId, likerName);
+        }
+        updateVideoLikes({ variables: { id : videoId, likes: videoData[likedIndex].userVideos[likedVideoIndex].likes + 1 }});
+        updateVideoViews({ variables: { id : videoId, views: videoData[likedIndex].userVideos[likedVideoIndex].views + 1 }});      
+      } else {
+        updateLike({ variables: { likedId: userId, likerId: likedId, matched: true }})
+        insertLike({ variables: { likedId: likedId, likerId: userId, matched: true, dislike: false }});   
+        sendLike(likedId, likerName); 
+        updateVideoLikes({ variables: { id : videoId, likes: videoData[likedIndex].userVideos[likedVideoIndex].likes + 1 }});
+        updateVideoViews({ variables: { id : videoId, views: videoData[likedIndex].userVideos[likedVideoIndex].views + 1 }});          
+      }
+    }
+  });
+
+  const [getLikeCount, { data: likeCountData }] = useLazyQuery(GET_LIKE_COUNT, 
+    { 
+      onCompleted: (likeCountData) => { 
+        setLikeCount(likeCountData.likes_aggregate.aggregate.count); 
+      } 
+    }); 
 
   const _panResponder = PanResponder.create({
     onStartShouldSetPanResponder: (evt, gestureState) => true,
@@ -148,7 +202,10 @@ export default function HomeContents(props) {
   useEffect(() => {
     initSegment(); 
     networkConnected(); 
-    getNumberVideos({variables: { userId }})
+    getNumberVideos({variables: { userId }}); 
+
+    let yesterday = new Date(Date.now() - 86400000); 
+    getLikeCount({ variables: { likerId: userId, since: yesterday }});
     setTimeout(() => { setTimedOut(true) }, 3000); 
   }, []);
 
@@ -174,24 +231,7 @@ export default function HomeContents(props) {
     let name = await _retrieveName(); 
     let bio = await _retrieveBio(); 
     if(name == '' || bio == ''){
-      client.query({ query: GET_USER_INFO, variables: { userId }})
-      .then(response => {
-        const users = response.data.users; 
-
-        if(users[0].firstName && name == ''){
-          name = users[0].firstName; 
-          setName(name); 
-          _storeName(name); 
-        };
-
-        if(users[0].bio && bio == ''){
-          bio = users[0].bio; 
-          _storeBio(bio); 
-        }
-
-        Segment.identifyWithTraits(userId.toString(), {'name' : name, 'phoneNumber' : phoneNumber});
-        Segment.screen('Home');   
-      })
+      getUserInfo({ variables: { userId }}); 
     } else {
       setName(name); 
       Segment.identifyWithTraits(userId.toString(), {'name' : name, 'phoneNumber' : phoneNumber});
@@ -249,30 +289,6 @@ export default function HomeContents(props) {
     }
     setLongitude(longitudeLocal); 
 
-    // if(collegeLatitudeLocal == null || collegeLongitudeLocal == null){
-    //   collegeLongitudeLocal = await _retrieveCollegeLongitude(); 
-    //   collegeLatitudeLocal = await _retrieveCollegeLatitude();
-      
-    //   if(collegeLongitudeLocal == null || collegeLatitudeLocal == null){
-    //     client.query({ query: GET_COLLEGE_LOCATION, variables: { userId }})
-    //     .then(response => {
-    //       if(response.data.users[0].userCollege){
-    //         collegeLongitudeLocal = response.data.users[0].userCollege.longitude; 
-    //         collegeLatitudeLocal = response.data.users[0].userCollege.latitude;   
-    //       } else {
-    //         collegeLongitudeLocal = longitudeLocal;
-    //         collegeLatitudeLocal = latitudeLocal;
-    //       }
-    //       _storeCollegeLongitude(collegeLongitudeLocal); 
-    //       _storeCollegeLatitude(collegeLatitudeLocal); 
-    //       setCollegeLongitude(collegeLongitudeLocal); 
-    //       setCollegeLatitude(collegeLatitudeLocal);     
-    //     })
-    //   } else {
-    //     setCollegeLongitude(collegeLongitudeLocal); 
-    //     setCollegeLatitude(collegeLatitudeLocal);     
-    //   }
-    // }
 
     if(lastWatchedLowerLocal == null){
       lastWatchedLowerLocal = await _retrieveLastWatchedLower();
@@ -335,9 +351,7 @@ export default function HomeContents(props) {
   }
 
   function processVideos(data, upperVideos){
-    console.log("processingVideos");
-    console.log("locationVideos", locationVideos);
-
+    
     if(locationVideos){
       if(upperVideos){
         let initialLowerVideosLocal = initialLowerVideos; 
@@ -350,8 +364,6 @@ export default function HomeContents(props) {
 
         const users = data.upperUsersLocation; 
 
-        console.log("upperVideoData", users); 
-
         if (users.length > 0){
           if(!initialized){
             setInitialized(true); 
@@ -363,18 +375,6 @@ export default function HomeContents(props) {
             setCurrentRegion(users[0].region); 
             initColors(users); 
     
-            // let currentLocation = users[0].location;
-            // if(currentLocation){
-            //   const distance = getDistance(
-            //     { latitude: latitude, longitude: longitude }, 
-            //     { latitude: currentLocation.coordinates[0], longitude: currentLocation.coordinates[1] }
-            //   ); 
-            //   const distanceMiles = Math.round(distance / 1609);
-            //   setCurrentDistance(distanceMiles); 
-            // } else {
-            //   setCurrentDistance(null); 
-            // }
-            
             setMuxPlaybackId(users[0].userVideos[0].muxPlaybackId); 
             setUserCount(users.length); 
             setUpperUserCount(users.length); 
@@ -402,7 +402,6 @@ export default function HomeContents(props) {
       } else {
         const users = data.lowerUsersLocation;
         
-        console.log("lowerVideo data", users); 
         if(users.length > 0){
           if(!initialized){
             setInitialized(true); 
@@ -413,19 +412,7 @@ export default function HomeContents(props) {
             setCurrentCity(users[0].city);
             setCurrentRegion(users[0].region); 
             initColors(users); 
-  
-            // let currentLocation = users[0].location;
-            // if(currentLocation){
-            //   const distance = getDistance(
-            //     { latitude: latitude, longitude: longitude }, 
-            //     { latitude: currentLocation.coordinates[1], longitude: currentLocation.coordinates[0] }
-            //   ); 
-            //   const distanceMiles = Math.round(distance / 1609);
-            //   setCurrentDistance(distanceMiles); 
-            // } else {
-            //   setCurrentDistance(null); 
-            // }
-            
+
             setMuxPlaybackId(users[0].userVideos[0].muxPlaybackId); 
             setUserCount(users.length); 
             setLowerUserCount(users.length); 
@@ -445,7 +432,6 @@ export default function HomeContents(props) {
         } 
 
         if(users.length < lowerLimit){
-          console.log("no more lower videos");
           setLowerLimit(0);
           setNoLocationLimit(props.limit); 
           setLocationVideos(false); 
@@ -466,18 +452,6 @@ export default function HomeContents(props) {
           setCurrentRegion(users[0].region); 
           initColors(users); 
 
-          // let currentLocation = users[0].location;
-          // if(currentLocation){
-          //   const distance = getDistance(
-          //     { latitude: latitude, longitude: longitude }, 
-          //     { latitude: currentLocation.coordinates[1], longitude: currentLocation.coordinates[0] }
-          //   ); 
-          //   const distanceMiles = Math.round(distance / 1609);
-          //   setCurrentDistance(distanceMiles); 
-          // } else {
-          //   setCurrentDistance(null); 
-          // }
-          
           setMuxPlaybackId(users[0].userVideos[0].muxPlaybackId); 
           setUserCount(users.length); 
           
@@ -549,8 +523,6 @@ export default function HomeContents(props) {
     const likedVideoIndex = videoIndex; 
     const likerName = name; 
 
-    nextUser(); 
-
     if(profileVideoCount == 0 && likedIndexes.length % 3 == 1){
       setAddPopupVisible(true); 
     }
@@ -564,25 +536,11 @@ export default function HomeContents(props) {
       setPushPopupShown(true); 
     }
 
+    nextUser(); 
+
     if(!likeColors[likedIndex].like){
-      client.query({ query: GET_LIKE, variables: { likerId: likedId, likedId: userId, dislike: false}})
-      .then(response => {
-        if(response.data.likes.length == 0){
-          insertLike({ variables: { likedId: likedId, likerId: userId, matched: false, dislike: false }});
-          if(profileVideoCount > 0){
-            sendLike(likedId, likerName);
-          }
-          updateVideoLikes({ variables: { id : videoId, likes: videoData[likedIndex].userVideos[likedVideoIndex].likes + 1 }});
-          updateVideoViews({ variables: { id : videoId, views: videoData[likedIndex].userVideos[likedVideoIndex].views + 1 }});      
-        } else {
-          updateLike({ variables: { likedId: userId, likerId: likedId, matched: true }})
-          insertLike({ variables: { likedId: likedId, likerId: userId, matched: true, dislike: false }});   
-          sendLike(likedId, likerName); 
-          updateVideoLikes({ variables: { id : videoId, likes: videoData[likedIndex].userVideos[likedVideoIndex].likes + 1 }});
-          updateVideoViews({ variables: { id : videoId, views: videoData[likedIndex].userVideos[likedVideoIndex].views + 1 }});          
-        }
-      })
-      .catch(error => {});
+      getLikes({variables: { likerId: likedId, likedId: userId, dislike: false}});
+      // setLikeCount(likeCount + 1); 
     } 
 
     Segment.track("Like User"); 
@@ -597,6 +555,7 @@ export default function HomeContents(props) {
     nextUser();
 
     if(!dislikeColors[dislikedIndex].dislike && !likeColors[dislikedIndex].like){
+      // setLikeCount(likeCount + 1); 
       insertLike({ variables: { likedId: dislikedId, likerId: userId, matched: false, dislike: true }});
       updateVideoDislikes({ variables: { id : videoId, dislikes: videoData[dislikedIndex].userVideos[dislikedVideoIndex].dislikes + 1 }});
       updateVideoViews({ variables: { id : videoId, views: videoData[dislikedIndex].userVideos[dislikedVideoIndex].views + 1 }});  
@@ -719,16 +678,25 @@ export default function HomeContents(props) {
     }
   }
 
+  useEffect(() => {
+    setLikeLimit((videoCount + 1) * 5); 
+  }, [videoCount]);
+
   // tapping forward arrow
   const nextUser = () => {
 
-    setCurrentProgress(0); 
-    setVideoIndex(0);
     if(userIndex !== userCount - 1){
-      setUserIndex(userIndex + 1);
+      console.log(likeCount, likeLimit); 
+      if(likeCount >= likeLimit){
+        setNoLikesLeft(true);
+      } else {
+        setLikeCount(likeCount + 1); 
+        setUserIndex(userIndex + 1);
+        setCurrentProgress(0); 
+        setVideoIndex(0);    
+      }
     } else {
       resetLastWatched(); 
-      // setNoLikesLeft(true);
     }
   }
 
@@ -739,6 +707,7 @@ export default function HomeContents(props) {
 
   function goToAddVideo(){
     setAddPopupVisible(false); 
+    setNoLikesLeft(false); 
     props.navigation.navigate('Add');
   }
 
@@ -957,10 +926,11 @@ export default function HomeContents(props) {
             setVisible={setPushPopupVisible}
             registerForPushNotificationsAsync={registerForPushNotificationsAsync}
           />
-          {/* <NoLikesPopup 
+          <NoLikesPopup 
             visible={noLikesLeft}
             setVisible={setNoLikesLeft}
-          /> */}
+            goToAddVideo={goToAddVideo}
+          />
         </View>
       );
     } else {
@@ -1018,10 +988,11 @@ export default function HomeContents(props) {
             setVisible={setPushPopupVisible}
             registerForPushNotificationsAsync={registerForPushNotificationsAsync}
           />
-          {/* <NoLikesPopup 
+          <NoLikesPopup 
             visible={noLikesLeft}
             setVisible={setNoLikesLeft}
-          /> */}
+            goToAddVideo={goToAddVideo}
+          />
         </View>
       );    
     }

@@ -336,6 +336,7 @@ export default function VideosView(props) {
         const thumbnailUri = params.thumbnailUri;
         const videoUri = params.videoUri; 
         const passthroughId = params.passthroughId; 
+
         
         Segment.trackWithProperties("Upload Video", { questionId: questionId}); 
 
@@ -353,72 +354,28 @@ export default function VideosView(props) {
             xhr.send(null); 
         });
 
-        // Create an authenticated Mux URL
         let res = await axios({
-            method: 'post',  
-            url: 'https://api.mux.com/video/v1/uploads',
-            headers: { 'content-type': 'application/json' },
-            data: { "new_asset_settings": { "passthrough" : passthroughId,"playback_policy": ["public"] } },
-            auth: {'username': 'eeadaed4-6e99-45e6-85e1-ba733723c8e6', 'password':'O7qEUCRdCzsbrK1XS2h0OK4N0v9YV1fnrQnCt2kWl/D2xSuJfczkVhJ5S4vQvJ3j5elQzPzJyk8'}
-        }); 
+            method: 'post', 
+            url: 'https://gentle-brook-91508.herokuapp.com/muxAuthenticatedUrl',
+            data: { "passthroughId" : passthroughId }
+          }); 
 
-        const authenticatedUrl = res.data.data.url; 
-        const uploadId = res.data.data.id; 
-        const status = res.data.data.status;
+        const authenticatedUrl = res.data.url;
+        const status = res.data.status;
 
-        await insertInitVideo({ variables: { questionId: questionId, userId: userId, passthroughId: passthroughId, status: status, uploadId: uploadId }})
+        await insertInitVideo({ variables: { questionId: questionId, userId: userId, passthroughId: passthroughId, status: status }})
         .then(response => { console.log(response) })
         .catch(error => {console.error(error) }); 
 
-        let offset = 0;
-        let chunkSize = 20971520; 
-
-        // if(blob.size < chunkSize){
-            try {
-                let res3 = await fetch(authenticatedUrl, {
-                    method: 'PUT', 
-                    body: blob, 
-                    headers: { "content-type": blob.type}});        
-            } catch(error){
-                console.error(error); 
-            }
-        // } else {
-        //     while(offset + chunkSize < blob.size){
-        //         let lowerRange = offset; 
-        //         let upperRange = offset + chunkSize; 
-        //         let chunk = blob.slice(lowerRange, upperRange, blob.type);
-        //         let rangeHeader = lowerRange.toString() + '-' + upperRange.toString() + '/' + blob.size.toString(); 
-        //         console.log(rangeHeader); 
-    
-        //         try {
-        //             fetch(authenticatedUrl, {
-        //                 method: 'PUT', 
-        //                 body: chunk, 
-        //                 headers: { "content-type": blob.type, "content-length" : chunkSize, "content-range" : rangeHeader}})
-        //             .then(response => { console.log(response)} )
-        //             .catch(error => console.error(error));           
-        //         } catch(error){
-        //             console.error(error); 
-        //         }
-    
-        //         offset += chunkSize; 
-        //     }
-        // }
-
-        // let file = new File([blob], {type: 'multipart/form-data', lastModified: Date.now()});
-
-        // let res2 = await axios({
-        //     method: 'PUT', 
-        //     url: authenticatedUrl,
-        //     data: blob,
-        //     headers: { "content-type": blob.type }
-        // })
-
-        // let res2 = await axios.put(authenticatedUrl, blob, { headers: { "content-type": blob.type } });
-
-        // console.log(res2); 
-
-        // console.log("response2", res2)
+        try {
+            let res3 = await fetch(authenticatedUrl, {
+                method: 'PUT', 
+                body: blob, 
+                headers: { "content-type": blob.type}
+            });        
+        } catch(error){
+            console.error(error); 
+        }
 
         blob.close();
 
@@ -437,13 +394,9 @@ export default function VideosView(props) {
     function LastDayVideosSubtitle({ videosLength }) {
         if(videosLength == 0){
             return null;
-        } else if (videosLength == 1){
-            return (
-                <Text style={styles.sectionSubtitles}>Add new videos to get likes</Text>
-            )    
         } else {
             return (
-                <Text style={styles.sectionSubtitles}>Add more videos to get more likes</Text>
+                <Text style={styles.sectionSubtitles}>Add videos to stay on top of the feed</Text>
             )
         }
     }
@@ -538,6 +491,16 @@ export default function VideosView(props) {
         }
     }
 
+    function BestVideoSubtitle(){
+        if(bestVideos.length > 0){
+            return (
+                <Text style={styles.sectionSubtitles}>We show your best videos to each user.</Text>
+            )    
+        } else {
+            return null; 
+        }
+    }
+
 
     const styles = StyleSheet.create({
         thumbnailPaddingStyle: { padding: thumbnailPadding},
@@ -596,7 +559,7 @@ export default function VideosView(props) {
                         <TouchableOpacity style={styles.titleView} onPress={goToBestVideos}>
                             <SectionTitle text={'Best Videos'} videos={bestVideos} />
                         </TouchableOpacity>
-                        <Text style={styles.sectionSubtitles}>We show your best videos to each user.</Text>
+                        <BestVideoSubtitle />
                         <VideoSection videos={bestVideos.slice(0, 3)}  />
                         <VideoSection videos={bestVideos.slice(3, 6)}  />
                     </View>
@@ -632,8 +595,7 @@ export default function VideosView(props) {
             return (
                 <View style={styles.badInternetView}>
                     <View style={{ borderWidth: 1, borderColor: '#eee', justifyContent: 'center', borderRadius: 5}}>
-                        <Text style={styles.reloadText}>Sorry for this bug!</Text>          
-                        <Text style={styles.reloadText}>Can you please reboot the app?</Text>          
+                        <Text style={styles.reloadText}>We're losing you. Please check your network connection.</Text>          
                     </View>
                 </View>
               )

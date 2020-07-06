@@ -1,6 +1,6 @@
 import React, { useContext, useState, useEffect } from 'react';
 import HomeContents from './HomeContents';
-import { useQuery } from '@apollo/client';
+import { useQuery, useLazyQuery } from '@apollo/client';
 import { GET_VIDEOS, GET_BEST_VIDEOS, GET_GENDER_INTEREST, GET_COLLEGE_LOCATION, GET_NUMBER_VIDEOS, client } from '../../utils/graphql/GraphqlClient';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { _retrieveLatitude, _retrieveLongitude, _retrieveGenderInterest, _storeGenderInterest, _storeLastWatchedUpper, _storeLastWatchedLower, _retrieveLastWatchedUpper, _retrieveLastWatchedLower, _retrieveCollegeLatitude, _storeCollegeLatitude, _retrieveCollegeLongitude, _storeCollegeLongitude} from '../../utils/asyncStorage'; 
@@ -30,6 +30,38 @@ export default function HomeView({ route, navigation }) {
   const [notIntoGender, setNotIntoGender] = useState(''); 
   // const [profileVideoCount, setProfileVideoCount] = useState(null); 
 
+  const [getGenderInterest, { data: genderInterestData }] = useLazyQuery(GET_GENDER_INTEREST, 
+    { 
+      onCompleted: (genderInterestData) => { 
+        let genderInterest = genderInterestData.users[0].genderInterest; 
+        _storeGenderInterest(genderInterest); 
+        setGenderInterest(genderInterest); 
+
+        if(genderInterest == "Women"){
+          setNotIntoGender("Man"); 
+        } else if(genderInterest == "Men"){
+          setNotIntoGender("Woman");
+        }     
+      } 
+    }); 
+  
+  const [getCollegeInterest, { data: collegeInterestData }] = useLazyQuery(GET_COLLEGE_LOCATION, 
+    { 
+      onCompleted: (collegeInterestData) => { 
+        let collegeLongitude;
+        let collegeLatitude; 
+
+        if(collegeInterestData.users[0].userCollege){
+          collegeLongitude = collegeInterestData.users[0].userCollege.longitude; 
+          collegeLatitude = collegeInterestData.users[0].userCollege.latitude;   
+        } 
+        _storeCollegeLongitude(collegeLongitude); 
+        _storeCollegeLatitude(collegeLatitude); 
+        setCollegeLongitude(collegeLongitude); 
+        setCollegeLatitude(collegeLatitude);  
+      } 
+    }); 
+
   const [point, setPoint] = useState({
     "type" : "Point", 
     "coordinates": [latitude, longitude]
@@ -58,46 +90,58 @@ export default function HomeView({ route, navigation }) {
     if(genderInterestLocal == ''){
       genderInterestLocal = await _retrieveGenderInterest(); 
       if(genderInterestLocal == ''){
-        client.query({ query: GET_GENDER_INTEREST, variables: { userId }})
-        .then(response => {
-          genderInterestLocal = response.data.users[0].genderInterest; 
-          _storeGenderInterest(genderInterestLocal); 
-          setGenderInterest(genderInterestLocal); 
-        })
+        getGenderInterest({variables: { userId }})
       } else {
+        if(genderInterestLocal == "Women"){
+          setNotIntoGender("Man"); 
+        } else if(genderInterestLocal == "Men"){
+          setNotIntoGender("Woman");
+        }    
         setGenderInterest(genderInterestLocal); 
       }
     }    
 
-    if(latitudeLocal == null){
-      latitudeLocal = await _retrieveLatitude();
-    }
-    setLatitude(latitudeLocal); 
+    let point; 
 
-    if(longitudeLocal == null){
+    if(latitudeLocal == null || longitudeLocal == null){
+      latitudeLocal = await _retrieveLatitude();
       longitudeLocal = await _retrieveLongitude(); 
+
+      if(latitudeLocal == null || longitudeLocal == null){
+        // query latitude and longitude from the database
+        // point = {
+        //   "type" : "Point", 
+        //   "coordinates": [latitudeLocal, longitudeLocal]
+        // }; 
+        // setPoint(point); 
+        // setLatitude(latitudeLocal); 
+        // setLongitude(longitudeLocal);      
+      } else {
+        point = {
+          "type" : "Point", 
+          "coordinates": [latitudeLocal, longitudeLocal]
+        };
+        setPoint(point); 
+        setLatitude(latitudeLocal); 
+        setLongitude(longitudeLocal);       
+      }
+    } else {
+      point = {
+        "type" : "Point", 
+        "coordinates": [latitudeLocal, longitudeLocal]
+      };  
+      setPoint(point); 
+      setLatitude(latitudeLocal); 
+      setLongitude(longitudeLocal);   
     }
-    setLongitude(longitudeLocal); 
+
 
     if(collegeLatitudeLocal == null || collegeLongitudeLocal == null){
       collegeLongitudeLocal = await _retrieveCollegeLongitude(); 
       collegeLatitudeLocal = await _retrieveCollegeLatitude();
       
       if(collegeLongitudeLocal == null || collegeLatitudeLocal == null){
-        client.query({ query: GET_COLLEGE_LOCATION, variables: { userId }})
-        .then(response => {
-          if(response.data.users[0].userCollege){
-            collegeLongitudeLocal = response.data.users[0].userCollege.longitude; 
-            collegeLatitudeLocal = response.data.users[0].userCollege.latitude;   
-          } else {
-            collegeLongitudeLocal = longitudeLocal;
-            collegeLatitudeLocal = latitudeLocal;
-          }
-          _storeCollegeLongitude(collegeLongitudeLocal); 
-          _storeCollegeLatitude(collegeLatitudeLocal); 
-          setCollegeLongitude(collegeLongitudeLocal); 
-          setCollegeLatitude(collegeLatitudeLocal);     
-        })
+        getCollegeInterest({ variables: { userId } });
       } else {
         setCollegeLongitude(collegeLongitudeLocal); 
         setCollegeLatitude(collegeLatitudeLocal);     

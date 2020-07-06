@@ -13,6 +13,7 @@ import * as firebase from 'firebase';
 import AppNavigator from './AppNavigator';
 // import { LocationContextProvider } from './app/utils/context/LocationContext';
 import { colors } from './app/styles/colors';
+import { VideoCountContextProvider } from './app/utils/context/VideoCountContext';
 
 // Set the configuration for your app
 var firebaseConfig = {
@@ -47,7 +48,7 @@ Sentry.init({
   debug: true
 }); 
 
-const graphqlEndpoint = 'https://reel-talk-2.herokuapp.com/v1/graphql';
+const graphqlEndpoint = 'https://artistic-anteater-12.hasura.app/v1/graphql';
 
 // export const UserIdContext = createContext(0);
 
@@ -110,15 +111,16 @@ function DoormanAuthenticatedApp () {
       if(hasuraClaim){
         setAuthState({ status: "in", token });
       } else {
+        // Check if refresh is required.
         const metadataRef = firebase
           .database()
           .ref("metadata/" + user.uid + "/refreshTime");
   
         metadataRef.on("value", async (data) => {
-          if(!data.exists) return
+          if(!data.exists()) return;
           // Force refresh to pick up the latest custom claims changes.
           const token = await user.getIdToken(true);
-          console.log(token); 
+          // console.log(token); 
           setAuthState({ status: "in", token });
         });
       }
@@ -151,11 +153,12 @@ function FirebaseAuthenticatedApp({authState}){
     })
   });
 
-
   return (
     <ApolloProvider client={client}>
       <UserIdContextProvider>
+        <VideoCountContextProvider>
           <AppNavigator />
+        </VideoCountContextProvider>
       </UserIdContextProvider>
     </ApolloProvider>
   )

@@ -1,4 +1,4 @@
-const graphqlEndpoint = 'https://reel-talk-2.herokuapp.com/v1/graphql';
+const graphqlEndpoint = 'https://artistic-anteater-12.hasura.app/v1/graphql';
 
 import { ApolloClient, HttpLink, InMemoryCache, gql } from '@apollo/client';
 import { WebSocketLink } from 'apollo-link-ws';
@@ -315,8 +315,8 @@ export const GET_QUESTIONS_SAMPLE = gql`
 `
 
 export const INSERT_INIT_VIDEO = gql`
-  mutation InsertVideo ($questionId: Int, $userId: Int, $passthroughId: String, $status: String, $uploadId: String) {
-    insert_videos(objects: {questionId: $questionId, userId: $userId, passthroughId: $passthroughId,  status: $status, uploadId: $uploadId}) {
+  mutation InsertVideo ($questionId: Int, $userId: Int, $passthroughId: String, $status: String) {
+    insert_videos(objects: {questionId: $questionId, userId: $userId, passthroughId: $passthroughId,  status: $status}) {
       returning {
         id
       }
@@ -401,12 +401,12 @@ export const GET_LIKES = gql`
 `
 
 export const GET_LIKE = gql`
-    query GetLike ($likerId: Int, $likedId: Int, $dislike: Boolean) {
-      likes(where: {_and: [{likerId: {_eq: $likerId}}, {likedId: {_eq: $likedId}}, {dislike: {_eq: $dislike}}]}) {
-        matched
-        dislike
-      }
-    }  
+  query GetLike ($likerId: Int, $likedId: Int, $dislike: Boolean) {
+    likes(where: {_and: [{likerId: {_eq: $likerId}}, {likedId: {_eq: $likedId}}, {dislike: {_eq: $dislike}}]}) {
+      matched
+      dislike
+    }
+  }  
 `
 
 export const INSERT_LIKE = gql`
@@ -612,7 +612,7 @@ export const UPDATE_VIDEO_LIKES = gql`
 
 export const UPDATE_VIDEO_DISLIKES = gql`
   mutation UpdateVideoLikes($id: Int, $dislikes: Int){
-    update_videos(where: {id: {_eq: $id}}, _set: {likes: $dislikes}) {
+    update_videos(where: {id: {_eq: $id}}, _set: {dislikes: $dislikes}) {
       affected_rows
     }
   }
@@ -668,6 +668,26 @@ export const GET_STREAM_TOKEN = gql`
   query getStreamToken($userId: Int) {
     users(where: {id: {_eq: $userId}}) {
       streamToken
+    }
+  }
+`
+
+export const GET_LIKE_COUNT = gql`
+  query getLikeCount($likerId: Int, $since: timestamptz){
+    likes_aggregate(where: {likerId: {_eq: $likerId}, created_at: {_gte: $since}}) {
+      aggregate {
+        count
+      }
+    }
+  }
+`
+
+export const GET_VIDEO_COUNT = gql`
+  query getLikeCount($userId: Int, $since: timestamptz){
+    videos_aggregate(where: {userId: {_eq: $userId}, created_at: {_gte: $since}, status: {_eq: "ready"}}) {
+      aggregate {
+        count
+      }
     }
   }
 `

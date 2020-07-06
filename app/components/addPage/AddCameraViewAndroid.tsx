@@ -16,6 +16,7 @@ import * as Linking from 'expo-linking';
 import Constants from 'expo-constants';
 import { colors } from '../../styles/colors';
 import ViewAllPopup from '../modals/ViewAllPopup';
+import { useLazyQuery } from '@apollo/client';
 
 export default function AddCameraView(props) {
 
@@ -30,6 +31,18 @@ export default function AddCameraView(props) {
     const [shouldPlay, setShouldPlay] = useState(true);
     const [initialized, setInitialized] = useState(false); 
     const [viewAllVisible, setViewAllVisible] = useState(false); 
+    
+    const [getQuestions, { data: questions }] = useLazyQuery(GET_QUESTIONS, 
+    {
+        onCompleted: (questions) => {
+            const date = new Date(); 
+            const day = date.getDate(); 
+    
+            setQuestionData(questions.questions);             
+            setIndex(Math.floor(day / 31 * questions.questions.length)); 
+            setInitialized(true);     
+        }
+    });
 
     let camera = useRef(null);  
 
@@ -87,18 +100,6 @@ export default function AddCameraView(props) {
 
         });  
     }, [props.navigation])
-
-    function getQuestions(){
-        const date = new Date(); 
-        const day = date.getDate(); 
-        
-        client.query({ query: GET_QUESTIONS})
-        .then(response => {
-            setQuestionData(response.data.questions);             
-            setIndex(Math.floor(day / 31 * response.data.questions.length)); 
-            setInitialized(true); 
-        })
-    }
 
     // tapping back arrow 
     const goBack = () => {

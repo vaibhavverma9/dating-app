@@ -323,8 +323,7 @@ export default function MessagesView(props) {
       return (
           <View style={styles.badInternetView}>
             <View style={{ borderWidth: 1, borderColor: '#eee', justifyContent: 'center', borderRadius: 5}}>
-              <Text style={styles.reloadText}>Sorry for this bug!</Text>          
-              <Text style={styles.reloadText}>Can you please reboot the app?</Text>          
+              <Text style={styles.reloadText}>We're losing you. Please check your network connection.</Text>          
             </View>
           </View>
         )

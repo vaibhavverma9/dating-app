@@ -8,6 +8,7 @@ import { colors } from '../../styles/colors';
 import { GET_QUESTIONS, client } from '../../utils/graphql/GraphqlClient';
 import ViewAllPopup from '../modals/ViewAllPopup';
 import AddCameraOnboarding from './AddCameraOnboarding'; 
+import { useLazyQuery } from '@apollo/client';
 
 export default function QuestionOnboarding() {
 
@@ -17,6 +18,19 @@ export default function QuestionOnboarding() {
     const [initialized, setInitialized] = useState(false); 
     const [viewAllVisible, setViewAllVisible] = useState(false); 
     const [skipped, setSkipped] = useState(false); 
+
+    const [getQuestions, { data: questions }] = useLazyQuery(GET_QUESTIONS, 
+        {
+            onCompleted: (questions) => {
+                const date = new Date(); 
+                const day = date.getDate(); 
+        
+                setQuestionData(questions.questions);             
+                setIndex(Math.floor(day / 31 * questions.questions.length)); 
+                setInitialized(true);     
+            }
+    }); 
+
 
     useEffect(() => {
         getQuestions(); 
@@ -32,15 +46,6 @@ export default function QuestionOnboarding() {
     // tapping forward arrow
     const goForward = () => {
         setIndex((index + 1) % questionData.length);
-    }
-
-    function getQuestions(){
-        client.query({ query: GET_QUESTIONS})
-        .then(response => {
-            setQuestionData(response.data.questions);  
-            setInitialized(true);           
-        })
-        .catch(error => {});
     }
 
     function Question(){

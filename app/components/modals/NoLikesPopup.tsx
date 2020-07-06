@@ -1,6 +1,6 @@
 import { View, Modal, Text, TouchableHighlight, StyleSheet } from 'react-native';
 import React from 'react'; 
-import { TouchableWithoutFeedback } from 'react-native-gesture-handler';
+import { TouchableWithoutFeedback, TouchableOpacity } from 'react-native-gesture-handler';
 import { colors } from '../../styles/colors';
 
 export default function NoLikesPopup(props) {
@@ -21,11 +21,14 @@ export default function NoLikesPopup(props) {
                     </View>
                 </TouchableWithoutFeedback>
                 <View style={{ backgroundColor: colors.primaryPurple, padding: 20, height: '20%', justifyContent: 'space-evenly', alignItems:'center', borderRadius: 5}}>
-                    <TouchableHighlight onPress={props.goToAddVideo} style={styles.facebookContainer}>
+                    <TouchableOpacity onPress={props.goToAddVideo} style={styles.facebookContainer}>
                         <Text style={styles.facebookText}>Add Video</Text>
-                    </TouchableHighlight>
+                    </TouchableOpacity>
                     <Text style={{ color: colors.secondaryWhite}}>
-                        No likes left. Add videos to send more likes.
+                        Out of users! Add a video for five more users. 
+                    </Text>
+                    <Text style={{ color: colors.secondaryWhite}}>
+                        Or come back in 24 hours :)
                     </Text>
                 </View>
             </View> 

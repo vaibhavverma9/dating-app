@@ -9,10 +9,7 @@ export default function AddCameraView({ route, navigation }) {
 
     const [userId, setUserId] = useContext(UserIdContext);
 
-    const { loading, error, data } = useQuery(GET_QUESTIONS, {
-        variables: { userId },
-        fetchPolicy: 'no-cache'      
-    })
+    const { loading, error, data } = useQuery(GET_QUESTIONS)
 
     if(loading){
         return (
