@@ -22,19 +22,7 @@ export const client = new ApolloClient({
 });
 
 
-// {lastUploaded: {_lt: $lastLoadedLower}}
-// {
-//   _or: [
-//     { location: {_st_d_within: {distance: 300000, from: $collegePoint }}},
-//     { location: {_st_d_within: {distance: 300000, from: $point }}},
-//     { userCollege : { location: {_st_d_within: {distance: 300000, from: $point }}}},
-//     { userCollege : { location: {_st_d_within: {distance: 300000, from: $collegePoint }}}},
-//   ]
-// },
-// {_or: [
-//   {gender: {_neq: $notIntoGender}},
-//   {gender: {_is_null: true}}
-// ]},
+        
 
 
 export const GET_VIDEOS = gql`
@@ -63,9 +51,9 @@ export const GET_VIDEOS = gql`
     lastUploaded
   }
 
-  query GetVideos ($userId: Int, $noLocationLimit: Int, $lowerLimit: Int, $upperLimit: Int, $lastLoadedLower: timestamptz, $lastLoadedUpper: timestamptz, $lastLoadedNoLocation: timestamptz, $notIntoGender: String, $point: geography!, $collegePoint: geography!) { 
-    lowerUsersLocation: users (
-      limit: $lowerLimit, 
+  query GetVideos ($userId: Int, $noLocationLimit: Int, $locationLimit: Int, $notIntoGender: String, $point: geography!, $collegePoint: geography!, $lastLoadedLocation: timestamptz!, $lastLoadedNoLocation: timestamptz!) { 
+    usersLocation: users (
+      limit: $locationLimit, 
       where: {_and: [
         {_or: [
           {gender: {_neq: $notIntoGender}},
@@ -82,34 +70,10 @@ export const GET_VIDEOS = gql`
             { userCollege : { location: {_st_d_within: {distance: 300000, from: $collegePoint }}}},
           ]
         },
-        {lastUploaded: {_lt: $lastLoadedLower}}
+        {_not: {likesByLikedId: {likerId: {_eq: $userId}}}},
+        {lastUploaded: {_lt: $lastLoadedLocation}}
       ]}, 
       order_by: {lastUploaded: desc_nulls_last}
-    ) {
-      ...videoFields
-    }
-
-    upperUsersLocation: users (
-      limit: $upperLimit, 
-      where: {_and: [
-        {_or: [
-          {gender: {_neq: $notIntoGender}},
-          {gender: {_is_null: true}}
-        ]},
-        {
-          _or: [
-            { location: {_st_d_within: {distance: 300000, from: $collegePoint }}},
-            { location: {_st_d_within: {distance: 300000, from: $point }}},
-            { userCollege : { location: {_st_d_within: {distance: 300000, from: $point }}}},
-            { userCollege : { location: {_st_d_within: {distance: 300000, from: $collegePoint }}}},
-          ]
-        },
-        {userVideos: {status: {_eq: "ready"}}},
-        {_not: {id: {_eq: $userId}}},        
-        {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}},
-        {lastUploaded: {_gt: $lastLoadedUpper}}
-      ]}, 
-      order_by: {lastUploaded: asc_nulls_last}
     ) {
       ...videoFields
     }
@@ -137,6 +101,7 @@ export const GET_VIDEOS = gql`
         {userVideos: {status: {_eq: "ready"}}},
         {_not: {id: {_eq: $userId}}},        
         {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}},
+        {_not: {likesByLikedId: {likerId: {_eq: $userId}}}},
         {lastUploaded: {_lt: $lastLoadedNoLocation}}
       ]}, 
       order_by: {lastUploaded: desc_nulls_last}
@@ -146,114 +111,6 @@ export const GET_VIDEOS = gql`
 
   }
 `
-
-export const GET_BEST_VIDEOS = gql`
-  fragment videoFields on users {
-    firstName
-    city
-    region
-    college
-    location
-    likesByLikedId(limit: 1, where: {likerId: {_eq: $userId}}, order_by: {created_at: desc}) {
-      dislike
-      matched
-    }
-    userVideos(limit: 4, where: {status: {_eq: "ready"}}, order_by: {views: asc}) {
-      muxPlaybackId
-      videoQuestion {
-        questionText
-      }
-      id
-      flags
-      likes
-      dislikes
-      views
-    }
-    id
-    lastUploaded
-  }
-
-  query GetBestVideos ($userId: Int, $bestLimit: Int, $noLocationLimit: Int, $lowerLimit: Int, $upperLimit: Int, $lastLoadedLower: timestamptz, $lastLoadedUpper: timestamptz, $lastLoadedNoLocation: timestamptz, $notIntoGender: String, $point: geography!, $collegePoint: geography!) { 
-
-    bestUsersLocation: users(
-      limit: $bestLimit,
-      order_by: {likesByLikedId_aggregate: {count: desc_nulls_last}},
-      where: {_and: [
-        {_or: [
-          {gender: {_neq: $notIntoGender}},
-          {gender: {_is_null: true}}
-        ]},
-        {
-          _or: [
-            { location: {_st_d_within: {distance: 300000, from: $collegePoint }}},
-            { location: {_st_d_within: {distance: 300000, from: $point }}},
-            { userCollege : { location: {_st_d_within: {distance: 300000, from: $point }}}},
-            { userCollege : { location: {_st_d_within: {distance: 300000, from: $collegePoint }}}},
-          ]
-        },
-        {userVideos: {status: {_eq: "ready"}}},
-      ]}
-      ){
-        ...videoFields
-      }
-
-    bestUsersNoLocation: users(
-      limit: $bestLimit,
-      order_by: {likesByLikedId_aggregate: {count: desc_nulls_last}},
-      where: {_and: [
-        {_or: [
-          {gender: {_neq: $notIntoGender}},
-          {gender: {_is_null: true}}
-        ]},
-        {_or: [
-          {_and: [
-            {_not: { location: {_st_d_within: {distance: 300000, from: $collegePoint }}}},
-            {_not: { location: {_st_d_within: {distance: 300000, from: $point }}}},
-            {_not: { userCollege : { location: {_st_d_within: {distance: 300000, from: $point }}}}},
-            {_not: { userCollege : { location: {_st_d_within: {distance: 300000, from: $collegePoint }}}}},
-          ]},
-          {_and: [
-            { location: {_is_null: true}},  
-            {_not: { userCollege : { location: {_st_d_within: {distance: 300000, from: $point }}}}},
-            {_not: { userCollege : { location: {_st_d_within: {distance: 300000, from: $collegePoint }}}}},
-          ]}
-        ]},
-        {userVideos: {status: {_eq: "ready"}}},
-      ]}
-      ){
-        ...videoFields
-      }
-  }
-`
-
-
-
-// bestUsersNoLocation: users(
-//   limit: $bestLimit,
-//   order_by: {likesByLikedId_aggregate: {count: desc_nulls_last}},
-//   where: {
-//     {_or: [
-//       {gender: {_neq: $notIntoGender}},
-//       {gender: {_is_null: true}}
-//     ]},
-//     {_or: [
-//       {_and: [
-//         {_not: { location: {_st_d_within: {distance: 300000, from: $collegePoint }}}},
-//         {_not: { location: {_st_d_within: {distance: 300000, from: $point }}}},
-//         {_not: { userCollege : { location: {_st_d_within: {distance: 300000, from: $point }}}}},
-//         {_not: { userCollege : { location: {_st_d_within: {distance: 300000, from: $collegePoint }}}}},
-//       ]},
-//       {_and: [
-//         { location: {_is_null: true}},  
-//         {_not: { userCollege : { location: {_st_d_within: {distance: 300000, from: $point }}}}},
-//         {_not: { userCollege : { location: {_st_d_within: {distance: 300000, from: $collegePoint }}}}},
-//       ]}
-//     ]},        
-//     {userVideos: {status: {_eq: "ready"}}},
-//   }
-//   ) {
-//     ...videoFields
-//   }
 
 export const GET_LAST_DAY_VIDEOS = gql`
   query GetLastDayVideos ($userId: Int, $yesterday: timestamptz){
@@ -387,6 +244,49 @@ export const GET_LIKES = gql`
       Liker {
         firstName
         id
+        city
+        region
+        college
+        userVideos(limit: 3, order_by: {created_at: asc}, where: {muxPlaybackId: {_is_null: false}}) {
+          videoQuestion {
+            questionText
+          }
+          id
+          muxPlaybackId
+        }
+      }
+    }
+  }
+`
+
+export const GET_MATCHES_LIKES = gql`
+  query GetMatchesLikes($userId: Int){
+    matches: likes(where: {_and: [{_not: {Liker: {blocksByBlockedId: {blockerId: {_eq: 1528}}}}},{Liker: {likesByLikedId: {likerId: {_eq: $userId}, dislike: {_eq: false}}}, likedId: {_eq: $userId}, dislike: {_eq: false}}]}, distinct_on: likerId) {
+      userId: likedId
+      profileId: likerId
+      profileUser: Liker {
+        firstName
+        id
+        city
+        region
+        college
+        userVideos(limit: 3, order_by: {created_at: asc}, where: {muxPlaybackId: {_is_null: false}}) {
+          videoQuestion {
+            questionText
+          }
+          id
+          muxPlaybackId
+        }
+      }
+    }
+    likes: likes(where: {_and: [{_not: {Liker: {blocksByBlockedId: {blockerId: {_eq: $userId}}}}}, {_not: {Liker: {likesByLikedId: {likerId: {_eq: $userId}, dislike: {_eq: false}}}}, likedId: {_eq: $userId}, dislike: {_eq: false}}]}, distinct_on: likerId) {
+      userId: likedId
+      profileId: likerId
+      profileUser: Liker {
+        firstName
+        id
+        city
+        region
         college
         userVideos(limit: 3, order_by: {created_at: asc}, where: {muxPlaybackId: {_is_null: false}}) {
           videoQuestion {
@@ -506,6 +406,14 @@ export const UPDATE_LATITUDE_LONGITUDE = gql`
 export const UPDATE_ONBOARDED = gql`
   mutation UpdateOnboarded ($userId: Int, $onboarded: Boolean) {
     update_users(where: {id: {_eq: $userId}}, _set: {onboarded: $onboarded}) {
+      affected_rows
+    }
+  }
+`
+
+export const UPDATE_TEXT_PERMISSION = gql`
+  mutation UpdateOnboarded ($userId: Int, $textPermission: Boolean) {
+    update_users(where: {id: {_eq: $userId}}, _set: {textPermission: $textPermission}) {
       affected_rows
     }
   }
@@ -652,6 +560,14 @@ export const DELETE_VIDEO_PASSTHROUGH_ID = gql`
   }
 `
 
+export const UPDATE_VIDEO_ERRORED = gql`
+  mutation UpdateVideoErrored($passthroughId: String) {
+    update_videos(where: {passthroughId: {_eq: $passthroughId}}, _set: {status: "errored"}) {
+      affected_rows
+    }
+  }
+`
+
 export const GET_COLLEGES = gql`
   query GetColleges {
     colleges {
@@ -691,3 +607,4 @@ export const GET_VIDEO_COUNT = gql`
     }
   }
 `
+

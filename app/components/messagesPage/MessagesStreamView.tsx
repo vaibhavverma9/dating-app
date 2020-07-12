@@ -16,12 +16,12 @@ import {
 import { createAppContainer } from 'react-navigation';
 import { createStackNavigator } from 'react-navigation-stack';
 import axios from 'axios';
-import { GET_LIKES } from '../../utils/graphql/GraphqlClient';
+import { GET_LIKES, GET_MATCHES_LIKES } from '../../utils/graphql/GraphqlClient';
 import { useLazyQuery } from '@apollo/client';
 import * as Segment from 'expo-analytics-segment';
 import { colors } from '../../styles/colors';
 import FullPageVideos from '../modals/FullPageVideos';
-import { Ionicons } from '@expo/vector-icons'
+import { Ionicons, Feather } from '@expo/vector-icons'
 import MessagesOptions from './MessagesOptions'; 
 
 const chatClient = new StreamChat('9uzx7652xgte');
@@ -40,11 +40,17 @@ export default function MessagesStreamView(props) {
   const [disabled, setDisabled] = useState(initDisabled);
 
   const [messagesOptionsVisible, setMessagesOptionsVisible] = useState(false); 
-  const [optionsLikerId, setOptionsLikerId] = useState(null); 
+  const [optionsProfileId, setOptionsProfileId] = useState(null); 
 
-  const [getLikes, { data: likesQueried }] = useLazyQuery(GET_LIKES, 
+  const [getLikes, { data: likesQueried }] = useLazyQuery(GET_MATCHES_LIKES, 
   { 
-    onCompleted: (likesQueried) => { setAllData(likesQueried.likes) } 
+    onCompleted: (likesQueried) => { 
+      const matches = likesQueried.matches;
+      const likes = likesQueried.likes;
+      setAllData([...matches, ...likes]); 
+      setMatchesData(matches);
+      setLikesData(likes);
+    } 
   }); 
 
   useEffect(() => {
@@ -61,18 +67,13 @@ export default function MessagesStreamView(props) {
         setEnabledData(matchesData); 
       } else if(disabled.likes){
         setEnabledData(likesData); 
-      }  
+      }
     }
   }, [disabled, allData]);
 
   useEffect(() => {
     if(allData.length > 0){
       initClient(); 
-      const matchesData = allData.filter((like) => { return like.matched });
-      setMatchesData(matchesData)
-
-      const likesData = allData.filter((like) => { return !like.matched });
-      setLikesData(likesData);
     }   
   }, [allData]);
 
@@ -103,17 +104,24 @@ export default function MessagesStreamView(props) {
 
     setLoading(false);
 
-    const likerIds = allData.map(like => {
-      return { 
-        id: like.likerId.toString(),
-        name: like.Liker.firstName,
-        image: 'https://image.mux.com/' + like.Liker.userVideos[0].muxPlaybackId + '/thumbnail.jpg?time=0'
-      }; 
+    const profileIds = allData.map(like => {
+      if(like.profileUser.userVideos.length > 0){
+        return { 
+          id: like.profileId.toString(),
+          name: like.profileUser.firstName,
+          image: 'https://image.mux.com/' + like.profileUser.userVideos[0].muxPlaybackId + '/thumbnail.jpg?time=0'
+        };   
+      } else {
+        return { 
+          id: like.profileId.toString(),
+          name: like.profileUser.firstName
+        };   
+      }
     });
 
     try {
       const response = await axios.post("https://gentle-brook-91508.herokuapp.com/updateUsersStream", {
-        likerIds
+        profileIds
       });
     } catch (err) {
       return;
@@ -121,9 +129,9 @@ export default function MessagesStreamView(props) {
 
     for(let i=0; i < allData.length; i++){
       const like = allData[i]; 
-      const likerId = like.likerId; 
+      const profileId = like.profileId; 
 
-      const filter = { type: 'messaging', $and : [{ members: { $in: [userId.toString()]}}, { members: { $in: [likerId.toString()]}}]};
+      const filter = { type: 'messaging', $and : [{ members: { $in: [userId.toString()]}}, { members: { $in: [profileId.toString()]}}]};
       const sort = { last_message_at: -1 };
   
   
@@ -136,7 +144,7 @@ export default function MessagesStreamView(props) {
         try {
           const response = await axios.post("https://gentle-brook-91508.herokuapp.com/createChannelStream", {
             userId: userId.toString(),
-            likerId: likerId.toString(),
+            profileId: profileId.toString(),
           });
         } catch (err) {
           return;
@@ -155,20 +163,20 @@ export default function MessagesStreamView(props) {
     const channel = props.channel; 
     const unreadCount = channel.countUnread();
 
-    const likerId = parseInt(props.channel.data.membersIds.filter(memberId => {
+    const profileId = parseInt(props.channel.data.membersIds.filter(memberId => {
       return memberId != userId.toString(); 
     })[0]);    
 
     const like = enabledData.filter(like => {
-      return likerId == like.likerId; 
+      return profileId == like.profileId; 
     });
 
     if(like.length == 0){
       return null;
     }
 
-    const firstName = like[0].Liker.firstName;
-    const videos = like[0].Liker.userVideos;
+    const firstName = like[0].profileUser.firstName;
+    const videos = like[0].profileUser.userVideos;
     const latestMessage = props.latestMessage.text;
 
     function VideosDisplay({videos}){
@@ -251,36 +259,69 @@ export default function MessagesStreamView(props) {
 
       </TouchableOpacity>
     );
+  }
 
+  function goToAddVideo(){
+    props.navigation.navigate('Add');
+  }
+
+
+  function AddVideo(){
+    if(!timedOut){
+      return null;
+    } else {
+      return (
+        <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ height: '40%', width: '85%', backgroundColor: colors.primaryPurple, borderRadius: 5, padding: 10, alignItems: 'center' }}>
+              <View style={{ paddingTop: '5%', height: '25%'}}>
+                  <Feather name="video" size={45} color={colors.primaryWhite} />
+              </View>        
+              <Text style={{ fontSize: 22, fontWeight: 'bold', paddingTop: 12, paddingBottom: 5, color: colors.primaryWhite }}>No likes yet!</Text>
+              <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: '300', paddingHorizontal: 5, color: colors.primaryWhite }}>Add videos to get likes from users :)</Text>
+              <TouchableOpacity onPress={goToAddVideo} style={{ paddingTop: '8%' }}>
+                  <View style={styles.addVideoContainer}>
+                      <Text style={styles.addVideoText}>Add Video</Text>
+                  </View>
+              </TouchableOpacity>
+          </View>
+
+      </View>           )
+    }
   }
 
   function ChannelListScreen(props){
-    return (
-      <SafeAreaView>
-        <Chat client={chatClient}>
-          <View style={{ display: 'flex', height: '100%', padding: 10 }}>
-            <ChannelList
-              filters={{ type: 'messaging', members: { $in: [userId.toString()] } }}
-              sort={{ last_message_at: -1 }}
-              Preview={CustomChannelPreview}
-              onSelect={(channel) => {
-                props.navigation.navigate('Channel', {
-                  channel,
-                });
-              }}
-            />
-            <MessagesOptions 
-              visible={messagesOptionsVisible} 
-              setVisible={setMessagesOptionsVisible} 
-              userId={userId}
-              currentUserId={optionsLikerId}
-              allData={allData}
-              setAllData={setAllData}
-            />
-          </View>
-        </Chat>
-      </SafeAreaView>
-    );
+    if(allData.length > 0){
+      return (
+        <SafeAreaView>
+          <Chat client={chatClient}>
+            <View style={{ display: 'flex', height: '100%', padding: 10 }}>
+              <ChannelList
+                filters={{ type: 'messaging', members: { $in: [userId.toString()] } }}
+                sort={{ last_message_at: -1 }}
+                Preview={CustomChannelPreview}
+                onSelect={(channel) => {
+                  props.navigation.navigate('Channel', {
+                    channel,
+                  });
+                }}
+              />
+              <MessagesOptions 
+                visible={messagesOptionsVisible} 
+                setVisible={setMessagesOptionsVisible} 
+                userId={userId}
+                currentUserId={optionsProfileId}
+                allData={allData}
+                setAllData={setAllData}
+              />
+            </View>
+          </Chat>
+        </SafeAreaView>
+      );
+    } else {
+      return (
+        <AddVideo />
+      )
+    }
   }
 
   function disableHeader({text}){
@@ -288,9 +329,9 @@ export default function MessagesStreamView(props) {
       setDisabled({all: true, matches: false, likes: false }); 
     } else if (text == 'MATCHES') {
       setDisabled({all: false, matches: true, likes: false }); 
-    } else if (text == 'LIKES YOU'){
+    } else if (text == 'LIKES'){
       setDisabled({all: false, matches: false, likes: true }); 
-    } 
+    }
   }
 
   function HeaderButton({text, disabled}){
@@ -309,7 +350,7 @@ export default function MessagesStreamView(props) {
       <View style={{ paddingBottom: '1%', flexDirection: 'row', justifyContent: 'space-around', width: '100%' }}>
           <HeaderButton text={'ALL'} disabled={disabled.all} />
           <HeaderButton text={'MATCHES'} disabled={disabled.matches} />
-          <HeaderButton text={'LIKES YOU'} disabled={disabled.likes} />
+          <HeaderButton text={'LIKES'} disabled={disabled.likes} />
       </View>
     ),
   });
@@ -334,19 +375,19 @@ export default function MessagesStreamView(props) {
   ChannelScreen.navigationOptions = ({ navigation }) => { 
     const channel = navigation.getParam('channel');
 
-    const likerId = parseInt(channel.data.membersIds.filter(memberId => {
+    const profileId = parseInt(channel.data.membersIds.filter(memberId => {
       return memberId != userId.toString(); 
     })[0]);    
 
     const like = enabledData.filter(like => {
-      return likerId == like.likerId; 
+      return profileId == like.profileId; 
     });
 
-    const currentName = like[0].Liker.firstName;
+    const currentName = like[0].profileUser.firstName;
 
     const moreOptions = () => {
       setMessagesOptionsVisible(true); 
-      setOptionsLikerId(likerId); 
+      setOptionsProfileId(profileId); 
     }
 
     return {
@@ -399,5 +440,18 @@ const styles = StyleSheet.create({
   },
   disabledHeaderText: {
     margin: 8, textAlign: 'center', fontSize: 15, color: colors.secondaryGray
+  },
+  addVideoContainer: { 
+    backgroundColor: colors.primaryWhite, 
+    borderRadius: 5,
+    width: 250,
+    height: 50, 
+    justifyContent: 'center', 
+    alignItems: 'center'
+  }, 
+  addVideoText: {
+      fontSize: 17,
+      color: colors.primaryPurple,
+      fontWeight: 'bold'
   }
 });

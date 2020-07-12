@@ -8,7 +8,7 @@ import { useMutation, useLazyQuery } from '@apollo/client';
 import { UPDATE_COLLEGE, GET_COLLEGES } from '../../utils/graphql/GraphqlClient';
 import { _storeLatitude, _storeLongitude, _storeCollege, _storeCollegeLatitude, _storeCollegeLongitude } from '../../utils/asyncStorage'; 
 import { colors } from '../../styles/colors';
-import LocationOnboarding from './LocationOnboarding';
+import CollegeEventsOnboarding from './CollegeEventsOnboarding';
 import Autocomplete from 'react-native-autocomplete-input';
 
 export default function CollegeOnboarding() {
@@ -17,6 +17,7 @@ export default function CollegeOnboarding() {
     const [updateCollege, { updateCollegeData }] = useMutation(UPDATE_COLLEGE);
     const [collegeSubmitted, setCollegeSubmitted] = useState(false); 
     const [college, setCollege] = useState(''); 
+    const [nickname, setNickname] = useState('');
     const [submitHidden, setSubmitHidden] = useState(true); 
     const [colleges, setColleges] = useState(null); 
     const [filteredColleges, setFilteredColleges] = useState(null); 
@@ -53,6 +54,7 @@ export default function CollegeOnboarding() {
         setCollegeId(item.id); 
         setCollegeLatitude(item.latitude);
         setCollegeLongitude(item.longitude); 
+        setNickname(item.nickname); 
         setHideResults(true); 
         setSubmitHidden(false); 
     }
@@ -83,7 +85,9 @@ export default function CollegeOnboarding() {
     
     if(collegeSubmitted) {
         return (
-            <LocationOnboarding />
+            <CollegeEventsOnboarding
+                nickname={nickname}
+            />
         )
     } else if(filteredColleges) {
         return (

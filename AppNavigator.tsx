@@ -9,6 +9,9 @@ import TabStack from './app/stacks/TabStack';
 import OnboardingStack from './app/stacks/OnboardingStack';
 // import { LocationContext } from './app/utils/context/LocationContext';
 import { colors } from './app/styles/colors';
+import { VideoCountContextProvider } from './app/utils/context/VideoCountContext';
+import { setUser } from 'sentry-expo';
+import * as Sentry from 'sentry-expo'; 
 
 export default function AppNavigator(){
 
@@ -20,28 +23,38 @@ export default function AppNavigator(){
 
   const [getUsersByUid, { data: usersByUid }] = useLazyQuery(GET_USERS_BY_UID,
     {
+      onError: (error) => {
+        console.log("error", error); 
+        Sentry.captureException(error); 
+      }, 
       onCompleted: (usersByUid) => {
         initUser(usersByUid); 
       }
     })
 
   useEffect(() => {
-    doormanDatabaseAuth();
+    getUsersByUid({ variables: { uid }});
   }, []);
 
   async function initUser(usersByUid){
     if(usersByUid.users == 0){
       insertUser({variables: { uid, phoneNumber }})
       .then(insertUserResponse => { 
+        setUserId(insertUserResponse.data.insert_users.returning[0].id); 
+        setOnboarded(false); 
         _storeUserId(insertUserResponse.data.insert_users.returning[0].id); 
         _storeDoormanUid(uid); 
         _storeOnboarded(false); 
-
-        setUserId(insertUserResponse.data.insert_users.returning[0].id); 
-        setOnboarded(false); 
       })
-      .catch(insertUserError => {})
+      .catch(error => {
+        Sentry.captureException(error);
+        setUserId(0);
+        setOnboarded(true); 
+      })
     } else {
+      setUserId(usersByUid.users[0].id);
+      setOnboarded(usersByUid.users[0].onboarded)
+
       _storeUserId(usersByUid.users[0].id);
       _storeDoormanUid(uid); 
       _storeOnboarded(usersByUid.users[0].onboarded); 
@@ -49,28 +62,24 @@ export default function AppNavigator(){
       if(usersByUid.users[0].location){
         _storeLatitude(usersByUid.users[0].location.coordinates[0]); 
         _storeLongitude(usersByUid.users[0].location.coordinates[1]); 
-        // setLocation(getUsersResponse.data.users[0].location.coordinates[1]);  
+        // (getUsersResponse.data.users[0].location.coordinates[1]);  
       }
-      setUserId(usersByUid.users[0].id);
-      setOnboarded(usersByUid.users[0].onboarded)
     }
   }
 
+  // usersByUid
   async function doormanDatabaseAuth() {
     const localUserId = await _retrieveUserId();
     const localDoormanUid = await _retrieveDoormanUid();
     const localOnboarded = await _retrieveOnboarded(); 
 
-    if(localUserId > 0 &usersByUid& localDoormanUid != "" && localOnboarded != ""){ 
-      const localLatitude = await _retrieveLatitude(); 
-      const localLongitude = await _retrieveLongitude(); 
+    // setUserId(0);
+    // setOnboarded(true); 
 
-      if (localLatitude != null && localLongitude != null){
-        // setLocation([localLatitude, localLongitude]);
-      }
-  
+    if(localUserId > 0 && localDoormanUid != "" && localOnboarded != ""){ 
       setUserId(localUserId); 
       setOnboarded(localOnboarded); 
+
     } else {
       getUsersByUid({variables: { uid }})
     }
@@ -81,7 +90,11 @@ export default function AppNavigator(){
       <OnboardingStack />
     )
   } else if (onboarded == true){
-    return <TabStack />
+    return (      
+      <VideoCountContextProvider>
+        <TabStack />
+      </VideoCountContextProvider>
+    )
   } else {
     return <View style={{ flex: 1, backgroundColor: colors.primaryPurple }} />
   }

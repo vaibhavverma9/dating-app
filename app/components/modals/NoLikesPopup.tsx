@@ -25,7 +25,7 @@ export default function NoLikesPopup(props) {
                         <Text style={styles.facebookText}>Add Video</Text>
                     </TouchableOpacity>
                     <Text style={{ color: colors.secondaryWhite}}>
-                        Out of users! Add a video for five more users. 
+                        Out of users! Add a video for ten more users. 
                     </Text>
                     <Text style={{ color: colors.secondaryWhite}}>
                         Or come back in 24 hours :)

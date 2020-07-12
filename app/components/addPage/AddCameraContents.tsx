@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from 'react'; 
-import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native'; 
+import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, Alert } from 'react-native'; 
 import { Camera } from 'expo-camera';
 import { BlurView } from 'expo-blur';
 import { fullPageVideoStyles } from '../../styles/fullPageVideoStyles';
@@ -16,6 +16,8 @@ import ViewAllPopup from '../modals/ViewAllPopup';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { useLazyQuery } from '@apollo/client';
 import { VideoCountContext } from '../../utils/context/VideoCountContext';
+import * as Progress from 'react-native-progress';
+import Constants from 'expo-constants';
 
 export default function AddCameraContents(props) {
 
@@ -89,9 +91,20 @@ export default function AddCameraContents(props) {
     useEffect(() => {
         props.navigation.addListener('blur', () => {
             setShouldPlay(false);
+
+            if ('android' in Constants.platform) {
+                setInitialized(false); 
+                setTimedOut(false); 
+                setTimeout(() => { setTimedOut(false) }, 3000); 
+            }
         });
 
         props.navigation.addListener('focus', () => {
+            if ('android' in Constants.platform) {
+                setInitialized(true); 
+                setTimeout(() => { setTimedOut(true) }, 3000); 
+            }
+
             setShouldPlay(true); 
             if(hasCameraPermission === false){
                 getCameraPermission();
@@ -170,6 +183,7 @@ export default function AddCameraContents(props) {
         }
     };
 
+    const [videoTimer, setVideoTimer] = useState(0); 
 
     async function record(){
         if(camera){
@@ -202,6 +216,7 @@ export default function AddCameraContents(props) {
                         <MaterialIcons name="video-library" color={"#eee"} size={40}/> 
                         <Text style={styles.iconText}>Library</Text>
                     </TouchableOpacity>
+                    {/* <Progress.Pie progress={0.4} size={50} /> */}
                     <MaterialIcons name="fiber-manual-record" onPress={record} color={"#eee"} size={60}/>  
                     <TouchableOpacity onPress={setCameraType} style={styles.iconGroup}>
                         <MaterialIcons name="switch-camera" color={"#eee"} size={40}/>                     
@@ -213,14 +228,14 @@ export default function AddCameraContents(props) {
         }
     }
 
-    function sendVideo() {
+    async function sendVideo() {
         const passthroughId = Math.floor(Math.random() * 1000000000) + 1; 
-        props.navigation.navigate('Videos', { screen: 'VideosView', params: {videoUri: videoUri, thumbnailUri: thumbnailUri, questionText: questionData[index].questionText, questionId: questionData[index].id, status: 'waiting', passthroughId: passthroughId.toString(), type: 'uploadedVideo', id: passthroughId, videoId: null }});
+
+        console.log(videoUri, thumbnailUri, questionData[index].questionText, questionData[index].id, passthroughId.toString());
+        await props.navigation.navigate('Videos', { screen: 'VideosView', params: {videoUri: videoUri, thumbnailUri: thumbnailUri, questionText: questionData[index].questionText, questionId: questionData[index].id, status: 'waiting', passthroughId: passthroughId.toString(), type: 'uploadedVideo', id: passthroughId, videoId: null }});
         setVideoUri(''); 
         setThumbnailUri(''); 
-        console.log(videoCount);
-        console.log(videoCount + 1);
-        setVideoCount(videoCount + 1); 
+        setVideoCount(videoCount + 1);     
     }
 
     function viewAll(){
@@ -270,6 +285,22 @@ export default function AddCameraContents(props) {
                 </View>
             )
         }
+    }
+
+    const onLoad = (data) => {
+        if(data.durationMillis > 30000){
+            Alert.alert(
+                "Your video is too long!", 
+                "Videos must be less than 30 seconds long. Yours was " + Math.ceil(data.durationMillis / 1000) + " seconds :(", 
+                [
+                    {text: "Ok", onPress: () => {
+                        setVideoUri(''); 
+                        setThumbnailUri('');                        
+                    }}
+                ], 
+                { cancelable: false }
+            ); 
+        } 
     }
     
     if(initialized){
@@ -324,6 +355,7 @@ export default function AddCameraContents(props) {
                     usePoster={true}
                     shouldPlay={shouldPlay}
                     isLooping
+                    onLoad={onLoad}
                     style={styles.videoDimensions}
                     >
                     </Video>

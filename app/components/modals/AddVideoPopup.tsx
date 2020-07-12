@@ -14,7 +14,6 @@ export default function AddVideoPopup(props) {
         animationType="slide"
         transparent={true}
         visible={props.visible}>
-
             <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: '#00000090'}}>
                 <TouchableWithoutFeedback onPress={onScreenPress}>
                     <View style={{ height: '80%', width: '100%'}}>

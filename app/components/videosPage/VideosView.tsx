@@ -2,19 +2,24 @@ import React, { useEffect, useState, useContext } from 'react';
 import { View, Image, Text, TouchableOpacity, ImageBackground, ActivityIndicator, StyleSheet, RefreshControl } from 'react-native';
 import * as Segment from 'expo-analytics-segment';
 import { Dimensions } from "react-native"; 
-import { GET_LAST_DAY_VIDEOS, INSERT_INIT_VIDEO, UPDATE_LAST_UPLOADED, ON_VIDEO_UPDATED, INSERT_USER, GET_USERS_BY_UID, GET_PAST_VIDEOS, DELETE_VIDEO_PASSTHROUGH_ID, client } from '../../utils/graphql/GraphqlClient';
+import { GET_LAST_DAY_VIDEOS, INSERT_INIT_VIDEO, UPDATE_LAST_UPLOADED, ON_VIDEO_UPDATED, INSERT_USER, GET_USERS_BY_UID, GET_PAST_VIDEOS, DELETE_VIDEO_PASSTHROUGH_ID, UPDATE_VIDEO_ERRORED, client } from '../../utils/graphql/GraphqlClient';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { ScrollView } from 'react-native-gesture-handler';
 import { useMutation, useSubscription, useLazyQuery } from '@apollo/client';
 import FullPageVideos from '../modals/FullPageVideos';
 import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid, _retrieveName, _retrieveBio } from '../../utils/asyncStorage'; 
 import axios from 'axios';
-import { Ionicons, MaterialIcons, Entypo, SimpleLineIcons } from '@expo/vector-icons'
+import { Ionicons, MaterialIcons, Entypo, SimpleLineIcons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { colors } from '../../styles/colors'; 
 import SettingsPopup from '../modals/SettingsPopup';
 import * as UpChunk from '@mux/upchunk';
 import * as FileSystem from 'expo-file-system';
 import RNFetchBlob from 'rn-fetch-blob'
+import { isTypeSystemDefinitionNode } from 'graphql';
+import * as Sentry from 'sentry-expo'; 
+import Constants from 'expo-constants';
+import { useDoormanUser } from 'react-native-doorman'
+import { _clearDoormanUid, _clearOnboarded, _clearUserId, _clearBio, _clearName } from '../../utils/asyncStorage'; 
 
 export default function VideosView(props) {
 
@@ -22,9 +27,11 @@ export default function VideosView(props) {
     const [storedLastDayVideos, setStoredLastDayVideos] = useState([]);
     const [pastVideos, setPastVideos] = useState([]); 
     const [userId, setUserId] = useContext(UserIdContext);
+    // const [userId, setUserId] = useState(1675); 
     const [insertInitVideo, { insertInitVideoData }] = useMutation(INSERT_INIT_VIDEO); 
     const [updateLastUploaded, { updateLastUploadedData }] = useMutation(UPDATE_LAST_UPLOADED);
     const [deleteVideoPassthrough, { deleteVideoPassthroughData }] = useMutation(DELETE_VIDEO_PASSTHROUGH_ID); 
+    const [updateVideoErrored, { updateVideoErroredData }] = useMutation(UPDATE_VIDEO_ERRORED); 
 
     const [uploadedVideos, setUploadedVideos] = useState([]); 
     const [name, setName] = useState(''); 
@@ -40,6 +47,18 @@ export default function VideosView(props) {
     let yesterday = new Date(Date.now() - 86400000); 
     const thumbnailPadding = '0.2%'; 
     const length = 110; 
+
+    const { signOut } = useDoormanUser();
+
+    const pressSignOut = async () => {
+        await _clearDoormanUid();
+        await _clearOnboarded(); 
+        await _clearUserId();  
+        await _clearBio();
+        await _clearName(); 
+        signOut();
+    }
+
 
     const [getStoredLastDayVideos, { data: storedLastDayVideosData }] = useLazyQuery(GET_LAST_DAY_VIDEOS, 
     { 
@@ -364,8 +383,10 @@ export default function VideosView(props) {
         const status = res.data.status;
 
         await insertInitVideo({ variables: { questionId: questionId, userId: userId, passthroughId: passthroughId, status: status }})
-        .then(response => { console.log(response) })
-        .catch(error => {console.error(error) }); 
+        .then(response => { })
+        .catch(error => {
+            Sentry.captureException(error);
+        }); 
 
         try {
             let res3 = await fetch(authenticatedUrl, {
@@ -374,7 +395,13 @@ export default function VideosView(props) {
                 headers: { "content-type": blob.type}
             });        
         } catch(error){
-            console.error(error); 
+            const tempUploadedVideos = uploadedVideos.map(uploadedVideo => {
+                if(uploadedVideo.passthroughId == passthroughId){
+                    return {...uploadedVideo, status: "errored"}
+                } else { return uploadedVideo }
+            })
+            setUploadedVideos(tempUploadedVideos); 
+            Sentry.captureException(error);
         }
 
         blob.close();
@@ -478,6 +505,7 @@ export default function VideosView(props) {
         setSettingsVisible(true); 
     }
 
+
     function SectionTitle({text, videos}){
         if(videos.length > 0){
             return (
@@ -532,6 +560,22 @@ export default function VideosView(props) {
       
     });
 
+    function Settings(){
+        if('ios' in Constants.platform){
+            return(
+                <TouchableOpacity onPress={openSettings} style={styles.settingsContainer}>
+                    <MaterialIcons name="menu" color={colors.secondaryWhite} size={30}/>  
+                </TouchableOpacity>
+            )
+        } else {
+            return(
+                <TouchableOpacity onPress={pressSignOut} style={styles.settingsContainer}>
+                    <MaterialCommunityIcons name="location-exit" size={30} color={colors.secondaryWhite}/>
+                </TouchableOpacity>
+            )            
+        }
+    }
+
     if(initialized){
         return (
             <ScrollView 
@@ -578,9 +622,7 @@ export default function VideosView(props) {
                         <VideoSection videos={worstVideos.slice(3, 6)}  />
                     </View>
                 </View>
-                <TouchableOpacity onPress={openSettings} style={styles.settingsContainer}>
-                    <MaterialIcons name="menu" color={colors.secondaryWhite} size={30}/>  
-                </TouchableOpacity>
+                <Settings />
                 <SettingsPopup visible={settingsVisible} setVisible={setSettingsVisible} />
             </ScrollView>
         );

@@ -2,13 +2,13 @@ import React, { useState, useEffect, useContext, useRef, useMemo } from 'react';
 import { Text, View, ActivityIndicator, StyleSheet } from 'react-native';
 import { homeStyles } from '../../styles/homeStyles';
 import { BlurView } from 'expo-blur';
-import { Ionicons, Entypo, MaterialCommunityIcons } from '@expo/vector-icons'
+import { Ionicons, Entypo, Feather } from '@expo/vector-icons'
 import { useMutation, useLazyQuery, useQuery } from '@apollo/client';
 import { INSERT_LIKE, GET_LIKE, client, GET_VIDEOS, INSERT_USER, UPDATE_LIKE, GET_NUMBER_VIDEOS, UPDATE_PUSH_TOKEN, GET_USER_INFO, UPDATE_VIDEO_LIKES, UPDATE_VIDEO_VIEWS, GET_GENDER_INTEREST, GET_QUESTIONS, UPDATE_VIDEO_DISLIKES, GET_LIKE_COUNT } from '../../utils/graphql/GraphqlClient';
 import OptionsModal from './OptionsModal'; 
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import * as Segment from 'expo-analytics-segment';
-import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid, _retrieveLatitude, _retrieveLongitude, _retrieveName, _retrievePushShown, _storePushShown, _storeName, _storeBio, _retrieveBio, _retrieveGenderInterest, _storeGenderInterest, _storeLastWatchedUpper, _storeLastWatchedLower, _retrieveLastWatchedUpper, _retrieveLastWatchedLower} from '../../utils/asyncStorage'; 
+import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid, _retrieveLatitude, _retrieveLongitude, _retrieveName, _retrievePushShown, _storePushShown, _storeName, _storeBio, _retrieveBio, _retrieveGenderInterest, _storeGenderInterest} from '../../utils/asyncStorage'; 
 import AddVideoPopup from '../modals/AddVideoPopup'; 
 import NoLikesPopup from '../modals/NoLikesPopup'; 
 import PushPopup from '../modals/PushPopup'; 
@@ -37,8 +37,8 @@ export default function HomeContents(props) {
   const [shouldPlay, setShouldPlay] = useState(true); 
 
   const [userCount, setUserCount] = useState(0); 
-  const [upperUserCount, setUpperUserCount] = useState(0); 
-  const [lowerUserCount, setLowerUserCount] = useState(0); 
+  // const [upperUserCount, setUpperUserCount] = useState(0); 
+  // const [lowerUserCount, setLowerUserCount] = useState(0); 
   const [currentUserVideoCount, setCurrentUserVideoCount] = useState(0); 
   const [currentUserId, setCurrentUserId] = useState(0); 
 
@@ -91,32 +91,35 @@ export default function HomeContents(props) {
 
   let playbackObject = useRef(null); 
 
-  const [connectedInternet, setConnectedInternet] = useState(true); 
+  // const [connectedInternet, setConnectedInternet] = useState(true); 
   const [timedOut, setTimedOut] = useState(false);
+  const [noMoreVideos, setNoMoreVideos] = useState(false); 
 
-  const [upperVideos, setUpperVideos] = useState(props.upperVideos);
+  // const [upperVideos, setUpperVideos] = useState(props.upperVideos);
   const [locationVideos, setLocationVideos] = useState(props.locationVideos); 
   const [genderInterest, setGenderInterest] = useState(props.genderInterest); 
 
-  const [lastLoadedUpper, setLastLoadedUpper] = useState(props.lastLoadedUpper);
-  const [lastLoadedLower, setLastLoadedLower] = useState(props.lastLoadedLower);
-  const [lastWatchedUpper, setLastWatchedUpper] = useState(props.lastWatchedUpper);
-  const [lastWatchedLower, setLastWatchedLower] = useState(props.lastWatchedLower); 
-  const [lowerLimit, setLowerLimit] = useState(props.lowerLimit);
-  const [upperLimit, setUpperLimit] = useState(props.upperLimit); 
+  // const [lastLoadedLower, setLastLoadedLower] = useState(props.lastLoadedLower);
+  // const [lastWatchedUpper, setLastWatchedUpper] = useState(props.lastWatchedUpper);
+  // const [lastWatchedLower, setLastWatchedLower] = useState(props.lastWatchedLower); 
+  // const [lowerLimit, setLowerLimit] = useState(props.lowerLimit);
+  // const [upperLimit, setUpperLimit] = useState(props.upperLimit); 
+  const [locationLimit, setLocationLimit] = useState(props.locationLimit)
   const [noLocationLimit, setNoLocationLimit] = useState(props.noLocationLimit); 
-  const [initLowerVideos, setInitLowerVideos] = useState(false);
-  const [initialLowerVideos, setInitialLowerVideos] = useState(null);  
+  // const [initLowerVideos, setInitLowerVideos] = useState(false);
+  // const [initialLowerVideos, setInitialLowerVideos] = useState(null);  
   const [noLikesLeft, setNoLikesLeft] = useState(false); 
-  const [likeCount, setLikeCount] = useState(0); 
-  const [likeLimit, setLikeLimit] = useState((videoCount + 1) * 5); 
+  // const [likeCount, setLikeCount] = useState(0); 
+  // const [likeLimit, setLikeLimit] = useState((videoCount + 1) * 10); 
 
-  let currentDate = new Date();
+  const [lastLoadedLocation, setLastLoadedLocation] = useState(props.lastLoadedLocation);
   const [lastLoadedNoLocation, setLastLoadedNoLocation] = useState(props.lastLoadedNoLocation); 
 
   const [getVideosLower, { data: videosLower }] = useLazyQuery(GET_VIDEOS, 
   { 
-    onCompleted: (videosLower) => { processVideos(videosLower, upperVideos) } 
+    onCompleted: (videosLower) => { 
+      processVideos(videosLower) 
+    } 
   }); 
 
   const [getNumberVideos, { data: numberVideos }] = useLazyQuery(GET_NUMBER_VIDEOS,
@@ -146,38 +149,12 @@ export default function HomeContents(props) {
     } 
   });
 
-  const [getLikes, { data: likesData }] = useLazyQuery(GET_LIKE, 
-  {
-    onCompleted: (likesData) => {
-
-      const likedId = currentUserId; 
-      const likedIndex = userIndex; 
-      const likedVideoIndex = videoIndex; 
-      const likerName = name;  
-      
-      if(likesData.likes.length == 0){
-        insertLike({ variables: { likedId: likedId, likerId: userId, matched: false, dislike: false }});
-        if(profileVideoCount > 0){
-          sendLike(likedId, likerName);
-        }
-        updateVideoLikes({ variables: { id : videoId, likes: videoData[likedIndex].userVideos[likedVideoIndex].likes + 1 }});
-        updateVideoViews({ variables: { id : videoId, views: videoData[likedIndex].userVideos[likedVideoIndex].views + 1 }});      
-      } else {
-        updateLike({ variables: { likedId: userId, likerId: likedId, matched: true }})
-        insertLike({ variables: { likedId: likedId, likerId: userId, matched: true, dislike: false }});   
-        sendLike(likedId, likerName); 
-        updateVideoLikes({ variables: { id : videoId, likes: videoData[likedIndex].userVideos[likedVideoIndex].likes + 1 }});
-        updateVideoViews({ variables: { id : videoId, views: videoData[likedIndex].userVideos[likedVideoIndex].views + 1 }});          
-      }
-    }
-  });
-
-  const [getLikeCount, { data: likeCountData }] = useLazyQuery(GET_LIKE_COUNT, 
-    { 
-      onCompleted: (likeCountData) => { 
-        setLikeCount(likeCountData.likes_aggregate.aggregate.count); 
-      } 
-    }); 
+  // const [getLikeCount, { data: likeCountData }] = useLazyQuery(GET_LIKE_COUNT, 
+  //   { 
+  //     onCompleted: (likeCountData) => { 
+  //       setLikeCount(likeCountData.likes_aggregate.aggregate.count); 
+  //     } 
+  //   }); 
 
   const _panResponder = PanResponder.create({
     onStartShouldSetPanResponder: (evt, gestureState) => true,
@@ -201,30 +178,25 @@ export default function HomeContents(props) {
 
   useEffect(() => {
     initSegment(); 
-    networkConnected(); 
+    // networkConnected(); 
     getNumberVideos({variables: { userId }}); 
 
     let yesterday = new Date(Date.now() - 86400000); 
-    getLikeCount({ variables: { likerId: userId, since: yesterday }});
-    setTimeout(() => { setTimedOut(true) }, 3000); 
+    // getLikeCount({ variables: { likerId: userId, since: yesterday }});
+    setTimeout(() => {
+      setTimedOut(true);
+    }, 5000); 
+
   }, []);
 
   useEffect(() => {
-    processVideos(props.data, upperVideos); 
+    processVideos(props.data); 
   }, [props.data]);
 
-  async function networkConnected(){
-    const networkInfo = await Network.getNetworkStateAsync(); 
-    setConnectedInternet(networkInfo.isConnected); 
-  }
-
-  function reload(){
-    setConnectedInternet(true); 
-    setTimedOut(false); 
-    initSegment(); 
-    networkConnected(); 
-    setTimeout(() => { setTimedOut(true) }, 3000); 
-  }
+  // async function networkConnected(){
+  //   const networkInfo = await Network.getNetworkStateAsync(); 
+  //   setConnectedInternet(networkInfo.isConnected); 
+  // }
 
 
   async function initSegment() {
@@ -239,27 +211,11 @@ export default function HomeContents(props) {
     }
   }
 
-  const [reset, setReset] = useState(false); 
-
-  function resetLastWatched(){
-    if(!reset){
-      _storeLastWatchedLower(currentDate.toString()); 
-      _storeLastWatchedUpper(currentDate.toString()); 
-      setReset(true)  
-    }
-  }
-
   useEffect(() => {
-    if(props.lastLoadedLower != lastLoadedLower){
+    if(props.lastLoadedLocation != lastLoadedLocation){
       setQuerying(false); 
     }
-  }, [lastLoadedLower]);
-
-  useEffect(() => {
-    if(props.lastLoadedUpper != lastLoadedUpper){
-      setQuerying(false); 
-    }
-  }, [lastLoadedUpper]);
+  }, [lastLoadedLocation]);
 
   useEffect(() => {
     if(props.lastLoadedNoLocation != lastLoadedNoLocation){
@@ -267,68 +223,27 @@ export default function HomeContents(props) {
     }
   }, [lastLoadedNoLocation]); 
 
-  async function queryVideosInit(lastLoadedUpper, lastLoadedLower, lastLoadedNoLocation, upperLimit, lowerLimit, noLocationLimit){
-    let genderInterestLocal = genderInterest; 
-    let latitudeLocal = latitude; 
-    let longitudeLocal = longitude; 
-    let lastLoadedLowerLocal = lastLoadedLower; 
-    let lastLoadedUpperLocal = lastLoadedUpper;
-    let lastLoadedNoLocationLocal = lastLoadedNoLocation;
-    let collegeLatitudeLocal = collegeLatitude;
-    let collegeLongitudeLocal = collegeLongitude; 
-    let lastWatchedLowerLocal = lastWatchedLower;
-    let lastWatchedUpperLocal = lastWatchedUpper; 
+  async function queryVideosInit(locationLimit, noLocationLimit){
+    // let genderInterestLocal = genderInterest; 
+    // let latitudeLocal = latitude; 
+    // let longitudeLocal = longitude; 
+    // let collegeLatitudeLocal = collegeLatitude;
+    // let collegeLongitudeLocal = collegeLongitude; 
 
-    if(latitudeLocal == 0){
-      latitudeLocal = await _retrieveLatitude();
-    }
-    setLatitude(latitudeLocal); 
+    // if(latitudeLocal == 0){
+    //   latitudeLocal = await _retrieveLatitude();
+    // }
+    // setLatitude(latitudeLocal); 
 
-    if(longitudeLocal == 0){
-      longitudeLocal = await _retrieveLongitude(); 
-    }
-    setLongitude(longitudeLocal); 
+    // if(longitudeLocal == 0){
+    //   longitudeLocal = await _retrieveLongitude(); 
+    // }
+    // setLongitude(longitudeLocal); 
 
-
-    if(lastWatchedLowerLocal == null){
-      lastWatchedLowerLocal = await _retrieveLastWatchedLower();
-      if(lastWatchedLowerLocal == null){
-        lastWatchedLowerLocal = currentDate; 
-        _storeLastWatchedLower(lastWatchedLowerLocal.toString()); 
-        setLastWatchedLower(lastWatchedLowerLocal); 
-      } else {
-        lastWatchedLowerLocal = new Date(lastWatchedLowerLocal); 
-        setLastWatchedLower(lastWatchedLowerLocal); 
-      }
-    }
-
-    if(lastLoadedLowerLocal == null){
-      lastLoadedLowerLocal = lastWatchedLowerLocal; 
-      setLastLoadedLower(lastLoadedLowerLocal); 
-    }
-  
-    if(lastWatchedUpperLocal == null){
-      lastWatchedUpperLocal = await _retrieveLastWatchedUpper();
-      if(lastWatchedUpperLocal == null){
-        lastWatchedUpperLocal = currentDate; 
-        _storeLastWatchedUpper(lastWatchedUpperLocal.toString());
-        setLastWatchedUpper(lastWatchedUpperLocal); 
-        setUpperVideos(false);  
-      } else {
-        lastWatchedUpperLocal = new Date(lastWatchedUpperLocal); 
-        setLastWatchedUpper(lastWatchedUpperLocal); 
-      }
-    }
-
-    if(lastLoadedUpperLocal == null){
-      lastLoadedUpperLocal = lastWatchedUpperLocal; 
-      setLastLoadedUpper(lastLoadedUpperLocal); 
-    }
-
-    queryVideos(userId, lowerLimit, upperLimit, noLocationLimit, lastLoadedLowerLocal, lastLoadedUpperLocal, lastLoadedNoLocationLocal, genderInterestLocal, latitudeLocal, longitudeLocal, collegeLatitudeLocal, collegeLongitudeLocal);
+    queryVideos(locationLimit, noLocationLimit);
   }
 
-  async function queryVideos(userId, lowerLimit, upperLimit, noLocationLimit, lastLoadedLower, lastLoadedUpper, lastLoadedNoLocationLocal, genderInterest, latitude, longitude, collegeLatitude, collegeLongitude){
+  async function queryVideos(locationLimit, noLocationLimit){
 
     const point = {
         "type" : "Point", 
@@ -347,98 +262,45 @@ export default function HomeContents(props) {
       notIntoGender = "Woman"; 
     }
 
-    getVideosLower({ variables: { userId, noLocationLimit, lowerLimit, upperLimit, lastLoadedLower, lastLoadedUpper, lastLoadedNoLocation, notIntoGender, point, collegePoint } })
+    getVideosLower({ variables: { userId, locationLimit, noLocationLimit, notIntoGender, point, collegePoint, lastLoadedLocation, lastLoadedNoLocation } })
   }
 
-  function processVideos(data, upperVideos){
-    
+  function processVideos(data){
+
     if(locationVideos){
-      if(upperVideos){
-        let initialLowerVideosLocal = initialLowerVideos; 
 
-        if(!initLowerVideos){          
-          initialLowerVideosLocal = data; 
-          setInitialLowerVideos(data);
-          setInitLowerVideos(true); 
-        }
+      const users = data.usersLocation; 
 
-        const users = data.upperUsersLocation; 
-
-        if (users.length > 0){
-          if(!initialized){
-            setInitialized(true); 
-            setVideoData(users);
-            setCurrentUserId(users[0].id); 
-            setCurrentName(users[0].firstName);
-            setCurrentCollege(users[0].college);
-            setCurrentCity(users[0].city);
-            setCurrentRegion(users[0].region); 
-            initColors(users); 
-    
-            setMuxPlaybackId(users[0].userVideos[0].muxPlaybackId); 
-            setUserCount(users.length); 
-            setUpperUserCount(users.length); 
-            _storeLastWatchedUpper(users[0].lastUploaded);
-            setLastLoadedUpper(users[users.length - 1].lastUploaded)
-            setCurrentUserVideoCount(users[0].userVideos.length);
-            setQuestionText(users[0].userVideos[0].videoQuestion.questionText);  
-          } else {
-            const tempVideoData = [...videoData, ...users];
-            setVideoData(tempVideoData);
-            setUserCount(userCount + users.length); 
-            setUpperUserCount(upperUserCount + users.length); 
-            setLastLoadedUpper(users[users.length - 1].lastUploaded);
-            initColors(users); 
-          }
-        }
-
-        if(users.length < props.upperLimit){
-          setUpperVideos(false); 
-          setLowerLimit(props.limit);
-          setUpperLimit(0); 
-          processVideos(initialLowerVideosLocal, false); 
-          // queryVideosInit(lastLoadedUpper, lastLoadedLower, lastLoadedNoLocation, 0, props.limit, 0); 
-        } 
-      } else {
-        const users = data.lowerUsersLocation;
-        
-        if(users.length > 0){
-          if(!initialized){
-            setInitialized(true); 
-            setVideoData(users);
-            setCurrentUserId(users[0].id); 
-            setCurrentName(users[0].firstName);
-            setCurrentCollege(users[0].college); 
-            setCurrentCity(users[0].city);
-            setCurrentRegion(users[0].region); 
-            initColors(users); 
-
-            setMuxPlaybackId(users[0].userVideos[0].muxPlaybackId); 
-            setUserCount(users.length); 
-            setLowerUserCount(users.length); 
-            
-            setLastLoadedLower(users[users.length - 1].lastUploaded)
-            setCurrentUserVideoCount(users[0].userVideos.length);
-            setQuestionText(users[0].userVideos[0].videoQuestion.questionText);  
-          } else {
-            const tempVideoData = [...videoData, ...users]; 
-            setVideoData(tempVideoData);
-            setUserCount(userCount + users.length); 
-            setLowerUserCount(lowerUserCount + users.length); 
-            setLastLoadedLower(users[users.length - 1].lastUploaded);
-            initColors(users); 
+      if (users.length > 0){
+        if(!initialized){
+          setInitialized(true); 
+          setVideoData(users);
+          setCurrentUserId(users[0].id); 
+          setCurrentName(users[0].firstName);
+          setCurrentCollege(users[0].college);
+          setCurrentCity(users[0].city);
+          setCurrentRegion(users[0].region); 
+          initColors(users); 
   
-          }
-        } 
-
-        if(users.length < lowerLimit){
-          setLowerLimit(0);
-          setNoLocationLimit(props.limit); 
-          setLocationVideos(false); 
-          resetLastWatched(); 
-          queryVideosInit(lastLoadedUpper, lastLoadedLower, lastLoadedNoLocation, 0, 0, props.limit); 
-        } 
+          setMuxPlaybackId(users[0].userVideos[0].muxPlaybackId); 
+          setLastLoadedLocation(users[users.length - 1].lastUploaded); 
+          setUserCount(users.length); 
+          setCurrentUserVideoCount(users[0].userVideos.length);
+          setQuestionText(users[0].userVideos[0].videoQuestion.questionText);  
+        } else {
+          const tempVideoData = [...videoData, ...users];
+          setVideoData(tempVideoData);
+          setUserCount(userCount + users.length); 
+          initColors(users); 
+          setLastLoadedLocation(users[users.length - 1].lastUploaded); 
+        }
+      } else {
+        setLocationVideos(false); 
+        setLocationLimit(0); 
+        setNoLocationLimit(props.limit); 
+        queryVideos(0, props.limit); 
       }
+
     } else {
       const users = data.usersNoLocation; 
       if(users.length > 0){
@@ -454,20 +316,19 @@ export default function HomeContents(props) {
 
           setMuxPlaybackId(users[0].userVideos[0].muxPlaybackId); 
           setUserCount(users.length); 
-          
-          setLastLoadedNoLocation(users[users.length - 1].lastUploaded)
+          setLastLoadedNoLocation(users[users.length - 1].lastUploaded); 
+
           setCurrentUserVideoCount(users[0].userVideos.length);
           setQuestionText(users[0].userVideos[0].videoQuestion.questionText);  
         } else {
           const tempVideoData = [...videoData, ...users]; 
           setVideoData(tempVideoData);
           setUserCount(userCount + users.length); 
-          setLastLoadedNoLocation(users[users.length - 1].lastUploaded)
           initColors(users); 
+          setLastLoadedNoLocation(users[users.length - 1].lastUploaded); 
         }
       } else {
         setQuerying(true);
-        resetLastWatched(); 
       }
     }
   }
@@ -536,14 +397,22 @@ export default function HomeContents(props) {
       setPushPopupShown(true); 
     }
 
-    nextUser(); 
-
-    if(!likeColors[likedIndex].like){
-      getLikes({variables: { likerId: likedId, likedId: userId, dislike: false}});
-      // setLikeCount(likeCount + 1); 
-    } 
-
-    Segment.track("Like User"); 
+    // if(likeCount >= likeLimit){
+    //   setNoLikesLeft(true);
+    // } else {
+      if(!likeColors[likedIndex].like){  
+        nextUser(); 
+        insertLike({ variables: { likedId: likedId, likerId: userId, matched: false, dislike: false }});
+        if(profileVideoCount > 0){
+          sendLike(likedId, likerName);
+        }
+        Segment.track("Like User"); 
+      } else {
+        nextUser(); 
+      }
+      updateVideoLikes({ variables: { id : videoId, likes: videoData[likedIndex].userVideos[likedVideoIndex].likes + 1 }});
+      updateVideoViews({ variables: { id : videoId, views: videoData[likedIndex].userVideos[likedVideoIndex].views + 1 }});      
+    // } 
   }
 
   async function onDislike() { 
@@ -552,16 +421,20 @@ export default function HomeContents(props) {
     const dislikedIndex = userIndex; 
     const dislikedVideoIndex = videoIndex; 
 
-    nextUser();
+    // if(likeCount >= likeLimit){
+    //   setNoLikesLeft(true);
+    // } else {
+      nextUser();
 
-    if(!dislikeColors[dislikedIndex].dislike && !likeColors[dislikedIndex].like){
-      // setLikeCount(likeCount + 1); 
-      insertLike({ variables: { likedId: dislikedId, likerId: userId, matched: false, dislike: true }});
+      if(!dislikeColors[dislikedIndex].dislike && !likeColors[dislikedIndex].like){
+        // setLikeCount(likeCount + 1); 
+        insertLike({ variables: { likedId: dislikedId, likerId: userId, matched: false, dislike: true }});
+        Segment.track("Dislike User"); 
+      }
       updateVideoDislikes({ variables: { id : videoId, dislikes: videoData[dislikedIndex].userVideos[dislikedVideoIndex].dislikes + 1 }});
       updateVideoViews({ variables: { id : videoId, views: videoData[dislikedIndex].userVideos[dislikedVideoIndex].views + 1 }});  
-    }
+    // }
 
-    Segment.track("Dislike User"); 
   }
 
   function initColors(users){
@@ -605,28 +478,7 @@ export default function HomeContents(props) {
       setCurrentCity(videoData[userIndex].city);
       setCurrentRegion(videoData[userIndex].region); 
 
-
-      // let currentLocation = videoData[userIndex].location;
-      // if(currentLocation){
-      //   const distance = getDistance(
-      //     { latitude: latitude, longitude: longitude }, 
-      //     { latitude: currentLocation.coordinates[1], longitude: currentLocation.coordinates[0] }
-      //   ); 
-      //   const distanceMiles = Math.round(distance / 1609); 
-      //   setCurrentDistance(distanceMiles); 
-      // } else {
-      //   setCurrentDistance(null); 
-      // }
-
       setMuxPlaybackId(videoData[userIndex].userVideos[videoIndex].muxPlaybackId); 
- 
-      if(userIndex > 0 && locationVideos){
-        if(videoData[userIndex - 1].lastUploaded < videoData[userIndex].lastUploaded){
-          _storeLastWatchedUpper(videoData[userIndex].lastUploaded); 
-        } else {
-          _storeLastWatchedLower(videoData[userIndex].lastUploaded); 
-        }
-      }
  
       setUserCount(videoData.length); 
       setCurrentUserVideoCount(videoData[userIndex].userVideos.length);
@@ -635,9 +487,9 @@ export default function HomeContents(props) {
       setVideoId(videoData[userIndex].userVideos[videoIndex].id); 
     }
 
-    if(videoData && userIndex + lowerLimit + upperLimit + noLocationLimit > videoData.length && !querying){
+    if(videoData && userIndex + locationLimit + noLocationLimit > videoData.length && !querying){
       setQuerying(true); 
-      queryVideosInit(lastLoadedUpper, lastLoadedLower, lastLoadedNoLocation, upperLimit, lowerLimit, noLocationLimit); 
+      queryVideos(locationLimit, noLocationLimit); 
     }
 
   }, [videoIndex, userIndex, videoData])
@@ -678,25 +530,37 @@ export default function HomeContents(props) {
     }
   }
 
-  useEffect(() => {
-    setLikeLimit((videoCount + 1) * 5); 
-  }, [videoCount]);
+  // useEffect(() => {
+  //   console.log("videoCount", videoCount); 
+  //   if(isNaN(likeLimit) || isNaN(likeCount)){
+  //     setLikeLimit(10);
+  //     setLikeCount(0);
+  //   } else {
+  //     if(likeLimit != (videoCount + 1) * 10){
+  //       setLikeLimit((videoCount + 1) * 10); 
+  //       setLikeCount(videoCount * 10);   
+  //     }
+  //     if(likeCount < videoCount * 10){
+  //       setLikeCount(videoCount * 10); 
+  //     }  
+  //   }
+  // }, [likeCount, videoCount]);
 
   // tapping forward arrow
   const nextUser = () => {
 
     if(userIndex !== userCount - 1){
-      console.log(likeCount, likeLimit); 
-      if(likeCount >= likeLimit){
-        setNoLikesLeft(true);
-      } else {
-        setLikeCount(likeCount + 1); 
-        setUserIndex(userIndex + 1);
-        setCurrentProgress(0); 
-        setVideoIndex(0);    
-      }
+      // setLikeCount(likeCount + 1); 
+      setUserIndex(userIndex + 1);
+      setCurrentProgress(0); 
+      setVideoIndex(0);    
     } else {
-      resetLastWatched(); 
+      // if(userIndex == 0){
+      //   setQuerying(true);
+      //   queryVideosInit(locationLimit, noLocationLimit); 
+      // } else {
+        setNoMoreVideos(true); 
+      // }
     }
   }
 
@@ -854,7 +718,7 @@ export default function HomeContents(props) {
   }, [userIndex, dislikeColors, likeColors]); 
 
 
-  if(initialized){
+  if(initialized && !noMoreVideos){
     if('ios' in Constants.platform){
       return (
         <View style={styles.viewBackground}>
@@ -997,7 +861,7 @@ export default function HomeContents(props) {
       );    
     }
   } else {
-    if(connectedInternet && !timedOut){
+    if(!timedOut){
       return (
         <View style={styles.badInternetView}>
           <ActivityIndicator size="small" color="#eee" />
@@ -1005,12 +869,22 @@ export default function HomeContents(props) {
       )  
     } else {
       return (
-        <View style={styles.badInternetView}>
-          <TouchableOpacity onPress={reload} style={{ borderWidth: 1, borderColor: '#eee', justifyContent: 'center', borderRadius: 5}}>
-            <Text style={styles.reloadText}>Reload</Text>          
-          </TouchableOpacity>
-        </View>
-      )
+        <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: colors.primaryBlack }}>
+          <View style={{ height: '40%', width: '85%', backgroundColor: colors.primaryPurple, borderRadius: 5, padding: 10, alignItems: 'center' }}>
+              <View style={{ paddingTop: '10%', height: '25%'}}>
+                  <Feather name="video" size={45} color={colors.primaryWhite} />
+              </View>        
+              <Text style={{ fontSize: 22, fontWeight: 'bold', paddingTop: 15, paddingBottom: 5, color: colors.primaryWhite }}>Out of users!</Text>
+              <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: '300', paddingHorizontal: 5, color: colors.primaryWhite }}>Add new videos to get more likes from users :)</Text>
+              <TouchableOpacity onPress={goToAddVideo} style={{ paddingTop: '12%' }}>
+                  <View style={styles.addVideoContainer}>
+                      <Text style={styles.addVideoText}>Add Video</Text>
+                  </View>
+              </TouchableOpacity>
+          </View>
+  
+      </View>      
+      )    
     }
   }
 }
@@ -1024,5 +898,18 @@ const styles = StyleSheet.create({
   questionText: {fontSize: 18,color: "#eee", padding: 15, paddingTop: 20, textAlign: 'center'},
   heartView: { position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center', paddingBottom: 20, flexDirection: 'row', justifyContent: 'space-around'},
   badInternetView: { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1},
-  reloadText: { color: '#eee', fontSize: 20, paddingHorizontal: 20, paddingVertical: 5}
+  reloadText: { color: '#eee', fontSize: 20, paddingHorizontal: 20, paddingVertical: 5},
+  addVideoContainer: { 
+    backgroundColor: colors.primaryWhite, 
+    borderRadius: 5,
+    width: 250,
+    height: 50, 
+    justifyContent: 'center', 
+    alignItems: 'center'
+  }, 
+  addVideoText: {
+      fontSize: 17,
+      color: colors.primaryPurple,
+      fontWeight: 'bold'
+  }
 });

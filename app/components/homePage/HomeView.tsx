@@ -1,12 +1,14 @@
 import React, { useContext, useState, useEffect } from 'react';
 import HomeContents from './HomeContents';
 import { useQuery, useLazyQuery } from '@apollo/client';
-import { GET_VIDEOS, GET_BEST_VIDEOS, GET_GENDER_INTEREST, GET_COLLEGE_LOCATION, GET_NUMBER_VIDEOS, client } from '../../utils/graphql/GraphqlClient';
+import { GET_VIDEOS, GET_GENDER_INTEREST, GET_COLLEGE_LOCATION, GET_NUMBER_VIDEOS, client } from '../../utils/graphql/GraphqlClient';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { _retrieveLatitude, _retrieveLongitude, _retrieveGenderInterest, _storeGenderInterest, _storeLastWatchedUpper, _storeLastWatchedLower, _retrieveLastWatchedUpper, _retrieveLastWatchedLower, _retrieveCollegeLatitude, _storeCollegeLatitude, _retrieveCollegeLongitude, _storeCollegeLongitude} from '../../utils/asyncStorage'; 
-import { View, ActivityIndicator, Text } from 'react-native';
+import { View, ActivityIndicator, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { colors } from '../../styles/colors';
+import { Feather } from '@expo/vector-icons'; 
 
-export default function HomeView({ route, navigation }) {
+export default function HomeView({route, navigation}) {
 
   const [data, setData] = useState(null); 
   const [userId, setUserId] = useContext(UserIdContext);
@@ -14,15 +16,17 @@ export default function HomeView({ route, navigation }) {
   const [genderInterest, setGenderInterest] = useState(''); 
   const [latitude, setLatitude] = useState(null);
   const [longitude, setLongitude] = useState(null);
-
+  const [timedOut, setTimedOut] = useState(false);
   let currentDate = new Date();
-  const [upperVideos, setUpperVideos] = useState(true); 
-  const [locationVideos, setLocationVideos] = useState(true); 
-  const [lastWatchedUpper, setLastWatchedUpper] = useState(null);
-  const [lastWatchedLower, setLastWatchedLower] = useState(null); 
-  const [lastLoadedUpper, setLastLoadedUpper] = useState(null); 
-  const [lastLoadedLower, setLastLoadedLower] = useState(null); 
+  const [lastLoadedLocation, setLastLoadedLocation] = useState(currentDate);
   const [lastLoadedNoLocation, setLastLoadedNoLocation] = useState(currentDate); 
+
+  // const [upperVideos, setUpperVideos] = useState(true); 
+  const [locationVideos, setLocationVideos] = useState(true); 
+  // const [lastWatchedUpper, setLastWatchedUpper] = useState(null);
+  // const [lastWatchedLower, setLastWatchedLower] = useState(null); 
+  // const [lastLoadedUpper, setLastLoadedUpper] = useState(null); 
+  // const [lastLoadedLower, setLastLoadedLower] = useState(null); 
 
   const [collegeLatitude, setCollegeLatitude] = useState(null);
   const [collegeLongitude, setCollegeLongitude] = useState(null);
@@ -73,17 +77,14 @@ export default function HomeView({ route, navigation }) {
   });
 
   useEffect(() => {
-    queryVideosInit(lastLoadedUpper, lastLoadedLower);
+    queryVideosInit();
+    setTimeout(() => { setTimedOut(true) }, 5000); 
   }, []); 
 
-  async function queryVideosInit(lastLoadedUpper, lastLoadedLower){
+  async function queryVideosInit(){
     let genderInterestLocal = genderInterest; 
     let latitudeLocal = latitude; 
     let longitudeLocal = longitude; 
-    let lastWatchedLowerLocal = lastWatchedLower;
-    let lastLoadedLowerLocal = lastLoadedLower; 
-    let lastWatchedUpperLocal = lastWatchedUpper; 
-    let lastLoadedUpperLocal = lastLoadedUpper; 
     let collegeLatitudeLocal = collegeLatitude;
     let collegeLongitudeLocal = collegeLongitude; 
 
@@ -147,151 +148,105 @@ export default function HomeView({ route, navigation }) {
         setCollegeLatitude(collegeLatitudeLocal);     
       }
     }
-
-    let currentDate = new Date();
-
-    if(lastWatchedUpperLocal == null){
-      lastWatchedUpperLocal = await _retrieveLastWatchedUpper();
-      if(lastWatchedUpperLocal == null){
-        lastWatchedUpperLocal = currentDate; 
-        _storeLastWatchedUpper(lastWatchedUpperLocal.toString());
-        setLastWatchedUpper(lastWatchedUpperLocal); 
-        setUpperVideos(false);  
-      } else {
-        lastWatchedUpperLocal = new Date(lastWatchedUpperLocal); 
-        setLastWatchedUpper(lastWatchedUpperLocal); 
-      }
-    }
-
-    if(lastLoadedUpperLocal == null){
-      lastLoadedUpperLocal = lastWatchedUpperLocal; 
-      setLastLoadedUpper(lastLoadedUpperLocal); 
-    }
-
-    if(lastWatchedLowerLocal == null){
-      lastWatchedLowerLocal = await _retrieveLastWatchedLower();
-      if(lastWatchedLowerLocal == null){
-        lastWatchedLowerLocal = currentDate; 
-        _storeLastWatchedLower(lastWatchedLowerLocal.toString()); 
-        setLastWatchedLower(lastWatchedLowerLocal); 
-      } else {
-        lastWatchedLowerLocal = new Date(lastWatchedLowerLocal); 
-        setLastWatchedLower(lastWatchedLowerLocal); 
-      }
-    }
-
-    if(lastLoadedLowerLocal == null){
-      lastLoadedLowerLocal = lastWatchedLowerLocal; 
-      setLastLoadedLower(lastLoadedLowerLocal); 
-    }
-
-    queryVideos(genderInterestLocal, latitudeLocal, longitudeLocal, collegeLatitudeLocal, collegeLongitudeLocal);
   }
 
-  async function queryVideos(genderInterest, latitude, longitude, collegeLatitude, collegeLongitude){
+  function goToAddVideo(){
+    navigation.navigate('Add');
+  }
 
-    const point = {
-        "type" : "Point", 
-        "coordinates": [latitude, longitude]
-    }; 
-
-    setPoint(point); 
-
-    const collegePoint = {
-      "type" : "Point", 
-      "coordinates" : [collegeLongitude, collegeLatitude]
+  function OutOfUsers(){
+    if(!timedOut){
+      return (
+        <View style={{ backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1}}>
+          <ActivityIndicator size="small" color="#eee" />
+        </View>
+      )  
+    } else {
+      return (
+        <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: colors.primaryBlack }}>
+          <View style={{ height: '40%', width: '85%', backgroundColor: colors.primaryPurple, borderRadius: 5, padding: 10, alignItems: 'center' }}>
+              <View style={{ paddingTop: '10%', height: '25%'}}>
+                  <Feather name="video" size={45} color={colors.primaryWhite} />
+              </View>        
+              <Text style={{ fontSize: 22, fontWeight: 'bold', paddingTop: 15, paddingBottom: 5, color: colors.primaryWhite }}>Out of users!</Text>
+              <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: '300', paddingHorizontal: 5, color: colors.primaryWhite }}>Add new videos to get more likes from users :)</Text>
+              <TouchableOpacity onPress={goToAddVideo} style={{ paddingTop: '12%' }}>
+                  <View style={styles.addVideoContainer}>
+                      <Text style={styles.addVideoText}>Add Video</Text>
+                  </View>
+              </TouchableOpacity>
+          </View>
+  
+      </View>     
+      )
     }
-
-    setCollegePoint(collegePoint); 
-
-    if(genderInterest == "Women"){
-      setNotIntoGender("Man"); 
-    } else if(genderInterest == "Men"){
-      setNotIntoGender("Woman");
-    } 
   }
 
   if(point != null && collegePoint != null){
 
-    let lowerLimit = 0;
-    let upperLimit = 0;
-    let noLocationLimit = 0; 
-
-    if(locationVideos){
-      if(upperVideos){
-        upperLimit = limit; 
-      } else {
-        lowerLimit = limit; 
-      }
-    } else {
-      noLocationLimit = limit; 
-    }  
-
-
-    // console.log( userId, noLocationLimit, lowerLimit, upperLimit, lastLoadedLower, lastLoadedUpper, lastLoadedNoLocation, notIntoGender, point, collegePoint);
     const { loading, error, data } = useQuery(GET_VIDEOS, {
-      variables: { userId, noLocationLimit: 0, lowerLimit: limit, upperLimit: limit, lastLoadedLower, lastLoadedUpper, lastLoadedNoLocation, notIntoGender, point, collegePoint }
-    });   
+      variables: { userId, noLocationLimit: 1, locationLimit: 4, notIntoGender, point, collegePoint, lastLoadedLocation, lastLoadedNoLocation }
+    });
 
     if(loading){
       return (
-        <View style={{ backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1}}>
-          <ActivityIndicator size="small" color="#eee" />
-        </View>
+        <OutOfUsers />
       )
     } else if(error){
       return (
-        <View style={{ backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1}}>
-          <ActivityIndicator size="small" color="#eee" />
-        </View>
+        <OutOfUsers />
       )
     } else if(data){
-      if(data.lowerUsersLocation.length > 0 || data.upperUsersLocation.length > 0 || data.usersNoLocation.length > 0){
-        // console.log("pulling data", data); 
+      if(data.usersLocation.length > 0 || data.usersNoLocation.length > 0){
         return (
           <HomeContents 
             route={route}
             navigation={navigation}
             data={data}
-            lastWatchedLower={lastWatchedLower}
-            lastLoadedLower={lastLoadedLower}
-            lastWatchedUpper={lastWatchedUpper}
-            lastLoadedUpper={lastLoadedUpper}
-            lastLoadedNoLocation={lastLoadedNoLocation}
-            upperVideos={upperVideos}
             locationVideos={locationVideos}
+            locationLimit={limit}
+            noLocationLimit={0}
             limit={limit}
-            upperLimit={upperLimit}
-            lowerLimit={lowerLimit}
-            noLocationLimit={noLocationLimit}
             genderInterest={genderInterest}
             latitude={latitude}
             longitude={longitude}
             collegeLatitude={collegeLatitude}
             collegeLongitude={collegeLongitude}
-            // profileVideoCount={profileVideoCount}
+            lastLoadedLocation={lastLoadedLocation}
+            lastLoadedNoLocation={lastLoadedNoLocation}
           />
         )  
       } else {
         return (
-          <View style={{ backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1}}>
-            <ActivityIndicator size="small" color="#eee" />
-          </View>
+          <OutOfUsers />
         )  
       }
     } else {
       return (
-        <View style={{ backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1}}>
-          <ActivityIndicator size="small" color="#eee" />
-        </View>
+        <OutOfUsers />
       )
     }
   } else {
     return (
-      <View style={{ backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1}}>
-        <ActivityIndicator size="small" color="#eee" />
-      </View>
+      <OutOfUsers />
     )
   }
 
+
 }
+
+const styles = StyleSheet.create({
+  addVideoContainer: { 
+    backgroundColor: colors.primaryWhite, 
+    borderRadius: 5,
+    width: 250,
+    height: 50, 
+    justifyContent: 'center', 
+    alignItems: 'center'
+  }, 
+  addVideoText: {
+      fontSize: 17,
+      color: colors.primaryPurple,
+      fontWeight: 'bold'
+  }
+})

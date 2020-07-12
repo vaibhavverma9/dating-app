@@ -13,7 +13,6 @@ import * as firebase from 'firebase';
 import AppNavigator from './AppNavigator';
 // import { LocationContextProvider } from './app/utils/context/LocationContext';
 import { colors } from './app/styles/colors';
-import { VideoCountContextProvider } from './app/utils/context/VideoCountContext';
 
 // Set the configuration for your app
 var firebaseConfig = {
@@ -49,11 +48,6 @@ Sentry.init({
 }); 
 
 const graphqlEndpoint = 'https://artistic-anteater-12.hasura.app/v1/graphql';
-
-// export const UserIdContext = createContext(0);
-
-// console.log(authStateToken); 
-
 
 export default function App() {
 
@@ -156,9 +150,7 @@ function FirebaseAuthenticatedApp({authState}){
   return (
     <ApolloProvider client={client}>
       <UserIdContextProvider>
-        <VideoCountContextProvider>
-          <AppNavigator />
-        </VideoCountContextProvider>
+        <AppNavigator />
       </UserIdContextProvider>
     </ApolloProvider>
   )
