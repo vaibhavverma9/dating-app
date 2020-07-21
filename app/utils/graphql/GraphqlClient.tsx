@@ -1,4 +1,5 @@
-const graphqlEndpoint = 'https://artistic-anteater-12.hasura.app/v1/graphql';
+const graphqlEndpoint = 'https://reel-talk-2.herokuapp.com/v1/graphql'; 
+// const graphqlEndpoint = 'https://vital-robin-42.hasura.app/v1/graphql'; 
 
 import { ApolloClient, HttpLink, InMemoryCache, gql } from '@apollo/client';
 import { WebSocketLink } from 'apollo-link-ws';
@@ -22,7 +23,7 @@ export const client = new ApolloClient({
 });
 
 
-        
+//             { location: {_st_d_within: {distance: 300000, from: $point }}},
 
 
 export const GET_VIDEOS = gql`
@@ -31,7 +32,6 @@ export const GET_VIDEOS = gql`
     city
     region
     college
-    location
     likesByLikedId(limit: 1, where: {likerId: {_eq: $userId}}, order_by: {created_at: desc}) {
       dislike
       matched
@@ -49,66 +49,24 @@ export const GET_VIDEOS = gql`
     }
     id
     lastUploaded
+    performance
   }
 
-  query GetVideos ($userId: Int, $noLocationLimit: Int, $locationLimit: Int, $notIntoGender: String, $point: geography!, $collegePoint: geography!, $lastLoadedLocation: timestamptz!, $lastLoadedNoLocation: timestamptz!) { 
+  query GetVideos ($userId: Int, $limit: Int, $groupPreference: [Int!], $lastPerformance: numeric) { 
     usersLocation: users (
-      limit: $locationLimit, 
+      limit: $limit, 
       where: {_and: [
-        {_or: [
-          {gender: {_neq: $notIntoGender}},
-          {gender: {_is_null: true}}
-        ]},
         {userVideos: {status: {_eq: "ready"}}},
         {_not: {id: {_eq: $userId}}},        
         {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}},
-        {
-          _or: [
-            { location: {_st_d_within: {distance: 300000, from: $collegePoint }}},
-            { location: {_st_d_within: {distance: 300000, from: $point }}},
-            { userCollege : { location: {_st_d_within: {distance: 300000, from: $point }}}},
-            { userCollege : { location: {_st_d_within: {distance: 300000, from: $collegePoint }}}},
-          ]
-        },
-        {_not: {likesByLikedId: {likerId: {_eq: $userId}}}},
-        {lastUploaded: {_lt: $lastLoadedLocation}}
+        {performance: {_lt: $lastPerformance}},
+        {_not: {likesByLikedId: {likerId: {_eq: $userId}}}}, 
+        {group: {_in: $groupPreference}}
       ]}, 
-      order_by: {lastUploaded: desc_nulls_last}
+      order_by: {performance: desc_nulls_last}
     ) {
       ...videoFields
     }
-
-    usersNoLocation: users (
-      limit: $noLocationLimit, 
-      where: {_and: [
-        {_or: [
-          {gender: {_neq: $notIntoGender}},
-          {gender: {_is_null: true}}
-        ]},
-        {_or: [
-          {_and: [
-            {_not: { location: {_st_d_within: {distance: 300000, from: $collegePoint }}}},
-            {_not: { location: {_st_d_within: {distance: 300000, from: $point }}}},
-            {_not: { userCollege : { location: {_st_d_within: {distance: 300000, from: $point }}}}},
-            {_not: { userCollege : { location: {_st_d_within: {distance: 300000, from: $collegePoint }}}}},
-          ]},
-          {_and: [
-            { location: {_is_null: true}},  
-            {_not: { userCollege : { location: {_st_d_within: {distance: 300000, from: $point }}}}},
-            {_not: { userCollege : { location: {_st_d_within: {distance: 300000, from: $collegePoint }}}}},
-          ]}
-        ]},
-        {userVideos: {status: {_eq: "ready"}}},
-        {_not: {id: {_eq: $userId}}},        
-        {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}},
-        {_not: {likesByLikedId: {likerId: {_eq: $userId}}}},
-        {lastUploaded: {_lt: $lastLoadedNoLocation}}
-      ]}, 
-      order_by: {lastUploaded: desc_nulls_last}
-    ){
-      ...videoFields
-    }
-
   }
 `
 
@@ -341,7 +299,7 @@ export const UPDATE_LIKE = gql`
 
 export const UPDATE_LAST_UPLOADED = gql`
     mutation UpdateLastUploaded($userId: Int, $timestamp: timestamptz){
-      update_users(where: {id: {_eq: $userId}}, _set: {lastUploaded: $timestamp}) {
+      update_users(where: {id: {_eq: $userId}}, _set: {lastUploaded: $timestamp, performance: 0.55}) {
         affected_rows
       }
     }
@@ -380,7 +338,6 @@ export const GET_USERS_BY_UID = gql`
     users(where: {uid: {_eq: $uid}}) {
       id
       onboarded
-      location
     }
   }
 `
@@ -478,6 +435,7 @@ export const UPDATE_GENDER_INTEREST = gql`
 export const GET_GENDER_INTEREST = gql`
   query GetGenderInterest($userId: Int){
     users(where: {id: {_eq: $userId}}) {
+      gender
       genderInterest
     }
   }
@@ -608,3 +566,18 @@ export const GET_VIDEO_COUNT = gql`
   }
 `
 
+export const GET_GENDER_GROUP = gql`
+  query GetGenderGroup($userId: Int){
+    users(where: {id: {_eq: $userId}}) {
+      group
+    }
+  }
+`
+
+export const UPDATE_GENDER_GROUP = gql`
+  mutation UpdateGenderGroup ($userId: Int, $group: Int) {
+    update_users(where: {id: {_eq: $userId}}, _set: {group: $group}) {
+      affected_rows
+    }
+  }
+`

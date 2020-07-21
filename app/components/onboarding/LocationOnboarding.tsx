@@ -6,19 +6,22 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import TabStack from '../../stacks/TabStack';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { useMutation } from '@apollo/client';
-import { UPDATE_LATITUDE_LONGITUDE, UPDATE_CITY, UPDATE_REGION } from '../../utils/graphql/GraphqlClient';
-import { _storeLatitude, _storeLongitude, _storeCity, _storeRegion } from '../../utils/asyncStorage'; 
+import { UPDATE_LATITUDE_LONGITUDE, UPDATE_CITY, UPDATE_REGION, UPDATE_ONBOARDED } from '../../utils/graphql/GraphqlClient';
+import { _storeLatitude, _storeLongitude, _storeCity, _storeRegion, _storeOnboarded } from '../../utils/asyncStorage'; 
 import TermsOnboarding from './TermsOnboarding';
 import { colors } from '../../styles/colors';
+import * as Segment from 'expo-analytics-segment';
 
 export default function LocationOnboarding() {
 
     const [errorMsg, setErrorMsg] = useState(null);
     const [userId, setUserId] = useContext(UserIdContext);
-    const [updateLatitudeLongitude, { updateLatitudeLongitudeData }] = useMutation(UPDATE_LATITUDE_LONGITUDE);
+    // const [updateLatitudeLongitude, { updateLatitudeLongitudeData }] = useMutation(UPDATE_LATITUDE_LONGITUDE);
     const [updateCity, { updateCityData }] = useMutation(UPDATE_CITY);
     const [updateRegion, { updateRegionData }] = useMutation(UPDATE_REGION);
     const [locationServices, setLocationServices] = useState(false); 
+    const [updateOnboarded, { updateOnboardedData }] = useMutation(UPDATE_ONBOARDED);
+    const [onboarded, setOnboarded] = useState(false); 
 
     const enableLocation = () => {
         (async () => {
@@ -45,7 +48,7 @@ export default function LocationOnboarding() {
                 "coordinates": [longitude, latitude]
             }; 
 
-            updateLatitudeLongitude({ variables: { userId, point }});
+            // updateLatitudeLongitude({ variables: { userId, point }});
 
             let postalAddress = await Location.reverseGeocodeAsync({ latitude, longitude });
 
@@ -57,17 +60,27 @@ export default function LocationOnboarding() {
 
             updateCity({ variables: { userId, city }}); 
             updateRegion({ variables: { userId, region }}); 
-
+            Segment.track("Onboarding - Enable Location");
+            completeOnboarding(); 
         })();
     }
 
     const skipForNow = () => {
         setLocationServices(true); 
+        Segment.track("Onboarding - Skip Location");
+        completeOnboarding(); 
+    }
+
+    function completeOnboarding(){
+        setOnboarded(true); 
+        _storeOnboarded(true); 
+        updateOnboarded({ variables: { userId, onboarded: true }}); 
+        Segment.track("Onboarding - Complete Onboarding");
     }
 
     if(locationServices) {
         return (
-            <TermsOnboarding />
+            <TabStack />
         )
     } else {
         return (

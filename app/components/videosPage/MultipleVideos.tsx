@@ -76,6 +76,7 @@ export default function MultipleVideos(props) {
                         />
                     )
                 }
+
             } else if(renderedUserIndex < userCount) {
                 const renderedVideoIndex = 0; 
                 const muxPlaybackId = user.userVideos[renderedVideoIndex].muxPlaybackId; 

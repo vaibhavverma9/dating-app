@@ -21,13 +21,13 @@ export default function PushPopup(props) {
         visible={props.visible}>
 
             <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: '#00000090'}}>
-                <TouchableWithoutFeedback onPress={onScreenPress}>
+                {/* <TouchableWithoutFeedback onPress={onScreenPress}>
                     <View style={{ height: '80%', width: '100%'}}>
                     </View>
-                </TouchableWithoutFeedback>
+                </TouchableWithoutFeedback> */}
                 <View style={{ backgroundColor: colors.primaryPurple, padding: 16, height: '25%', justifyContent: 'space-evenly', alignItems:'center', borderRadius: 4}}>
                     <Text style={{ fontSize: 20, fontWeight: 'bold', textAlign: 'center', color: colors.secondaryWhite }}>
-                        Would you like to be notified when a user likes you?
+                        Would you like to be notified when users like you back?
                     </Text>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-around', width: '100%'}}>
                         <TouchableHighlight onPress={props.setVisible} style={styles.pushOptionsContainer}>

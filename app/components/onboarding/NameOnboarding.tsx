@@ -9,7 +9,7 @@ import { UPDATE_NAME } from '../../utils/graphql/GraphqlClient';
 import { _storeName } from '../../utils/asyncStorage'; 
 import GenderOnboarding from './GenderOnboarding';
 import { colors } from '../../styles/colors';
-
+import * as Segment from 'expo-analytics-segment';
 
 export default function NameOnboarding() {
 
@@ -17,11 +17,13 @@ export default function NameOnboarding() {
     const [updateName, { updateNameData }] = useMutation(UPDATE_NAME);
     const [nameSubmitted, setNameSubmitted] = useState(false); 
     const [name, setName] = useState('Ex: Kevin, Angela'); 
+    Segment.track('Onboarding - Start Onboarding'); 
 
     const submitName = () => {
          _storeName(name); 
          updateName({ variables: { userId, firstName: name }});
          setNameSubmitted(true); 
+         Segment.track('Onboarding - Submit Name'); 
     }
 
     if(nameSubmitted) {

@@ -10,6 +10,8 @@ import { _storeLatitude, _storeLongitude, _storeCollege, _storeCollegeLatitude, 
 import { colors } from '../../styles/colors';
 import CollegeEventsOnboarding from './CollegeEventsOnboarding';
 import Autocomplete from 'react-native-autocomplete-input';
+import LocationOnboarding from './LocationOnboarding';
+import * as Segment from 'expo-analytics-segment';
 
 export default function CollegeOnboarding() {
 
@@ -33,6 +35,7 @@ export default function CollegeOnboarding() {
 
     useEffect(() => {
         getColleges(); 
+        Segment.track("Onboarding - Submit College");
     }, []);
 
     function processColleges(collegeData){
@@ -85,9 +88,7 @@ export default function CollegeOnboarding() {
     
     if(collegeSubmitted) {
         return (
-            <CollegeEventsOnboarding
-                nickname={nickname}
-            />
+            <LocationOnboarding />
         )
     } else if(filteredColleges) {
         return (

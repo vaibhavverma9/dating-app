@@ -9,6 +9,7 @@ import { useMutation } from '@apollo/client';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { Linking } from 'expo';
 import { colors } from '../../styles/colors';
+import * as Segment from 'expo-analytics-segment';
 
 export default function TermsOnboarding() {
 
@@ -22,6 +23,8 @@ export default function TermsOnboarding() {
         setOnboarded(true); 
         _storeOnboarded(true); 
         updateOnboarded({ variables: { userId, onboarded: true }}); 
+        Segment.track("Onboarding - Accept Terms");
+        Segment.track("Onboarding - Complete Onboarding");
     }
 
     const termsLink = () => {

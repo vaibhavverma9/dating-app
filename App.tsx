@@ -32,6 +32,7 @@ const iosWriteKey = "0QHHf9Gg55EE10Hi5o0LYMfLMN4X7ypl";
 const androidWriteKey = "idFwR27mq8yZxEpQFGdmdAJ0yzMM6wV0"; 
 
 Segment.initialize({ androidWriteKey, iosWriteKey });
+Segment.screen('App Open'); 
 
 if (!global.btoa) {
 global.btoa = encode;
@@ -47,7 +48,8 @@ Sentry.init({
   debug: true
 }); 
 
-const graphqlEndpoint = 'https://artistic-anteater-12.hasura.app/v1/graphql';
+const graphqlEndpoint = 'https://reel-talk-2.herokuapp.com/v1/graphql'; 
+// const graphqlEndpoint = 'https://vital-robin-42.hasura.app/v1/graphql'; 
 
 export default function App() {
 
@@ -146,6 +148,8 @@ function FirebaseAuthenticatedApp({authState}){
       }
     })
   });
+
+  // console.log(client); 
 
   return (
     <ApolloProvider client={client}>

@@ -241,6 +241,31 @@ export const _retrieveBio = async () => {
     }
 };
 
+export const _storeGender = async(gender) => {
+    try {
+        await AsyncStorage.setItem('@gender', gender);
+    } catch (error){}
+}
+
+export const _clearGender= async () => {
+    try {
+        await AsyncStorage.setItem('@gender', '');
+    } catch (error){}
+}
+
+export const _retrieveGender = async () => {
+    try {
+      const value = await AsyncStorage.getItem('@gender');
+      if (value !== null) {
+        return value; 
+      } else {
+          return ''; 
+      }
+    } catch (error) {
+        return ''; 
+    }
+};
+
 export const _storeGenderInterest = async(genderInterest) => {
     try {
         await AsyncStorage.setItem('@genderInterest', genderInterest);
@@ -418,5 +443,30 @@ export const _retrieveStreamToken = async () => {
       }
     } catch (error) {
         return null; 
+    }
+};
+
+export const _storeGenderGroup = async(genderGroup) => {
+    try {
+        await AsyncStorage.setItem('@genderGroup', genderGroup.toString());
+    } catch (error){}
+}
+
+export const _clearGenderGroup = async() => {
+    try {
+        await AsyncStorage.setItem('@genderGroup', "0");
+    } catch (error){}
+}
+
+export const _retrieveGenderGroup = async () => {
+    try {
+      const value = await AsyncStorage.getItem('@genderGroup');
+      if (value !== null) {
+        return parseInt(value); 
+      } else {
+          return 0; 
+      }
+    } catch (error) {
+        return 0; 
     }
 };

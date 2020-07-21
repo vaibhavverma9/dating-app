@@ -3,7 +3,7 @@ import { View, Text } from 'react-native';
 import { colors } from '../../styles/colors';
 import * as Location from 'expo-location';
 import { _storeLatitude, _storeLongitude, _storeCity, _storeRegion } from '../../utils/asyncStorage'; 
-import { UPDATE_LATITUDE_LONGITUDE, UPDATE_CITY, UPDATE_REGION } from '../../utils/graphql/GraphqlClient';
+// import { UPDATE_LATITUDE_LONGITUDE, UPDATE_CITY, UPDATE_REGION } from '../../utils/graphql/GraphqlClient';
 import { useMutation } from '@apollo/client';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { TouchableOpacity } from 'react-native-gesture-handler';
@@ -13,7 +13,7 @@ export default function EditLocationView(props) {
     const [locationServices, setLocationServices] = useState(false); 
     const [city, setCity] = useState(props.route.params.city); 
     const [region, setRegion] = useState(props.route.params.region); 
-    const [updateLatitudeLongitude, { updateLatitudeLongitudeData }] = useMutation(UPDATE_LATITUDE_LONGITUDE);
+    // const [updateLatitudeLongitude, { updateLatitudeLongitudeData }] = useMutation(UPDATE_LATITUDE_LONGITUDE);
     const [updateCity, { updateCityData }] = useMutation(UPDATE_CITY);
     const [updateRegion, { updateRegionData }] = useMutation(UPDATE_REGION);
     const [userId, setUserId] = useContext(UserIdContext);
@@ -74,7 +74,7 @@ export default function EditLocationView(props) {
                 }; 
 
 
-                updateLatitudeLongitude({ variables: { userId, point }});
+                // updateLatitudeLongitude({ variables: { userId, point }});
                 updateCity({ variables: { userId, city }}); 
                 updateRegion({ variables: { userId, region }}); 
             }

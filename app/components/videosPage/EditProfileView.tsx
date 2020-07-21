@@ -6,6 +6,7 @@ import { _retrieveName, _retrieveBio, _retrieveCity, _retrieveRegion, _retrieveG
 import { colors } from '../../styles/colors';
 import { GET_CITY_REGION, client } from '../../utils/graphql/GraphqlClient';
 import { UserIdContext } from '../../utils/context/UserIdContext'
+import * as SMS from 'expo-sms';
 
 export default function EditProfileView(props) {
     
@@ -41,10 +42,6 @@ export default function EditProfileView(props) {
 
     function goToEditName(){
         props.navigation.navigate('Name', {name});
-    }
-
-    function goToEditBio(){
-        props.navigation.navigate('Bio', {bio}); 
     }
 
     function goToLocation(){
@@ -121,6 +118,14 @@ export default function EditProfileView(props) {
         }
     }
 
+    async function sendFeedback () {
+        const { result } = await SMS.sendSMSAsync(
+          ['9496146745'],
+          'Text feedback here :)'
+        );
+    };
+
+
 
     return (
         <View style={{ backgroundColor: colors.primaryBlack, flex: 1 }}>
@@ -131,13 +136,7 @@ export default function EditProfileView(props) {
                     <MaterialIcons name="navigate-next" color={colors.secondaryGray} size={20}/>  
                 </TouchableOpacity>
             </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingLeft: 15, paddingTop: 15}}>
-                <Text style={{ fontSize: 16, color: colors.secondaryWhite }}>Bio</Text>
-                <TouchableOpacity onPress={goToEditBio} style={{ flexDirection: 'row', padding: 15}}>
-                    <BioText />
-                    <MaterialIcons name="navigate-next" color={colors.secondaryGray} size={20}/>  
-                </TouchableOpacity>
-            </View>
+
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingLeft: 15, paddingTop: 15}}>
                 <Text style={{ fontSize: 16, color: colors.secondaryWhite }}>Location</Text>
                 <TouchableOpacity onPress={goToLocation} style={{ flexDirection: 'row', padding: 15}}>
@@ -159,6 +158,9 @@ export default function EditProfileView(props) {
                     <MaterialIcons name="navigate-next" color={colors.secondaryGray} size={20}/>  
                 </TouchableOpacity>
             </View>
+            <TouchableOpacity onPress={sendFeedback} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingLeft: 15, paddingTop: 15}}>
+                <Text style={{ fontSize: 16, color: colors.secondaryWhite }}>Help Center via SMS</Text>
+            </TouchableOpacity>
         </View>
     )
     

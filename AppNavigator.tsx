@@ -10,8 +10,8 @@ import OnboardingStack from './app/stacks/OnboardingStack';
 // import { LocationContext } from './app/utils/context/LocationContext';
 import { colors } from './app/styles/colors';
 import { VideoCountContextProvider } from './app/utils/context/VideoCountContext';
-import { setUser } from 'sentry-expo';
 import * as Sentry from 'sentry-expo'; 
+import { UserIdContextProvider } from './app/utils/context/UserIdContext'; 
 
 export default function AppNavigator(){
 
@@ -37,14 +37,14 @@ export default function AppNavigator(){
   }, []);
 
   async function initUser(usersByUid){
-    if(usersByUid.users == 0){
+    if(usersByUid.users.length == 0){
       insertUser({variables: { uid, phoneNumber }})
       .then(insertUserResponse => { 
         setUserId(insertUserResponse.data.insert_users.returning[0].id); 
         setOnboarded(false); 
-        _storeUserId(insertUserResponse.data.insert_users.returning[0].id); 
-        _storeDoormanUid(uid); 
-        _storeOnboarded(false); 
+        // _storeUserId(insertUserResponse.data.insert_users.returning[0].id); 
+        // _storeDoormanUid(uid); 
+        // _storeOnboarded(false); 
       })
       .catch(error => {
         Sentry.captureException(error);
@@ -55,45 +55,32 @@ export default function AppNavigator(){
       setUserId(usersByUid.users[0].id);
       setOnboarded(usersByUid.users[0].onboarded)
 
-      _storeUserId(usersByUid.users[0].id);
-      _storeDoormanUid(uid); 
-      _storeOnboarded(usersByUid.users[0].onboarded); 
+      // _storeUserId(usersByUid.users[0].id);
+      // _storeDoormanUid(uid); 
+      // _storeOnboarded(usersByUid.users[0].onboarded); 
 
-      if(usersByUid.users[0].location){
-        _storeLatitude(usersByUid.users[0].location.coordinates[0]); 
-        _storeLongitude(usersByUid.users[0].location.coordinates[1]); 
+      // if(usersByUid.users[0].location){
+      //   _storeLatitude(usersByUid.users[0].location.coordinates[0]); 
+      //   _storeLongitude(usersByUid.users[0].location.coordinates[1]); 
         // (getUsersResponse.data.users[0].location.coordinates[1]);  
-      }
-    }
-  }
-
-  // usersByUid
-  async function doormanDatabaseAuth() {
-    const localUserId = await _retrieveUserId();
-    const localDoormanUid = await _retrieveDoormanUid();
-    const localOnboarded = await _retrieveOnboarded(); 
-
-    // setUserId(0);
-    // setOnboarded(true); 
-
-    if(localUserId > 0 && localDoormanUid != "" && localOnboarded != ""){ 
-      setUserId(localUserId); 
-      setOnboarded(localOnboarded); 
-
-    } else {
-      getUsersByUid({variables: { uid }})
+      // }
     }
   }
 
   if (onboarded == false){
     return (
-      <OnboardingStack />
+      // <UserIdContextProvider>
+        <OnboardingStack />
+      // {/* </UserIdContextProvider> */}
     )
   } else if (onboarded == true){
     return (      
-      <VideoCountContextProvider>
-        <TabStack />
-      </VideoCountContextProvider>
+      // <UserIdContextProvider>
+        <VideoCountContextProvider>
+          <TabStack />
+        </VideoCountContextProvider>
+      // </UserIdContextProvider>
+
     )
   } else {
     return <View style={{ flex: 1, backgroundColor: colors.primaryPurple }} />

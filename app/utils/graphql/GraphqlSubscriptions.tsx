@@ -1,4 +1,7 @@
-const graphqlEndpoint = 'https://artistic-anteater-12.hasura.app/v1/graphql';
+const graphqlEndpoint = 'https://reel-talk-2.herokuapp.com/v1/graphql'; 
+
+// const graphqlEndpoint = 'https://vital-robin-42.hasura.app/v1/graphql'; 
+
 import { useMutation, useSubscription } from "@apollo/react-hooks";
 import React, { useEffect, Fragment, useState } from "react";
 

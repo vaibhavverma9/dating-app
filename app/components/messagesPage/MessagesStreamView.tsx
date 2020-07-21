@@ -16,12 +16,12 @@ import {
 import { createAppContainer } from 'react-navigation';
 import { createStackNavigator } from 'react-navigation-stack';
 import axios from 'axios';
-import { GET_LIKES, GET_MATCHES_LIKES } from '../../utils/graphql/GraphqlClient';
-import { useLazyQuery } from '@apollo/client';
+import { GET_MATCHES_LIKES, INSERT_LIKE } from '../../utils/graphql/GraphqlClient';
+import { useLazyQuery, useMutation } from '@apollo/client';
 import * as Segment from 'expo-analytics-segment';
 import { colors } from '../../styles/colors';
 import FullPageVideos from '../modals/FullPageVideos';
-import { Ionicons, Feather } from '@expo/vector-icons'
+import { Ionicons, Feather, Entypo } from '@expo/vector-icons'
 import MessagesOptions from './MessagesOptions'; 
 
 const chatClient = new StreamChat('9uzx7652xgte');
@@ -41,6 +41,7 @@ export default function MessagesStreamView(props) {
 
   const [messagesOptionsVisible, setMessagesOptionsVisible] = useState(false); 
   const [optionsProfileId, setOptionsProfileId] = useState(null); 
+  const [insertLike, { insertLikeData }] = useMutation(INSERT_LIKE);
 
   const [getLikes, { data: likesQueried }] = useLazyQuery(GET_MATCHES_LIKES, 
   { 
@@ -86,6 +87,7 @@ export default function MessagesStreamView(props) {
       });
       token = response.data.token;
     } catch (err) {
+      console.log(err); 
       return;
     }
 
@@ -121,11 +123,21 @@ export default function MessagesStreamView(props) {
 
     try {
       const response = await axios.post("https://gentle-brook-91508.herokuapp.com/updateUsersStream", {
-        profileIds
+        likerIds: profileIds
       });
     } catch (err) {
+      console.log(err); 
       return;
     }
+
+    const filter = { type: 'messaging', $and : [{ members: { $in: [userId.toString()]}}]};
+    const sort = { last_message_at: -1 };
+
+
+    const channels = await chatClient.queryChannels(filter, sort, {
+      watch: true,
+      state: true,
+    });  
 
     for(let i=0; i < allData.length; i++){
       const like = allData[i]; 
@@ -139,12 +151,12 @@ export default function MessagesStreamView(props) {
         watch: true,
         state: true,
       });  
-      
+
       if(channels.length == 0){
         try {
           const response = await axios.post("https://gentle-brook-91508.herokuapp.com/createChannelStream", {
             userId: userId.toString(),
-            profileId: profileId.toString(),
+            likerId: profileId.toString(),
           });
         } catch (err) {
           return;
@@ -177,6 +189,7 @@ export default function MessagesStreamView(props) {
 
     const firstName = like[0].profileUser.firstName;
     const videos = like[0].profileUser.userVideos;
+    // console.log(like[0].profileUser.id); 
     const latestMessage = props.latestMessage.text;
 
     function VideosDisplay({videos}){
@@ -233,32 +246,35 @@ export default function MessagesStreamView(props) {
         }}
         onPress={onSelectChannel}
       >
-        <View style={{ justifyContent: 'space-around', height: 40}}>
-          <Text
-            style={{
-              fontWeight: 'bold',
-              fontSize: 14,
-              flex: 9
-            }}
-          >
-            {firstName}
-          </Text>
-          <Text
-            style={{
-              fontWeight: unreadCount > 0 ? 'bold' : 'normal',
-              fontSize: 14,
-              flex: 9,
-            }}
-            ellipsizeMode="tail"
-            numberOfLines={1}
-          >
-            {latestMessage}
-          </Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+          <View style={{ justifyContent: 'space-around', height: 40}}>
+            <Text
+              style={{
+                fontWeight: 'bold',
+                fontSize: 14,
+                flex: 9
+              }}
+            >
+              {firstName}
+            </Text>
+            <Text
+              style={{
+                fontWeight: unreadCount > 0 ? 'bold' : 'normal',
+                fontSize: 14,
+                flex: 9,
+              }}
+              ellipsizeMode="tail"
+              numberOfLines={1}
+            >
+              {latestMessage}
+            </Text>
+          </View>
         </View>
         <VideosDisplay videos={videos} />
 
       </TouchableOpacity>
     );
+
   }
 
   function goToAddVideo(){
@@ -417,13 +433,9 @@ export default function MessagesStreamView(props) {
 
   const AppContainer = createAppContainer(RootStack);
 
-  // if(loading){
-  //   return null;
-  // } else {
     return (
       <AppContainer />
     )
-//  }
 }
 
 const windowWidth = Math.round(Dimensions.get('window').width);

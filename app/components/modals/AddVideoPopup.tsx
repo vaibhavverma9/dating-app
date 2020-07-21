@@ -1,6 +1,6 @@
 import { View, Modal, Text, TouchableHighlight, StyleSheet } from 'react-native';
 import React from 'react'; 
-import { TouchableWithoutFeedback } from 'react-native-gesture-handler';
+import { TouchableWithoutFeedback, TouchableOpacity } from 'react-native-gesture-handler';
 import { colors } from '../../styles/colors';
 
 export default function AddVideoPopup(props) {
@@ -15,17 +15,20 @@ export default function AddVideoPopup(props) {
         transparent={true}
         visible={props.visible}>
             <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: '#00000090'}}>
-                <TouchableWithoutFeedback onPress={onScreenPress}>
-                    <View style={{ height: '80%', width: '100%'}}>
-                    </View>
-                </TouchableWithoutFeedback>
-                <View style={{ backgroundColor: colors.primaryPurple, padding: 20, height: '20%', justifyContent: 'space-evenly', alignItems:'center', borderRadius: 5}}>
-                    <TouchableHighlight onPress={props.goToAddVideo} style={styles.facebookContainer}>
-                        <Text style={styles.facebookText}>Add Video</Text>
-                    </TouchableHighlight>
-                    <Text style={{ color: colors.secondaryWhite}}>
+                <View style={{ backgroundColor: colors.primaryPurple, height: '25%', justifyContent: 'space-evenly', alignItems:'center', borderRadius: 5}}>
+                    <Text style={{ color: colors.secondaryWhite, fontSize: 16}}>
                         Users won't see your likes until you add a video!
                     </Text>
+                    <View style={{ alignItems: 'center'}}>
+                        <TouchableOpacity onPress={props.goToAddVideo} style={styles.facebookContainer}>
+                            <Text style={styles.facebookText}>Add Video</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={onScreenPress} style={{ paddingTop: 10}}>
+                            <Text style={{ color: colors.secondaryWhite}}>
+                                Skip
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </View> 
         </Modal>

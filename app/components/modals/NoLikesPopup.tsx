@@ -16,10 +16,10 @@ export default function NoLikesPopup(props) {
         visible={props.visible}>
 
             <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: '#00000090'}}>
-                <TouchableWithoutFeedback onPress={onScreenPress}>
+                {/* <TouchableWithoutFeedback onPress={onScreenPress}>
                     <View style={{ height: '80%', width: '100%'}}>
                     </View>
-                </TouchableWithoutFeedback>
+                </TouchableWithoutFeedback> */}
                 <View style={{ backgroundColor: colors.primaryPurple, padding: 20, height: '20%', justifyContent: 'space-evenly', alignItems:'center', borderRadius: 5}}>
                     <TouchableOpacity onPress={props.goToAddVideo} style={styles.facebookContainer}>
                         <Text style={styles.facebookText}>Add Video</Text>

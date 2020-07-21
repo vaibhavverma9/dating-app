@@ -31,7 +31,7 @@ export default function SettingsPopup(props) {
     async function sendFeedback () {
         const { result } = await SMS.sendSMSAsync(
           ['9496146745'],
-          'Hi Vaibhav from the Reeltalk team! I have some feedback :)'
+          'Text feedback here :)'
         );
     };
       
@@ -48,23 +48,17 @@ export default function SettingsPopup(props) {
 
             <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: '#00000090'}}>
                 <TouchableWithoutFeedback onPress={onScreenPress}>
-                    <View style={{ height: '70%', width: '100%'}}>
+                    <View style={{ height: '80%', width: '100%'}}>
                     </View>
                 </TouchableWithoutFeedback>
-                <View style={{ backgroundColor: colors.secondaryBlack, padding: 20, height: '30%', justifyContent: 'space-around', alignItems:'flex-start', borderRadius: 5}}>
+                <View style={{ backgroundColor: colors.secondaryBlack, padding: 20, height: '20%', justifyContent: 'space-around', alignItems:'flex-start', borderRadius: 5}}>
                     <TouchableOpacity onPress={sendFeedback}>
-                        <Text style={{ color: colors.secondaryWhite, fontSize: 17, fontWeight: '500' }}>Send feedback via SMS</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={privacyPolicyLink}>
-                        <Text style={{ color: colors.secondaryWhite, fontSize: 17, fontWeight: '500' }}>Privacy Policy</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={termsLink}>
-                        <Text style={{ color: colors.secondaryWhite, fontSize: 17, fontWeight: '500' }}>Terms (EULA)</Text>
+                        <Text style={{ color: colors.secondaryWhite, fontSize: 17, fontWeight: '500' }}>Help Center via SMS</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={pressSignOut}>
                         <Text style={{ color: colors.secondaryWhite, fontSize: 17, fontWeight: '500' }}>Sign out</Text>
                     </TouchableOpacity>
-                    <Text style={{ color: colors.secondaryWhite, fontSize: 14, fontWeight: '500' }}>Email at vaibhav@reeltalk.io</Text>
+                    <Text style={{ color: colors.secondaryWhite, fontSize: 14, fontWeight: '500' }}>Email at vaibhav@realtalkapp.co</Text>
                  </View>
             </View> 
         </Modal>

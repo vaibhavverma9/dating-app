@@ -9,6 +9,8 @@ import { useMutation } from '@apollo/client';
 import { UPDATE_GENDER, UPDATE_GENDER_INTEREST, UPDATE_SHOW_TO_PEOPLE } from '../../utils/graphql/GraphqlClient';
 import GenderInterestOnboarding from './GenderInterestOnboarding';
 import { colors } from '../../styles/colors';
+import * as Segment from 'expo-analytics-segment';
+import { _storeGender } from '../../utils/asyncStorage'; 
 
 export default function GenderOnboarding() {
 
@@ -17,16 +19,21 @@ export default function GenderOnboarding() {
     const [updateShowToPeople, { updateShowToPeopleData }] = useMutation(UPDATE_SHOW_TO_PEOPLE);
     const [genderSubmitted, setGenderSubmitted] = useState(false); 
     const [moreGenders, setMoreGenders] = useState(false); 
-    const [gender, setGender] = useState(''); 
+    const [genderText, setGenderText] = useState(''); 
+    const [gender, setGender] = useState(0); 
 
     const genderMan = () => {
         updateGender({ variables: { userId, gender: 'Man' }});
         setGenderSubmitted(true); 
+        setGender(1); 
+        _storeGender('Man'); 
     };
 
     const genderWoman = () => {
         updateGender({ variables: { userId, gender: 'Woman' }});
         setGenderSubmitted(true); 
+        setGender(2); 
+        _storeGender('Woman'); 
     };
 
     const genderMore = () => {
@@ -34,23 +41,30 @@ export default function GenderOnboarding() {
     }; 
 
     const submitGender = () => {
-        updateGender({ variables: { userId, gender: gender }});
+        updateGender({ variables: { userId, gender: genderText }});
         setGenderSubmitted(true); 
+        Segment.track('Onboarding - Submit Gender'); 
     };
 
     const moreMenInterest = () => {
-        updateShowToPeople({ variables: { userId, showToPeopleLookingFor: 'Men'}})
+        updateShowToPeople({ variables: { userId, showToPeopleLookingFor: 'Men'}});
+        setGender(1); 
+        _storeGender('Man'); 
         setMoreGenders(false); 
     };
 
     const moreWomenInterest = () => {
-        updateShowToPeople({ variables: { userId, showToPeopleLookingFor: 'Women'}})
+        updateShowToPeople({ variables: { userId, showToPeopleLookingFor: 'Women'}});
+        setGender(2); 
+        _storeGender('Woman'); 
         setMoreGenders(false); 
     }
 
     if(!moreGenders && genderSubmitted) {
         return (
-            <GenderInterestOnboarding />
+            <GenderInterestOnboarding
+                gender={gender}
+            />
         )
     } else if(moreGenders) {
         if (!genderSubmitted){
@@ -72,9 +86,9 @@ export default function GenderOnboarding() {
                                         width: '75%',
                                         borderRadius: 5
                                     }}
-                                onFocus={() => setGender('')}
-                                onChangeText={text => setGender(text)}
-                                value={gender}
+                                onFocus={() => setGenderText('')}
+                                onChangeText={text => setGenderText(text)}
+                                value={genderText}
                             />
                             <View style={{ paddingTop: '12%' }}>
                                 <TouchableOpacity onPress={submitGender} style={styles.genderContainer}>
