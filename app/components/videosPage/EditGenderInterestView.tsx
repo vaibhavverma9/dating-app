@@ -1,10 +1,9 @@
 import React, { useEffect, useState, useContext }  from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { colors } from '../../styles/colors';
 import { _storeGenderInterest, _storeGenderGroup, _retrieveGender, _storeGender } from '../../utils/asyncStorage'; 
 import { useMutation, useLazyQuery } from '@apollo/client';
 import { UserIdContext } from '../../utils/context/UserIdContext'
-import { TouchableOpacity } from 'react-native-gesture-handler';
 import { UPDATE_GENDER_INTEREST, UPDATE_GENDER_GROUP, GET_GENDER_INTEREST } from '../../utils/graphql/GraphqlClient';
 
 export default function EditGenderInterestView(props) {

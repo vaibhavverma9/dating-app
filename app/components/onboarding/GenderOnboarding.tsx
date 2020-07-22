@@ -1,7 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import * as Location from 'expo-location';
-import { Text, View, StyleSheet, TouchableWithoutFeedback, Keyboard, TextInput } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { Text, View, StyleSheet, TouchableWithoutFeedback, TouchableOpacity, Keyboard, TextInput } from 'react-native';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import TabStack from '../../stacks/TabStack';
 import { UserIdContext } from '../../utils/context/UserIdContext'

@@ -1,6 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { Text, View, StyleSheet, Keyboard } from 'react-native';
-import { TouchableOpacity, TouchableWithoutFeedback } from 'react-native-gesture-handler';
+import { TouchableOpacity, TouchableWithoutFeedback } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { _storeLatitude, _storeLongitude, _storeCollege, _storeCollegeLatitude, _storeCollegeLongitude } from '../../utils/asyncStorage'; 

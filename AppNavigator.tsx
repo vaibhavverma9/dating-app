@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View } from 'react-native'; 
+import { View, Text } from 'react-native'; 
 import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid, _retrieveOnboarded, _storeOnboarded, _storeLatitude, _storeLongitude, _retrieveLatitude, _retrieveLongitude } from './app/utils/asyncStorage'; 
 import { useDoormanUser } from 'react-native-doorman'
 import { UserIdContext } from './app/utils/context/UserIdContext'
@@ -34,7 +34,7 @@ export default function AppNavigator(){
 
   useEffect(() => {
     getUsersByUid({ variables: { uid }});
-  }, []);
+  }, [uid, getUsersByUid]);
 
   async function initUser(usersByUid){
     if(usersByUid.users.length == 0){
@@ -83,6 +83,9 @@ export default function AppNavigator(){
 
     )
   } else {
-    return <View style={{ flex: 1, backgroundColor: colors.primaryPurple }} />
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.primaryPurple, justifyContent: 'flex-end' }}>
+      </View>
+    ) 
   }
 }

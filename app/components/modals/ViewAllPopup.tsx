@@ -1,8 +1,9 @@
 import { View, Modal, Text, TouchableHighlight, StyleSheet } from 'react-native';
 import React from 'react'; 
-import { TouchableWithoutFeedback, FlatList, TouchableOpacity } from 'react-native-gesture-handler';
+import { FlatList } from 'react-native-gesture-handler';
 import { colors } from '../../styles/colors';
 import { Divider } from 'react-native-paper';
+import { TouchableOpacity, TouchableWithoutFeedback } from 'react-native';
 
 export default function ViewAllPopup(props) {
 

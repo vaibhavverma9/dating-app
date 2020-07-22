@@ -1,11 +1,12 @@
 import { View, Modal, Text } from 'react-native';
-import React from 'react'; 
-import { TouchableWithoutFeedback, TouchableOpacity } from 'react-native-gesture-handler';
+import React, { useEffect } from 'react'; 
 import { colors } from '../../styles/colors';
 import { useDoormanUser } from 'react-native-doorman'
 import { _clearDoormanUid, _clearOnboarded, _clearUserId, _clearBio, _clearName } from '../../utils/asyncStorage'; 
 import { Linking } from 'expo';
 import * as SMS from 'expo-sms';
+import Constants from 'expo-constants';
+import { TouchableWithoutFeedback, TouchableOpacity } from 'react-native';
 
 export default function SettingsPopup(props) {
 
@@ -58,7 +59,10 @@ export default function SettingsPopup(props) {
                     <TouchableOpacity onPress={pressSignOut}>
                         <Text style={{ color: colors.secondaryWhite, fontSize: 17, fontWeight: '500' }}>Sign out</Text>
                     </TouchableOpacity>
-                    <Text style={{ color: colors.secondaryWhite, fontSize: 14, fontWeight: '500' }}>Email at vaibhav@realtalkapp.co</Text>
+                    <View>
+                        <Text style={{ color: colors.secondaryWhite, fontSize: 14, fontWeight: '500' }}>Email vaibhav@realtalkapp.co</Text>
+                        <Text style={{ color: colors.secondaryWhite, fontSize: 8, fontWeight: '500' }}>Version {Constants.manifest.ios.buildNumber}</Text>
+                    </View>
                  </View>
             </View> 
         </Modal>

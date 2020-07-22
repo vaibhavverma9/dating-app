@@ -1,7 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import * as Location from 'expo-location';
-import { Text, View, StyleSheet } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { Text, View, StyleSheet, TouchableOpacity } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import TabStack from '../../stacks/TabStack';
 import { UserIdContext } from '../../utils/context/UserIdContext'
@@ -80,7 +79,7 @@ export default function LocationOnboarding() {
 
     if(locationServices) {
         return (
-            <TabStack />
+            <TermsOnboarding />
         )
     } else {
         return (

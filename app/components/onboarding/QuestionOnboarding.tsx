@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Text, View, StyleSheet } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { Text, View, StyleSheet, TouchableOpacity } from 'react-native';
+
 import { Ionicons } from '@expo/vector-icons';
 import { _storeLatitude, _storeLongitude } from '../../utils/asyncStorage'; 
 import GenderOnboarding from './GenderOnboarding';

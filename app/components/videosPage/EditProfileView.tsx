@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { TouchableOpacity } from 'react-native-gesture-handler';
 import { _retrieveName, _retrieveBio, _retrieveCity, _retrieveRegion, _retrieveGenderInterest, _retrieveCollege } from '../../utils/asyncStorage'; 
 import { colors } from '../../styles/colors';
 import { GET_CITY_REGION, client } from '../../utils/graphql/GraphqlClient';

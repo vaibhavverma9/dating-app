@@ -102,7 +102,6 @@ export default function HomeView({route, navigation}) {
               <Text style={{ fontSize: 22, fontWeight: 'bold', paddingTop: 15, paddingBottom: 5, color: colors.primaryWhite }}>Out of users!</Text>
               <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: '300', paddingHorizontal: 5, color: colors.primaryWhite }}>Come back tomorrow for more users :)</Text>
           </View>
-  
       </View>     
       )
     }

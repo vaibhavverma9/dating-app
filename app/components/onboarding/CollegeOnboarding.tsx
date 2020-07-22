@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import * as Location from 'expo-location';
 import { Text, View, StyleSheet, TextInput, Keyboard } from 'react-native';
-import { TouchableOpacity, TouchableWithoutFeedback } from 'react-native-gesture-handler';
+import { TouchableOpacity, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { useMutation, useLazyQuery } from '@apollo/client';

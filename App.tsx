@@ -13,6 +13,7 @@ import * as firebase from 'firebase';
 import AppNavigator from './AppNavigator';
 // import { LocationContextProvider } from './app/utils/context/LocationContext';
 import { colors } from './app/styles/colors';
+import { withOta } from './app/hoc/with-ota';
 
 // Set the configuration for your app
 var firebaseConfig = {
@@ -31,9 +32,6 @@ firebase.initializeApp(firebaseConfig);
 const iosWriteKey = "0QHHf9Gg55EE10Hi5o0LYMfLMN4X7ypl"; 
 const androidWriteKey = "idFwR27mq8yZxEpQFGdmdAJ0yzMM6wV0"; 
 
-Segment.initialize({ androidWriteKey, iosWriteKey });
-Segment.screen('App Open'); 
-
 if (!global.btoa) {
 global.btoa = encode;
 }
@@ -51,7 +49,7 @@ Sentry.init({
 const graphqlEndpoint = 'https://reel-talk-2.herokuapp.com/v1/graphql'; 
 // const graphqlEndpoint = 'https://vital-robin-42.hasura.app/v1/graphql'; 
 
-export default function App() {
+function App() {
 
   return(
     <AuthenticatedApp  />
@@ -93,6 +91,8 @@ function DoormanAuthenticatedApp () {
   const [authState, setAuthState] = useState({ status: "loading" });
 
   useEffect(() => {
+    Segment.initialize({ androidWriteKey, iosWriteKey });
+    Segment.screen('App Open'); 
     authenticateFirebaseToken();
   }, []);
 
@@ -159,3 +159,5 @@ function FirebaseAuthenticatedApp({authState}){
     </ApolloProvider>
   )
 }
+
+export default withOta(App);

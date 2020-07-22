@@ -20,7 +20,7 @@ import Constants from 'expo-constants';
 import * as Permissions from 'expo-permissions';
 import axios from 'axios';
 import * as Network from 'expo-network';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { TouchableOpacity } from 'react-native';
 import SingleVideo from '../videosPage/SingleVideo';
 import ProgressBar from 'react-native-progress/Bar'
 import { Dimensions } from 'react-native';
@@ -296,9 +296,9 @@ export default function HomeContents(props) {
     const likedVideoIndex = videoIndex; 
     const likerName = name; 
 
-    if(profileVideoCount == 0 && userIndex % 5 == 3){
-      setAddPopupVisible(true); 
-    }
+    // if(profileVideoCount == 0 && userIndex % 5 == 3){
+    //   setAddPopupVisible(true); 
+    // }
 
     if(!pushPopupShown){
       const pushShown = await _retrievePushShown(); 
@@ -313,7 +313,7 @@ export default function HomeContents(props) {
       setPushPopupShown(true); 
     }
 
-    if(userIndex == 10 * (videoCount + 1)){
+    if(userIndex == 10 * (videoCount + 1) || userIndex == 10){
       setNoLikesLeft(true);
     } else {
       if(!likeColors[likedIndex].like){  

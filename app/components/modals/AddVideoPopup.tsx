@@ -1,7 +1,8 @@
 import { View, Modal, Text, TouchableHighlight, StyleSheet } from 'react-native';
 import React from 'react'; 
-import { TouchableWithoutFeedback, TouchableOpacity } from 'react-native-gesture-handler';
+import { TouchableWithoutFeedback } from 'react-native-gesture-handler';
 import { colors } from '../../styles/colors';
+import { TouchableOpacity } from 'react-native';
 
 export default function AddVideoPopup(props) {
 

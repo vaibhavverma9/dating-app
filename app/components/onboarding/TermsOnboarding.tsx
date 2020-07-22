@@ -1,6 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { Text, View, StyleSheet } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { Text, View, StyleSheet,TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import TabStack from '../../stacks/TabStack';
 import { _storeOnboarded } from '../../utils/asyncStorage'; 
@@ -24,7 +23,7 @@ export default function TermsOnboarding() {
         _storeOnboarded(true); 
         updateOnboarded({ variables: { userId, onboarded: true }}); 
         Segment.track("Onboarding - Accept Terms");
-        Segment.track("Onboarding - Complete Onboarding");
+        // Segment.track("Onboarding - Complete Onboarding");
     }
 
     const termsLink = () => {
