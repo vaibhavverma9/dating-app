@@ -20,7 +20,7 @@ const androidWriteKey = "idFwR27mq8yZxEpQFGdmdAJ0yzMM6wV0";
 const graphqlEndpoint = 'https://reel-talk-2.herokuapp.com/v1/graphql'; 
 // const graphqlEndpoint = 'https://vital-robin-42.hasura.app/v1/graphql'; 
 
-const App = React.memo(function App() {
+function App() {
 
   console.log("rerendering App"); 
 
@@ -43,7 +43,7 @@ const App = React.memo(function App() {
   return(
     <AuthenticatedApp  />
   ) 
-})
+}
 
 function AuthenticatedApp (){
   
