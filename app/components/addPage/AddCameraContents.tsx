@@ -9,14 +9,10 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Permissions from 'expo-permissions';
 import { Video } from 'expo-av'; 
 import { addStyles } from '../../styles/addStyles';
-import { GET_QUESTIONS, client } from '../../utils/graphql/GraphqlClient';
 import * as VideoThumbnails from 'expo-video-thumbnails'; 
 import * as Linking from 'expo-linking';
 import ViewAllPopup from '../modals/ViewAllPopup';
-import { UserIdContext } from '../../utils/context/UserIdContext'
-import { useLazyQuery } from '@apollo/client';
 import { VideoCountContext } from '../../utils/context/VideoCountContext';
-import * as Progress from 'react-native-progress';
 import Constants from 'expo-constants';
 
 export default function AddCameraContents(props) {
@@ -32,19 +28,18 @@ export default function AddCameraContents(props) {
     const [shouldPlay, setShouldPlay] = useState(true);
     const [initialized, setInitialized] = useState(false); 
     const [viewAllVisible, setViewAllVisible] = useState(false); 
-    const [userId, setUserId] = useContext(UserIdContext);
     const [timedOut, setTimedOut] = useState(false);    
     const [videoCount, setVideoCount] = useContext(VideoCountContext); 
 
-    useEffect(() => {
+    useEffect(() => { 
         initQuestions(props.data); 
     }, [props.data])
 
-    let camera = useRef(null);  
+    const camera = useRef(null);  
 
     useEffect(() => {
-        getCameraPermission();
         getAudioPermission(); 
+        getCameraPermission();
         Segment.screen('Add'); 
         setTimeout(() => { setTimedOut(true) }, 3000); 
     }, []);
@@ -106,12 +101,12 @@ export default function AddCameraContents(props) {
             }
 
         });  
-    }, [props.navigation])
+    }, [props.navigation, hasAudioPermission, hasCameraPermission])
  
     function initQuestions(questionData){
-        let date = new Date(); 
-        let weekday = date.getDay(); 
-        let filteredQuestions = questionData.questions.filter((question, index) => {
+        const date = new Date(); 
+        const weekday = date.getDay(); 
+        const filteredQuestions = questionData.questions.filter((question, index) => {
             if(index % 7 == weekday){
                 return question; 
             }
@@ -138,7 +133,7 @@ export default function AddCameraContents(props) {
         Segment.track("Pick Video"); 
         await getPermissionAsync(); 
         try {
-            let result = await ImagePicker.launchImageLibraryAsync({
+            const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.All,
             allowsEditing: true,
             aspect: [4, 3],
@@ -146,7 +141,7 @@ export default function AddCameraContents(props) {
             });
             if (!result.cancelled && result.type == 'video') {
                 setVideoUri(result.uri);
-                const { uri, width, height } = await VideoThumbnails.getThumbnailAsync(result.uri, { time: 0 }); 
+                const { uri } = await VideoThumbnails.getThumbnailAsync(result.uri, { time: 0 }); 
                 setThumbnailUri(uri);           
             }
             if (!result.cancelled && result.type == 'image') {
@@ -175,14 +170,12 @@ export default function AddCameraContents(props) {
         }
     };
 
-    const [videoTimer, setVideoTimer] = useState(0); 
-
     async function record(){
         if(camera){
             setRecording(true); 
-            let recording = await camera.current.recordAsync();
+            const recording = await camera.current.recordAsync();
             setVideoUri(recording.uri); 
-            const { uri, width, height } = await VideoThumbnails.getThumbnailAsync(recording.uri, { time: 0 }); 
+            const { uri } = await VideoThumbnails.getThumbnailAsync(recording.uri, { time: 0 }); 
             setThumbnailUri(uri);           
         }
     }
@@ -377,7 +370,7 @@ export default function AddCameraContents(props) {
             return (
                 <View style={styles.badInternetView}>
                     <View style={{ borderWidth: 1, borderColor: '#eee', justifyContent: 'center', borderRadius: 5}}>
-                        <Text style={styles.reloadText}>We're losing you. Please check your network connection.</Text>          
+                        <Text style={styles.reloadText}>We are losing you. Please check your network connection.</Text>          
                     </View>
                 </View>
               )

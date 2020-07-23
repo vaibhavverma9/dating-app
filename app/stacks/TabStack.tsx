@@ -1,8 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import HomeView from '../components/homePage/HomeView';
-import AddCameraView from '../components/addPage/AddCameraView'
-import AddCameraViewAndroid from '../components/addPage/AddCameraViewAndroid'
-import MessagesView from '../components/messagesPage/MessagesView'; 
+import AddCameraView from '../components/addPage/AddCameraView';
 import MessagesStreamView from '../components/messagesPage/MessagesStreamView'; 
 import VideosView from '../components/videosPage/VideosView'; 
 import EditProfileView from '../components/videosPage/EditProfileView'; 
@@ -17,7 +15,6 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { colors } from '../styles/colors';
 import EditGenderInterestView from '../components/videosPage/EditGenderInterestView';
-import { StreamChat } from 'stream-chat';
 
 const Tab = createBottomTabNavigator(); 
 const Stack = createStackNavigator(); 
@@ -66,7 +63,7 @@ export default function TabStack (){
         <NavigationContainer>
             <Tab.Navigator
             screenOptions={({ route }) => ({
-                tabBarIcon: ({ focused, color, size }) => {
+                tabBarIcon: ({ color, size }) => {
                 let iconName;
         
                 if (route.name === 'Home') {
@@ -95,7 +92,6 @@ export default function TabStack (){
             >
                 <Tab.Screen name="Home" component={HomeView} />
                 <Tab.Screen name="Add" component={AddCameraView} />
-                {/* <Tab.Screen name="Add" component={AddCameraViewAndroid} /> */}
                 <Tab.Screen name="Messages" component={MessagesStreamView} />
                 <Tab.Screen name="Videos" component={VideosStack} />
             </Tab.Navigator>

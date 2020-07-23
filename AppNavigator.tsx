@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { View, Text } from 'react-native'; 
-import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid, _retrieveOnboarded, _storeOnboarded, _storeLatitude, _storeLongitude, _retrieveLatitude, _retrieveLongitude } from './app/utils/asyncStorage'; 
 import { useDoormanUser } from 'react-native-doorman'
 import { UserIdContext } from './app/utils/context/UserIdContext'
-import { client, GET_USERS_BY_UID, INSERT_USER } from './app/utils/graphql/GraphqlClient';
+import { GET_USERS_BY_UID, INSERT_USER } from './app/utils/graphql/GraphqlClient';
 import { useMutation, useLazyQuery } from '@apollo/client';
 import TabStack from './app/stacks/TabStack'; 
 import OnboardingStack from './app/stacks/OnboardingStack';
@@ -11,7 +10,6 @@ import OnboardingStack from './app/stacks/OnboardingStack';
 import { colors } from './app/styles/colors';
 import { VideoCountContextProvider } from './app/utils/context/VideoCountContext';
 import * as Sentry from 'sentry-expo'; 
-import { UserIdContextProvider } from './app/utils/context/UserIdContext'; 
 
 export default function AppNavigator(){
 

@@ -1,8 +1,7 @@
-import React, { useContext } from 'react'; 
+import React from 'react'; 
 import AddCameraContents from './AddCameraContents';
 import { useQuery } from '@apollo/client';
 import { GET_QUESTIONS } from '../../utils/graphql/GraphqlClient';
-import { UserIdContext } from '../../utils/context/UserIdContext'
 import { View, ActivityIndicator } from 'react-native';
 
 export default function AddCameraView({ route, navigation }) {

@@ -1,0 +1,1 @@
+{"ast":null,"code":"export { AuthGate } from 'react-doorman';","map":{"version":3,"sources":["AuthGate.tsx"],"names":[],"mappings":"AAAA,SAAA,QAAA,QAAA,eAAA","sourcesContent":["export { AuthGate } from 'react-doorman'\n"]},"metadata":{},"sourceType":"module"}
