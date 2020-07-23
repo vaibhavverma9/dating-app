@@ -17,7 +17,6 @@ export default function NameOnboarding() {
     const [updateName, { updateNameData }] = useMutation(UPDATE_NAME);
     const [nameSubmitted, setNameSubmitted] = useState(false); 
     const [name, setName] = useState('Ex: Kevin, Angela'); 
-    Segment.track('Onboarding - Start Onboarding'); 
 
     const submitName = () => {
          _storeName(name); 

@@ -10,7 +10,7 @@ export function withOta<P = {}>(Component: React.ComponentType<P>) {
         return (
             <View style={{ flex: 1, backgroundColor: colors.primaryPurple, justifyContent: 'center', alignItems: 'center' }}>
                 <Text style={{ color: '#eee'}}>App is updating, just a sec...</Text>
-             </View>    
+             </View>     
         )
     }
 

@@ -77,6 +77,7 @@
     "@types/node": "^14.0.13",
     "@types/react": "^16.9.11",
     "@types/react-native": "^0.60.22",
+    "eslint-config-nando": "^1.0.9",
     "react-native-dotenv": "^0.2.0",
     "react-native-dropdown-autocomplete": "^1.0.18"
   },

@@ -27,10 +27,10 @@ import { Dimensions } from 'react-native';
 import { getDistance } from 'geolib';
 import { colors } from '../../styles/colors';
 import { VideoCountContext } from '../../utils/context/VideoCountContext';
-
+import { useIsFocused } from '@react-navigation/native';
  
 export default function HomeContents(props) {
-
+  const isFocused = useIsFocused();
   const { uid, phoneNumber } = useDoormanUser();
   const [videoData, setVideoData] = useState(null); 
   const [questionText, setQuestionText] = useState(''); 
@@ -155,6 +155,12 @@ export default function HomeContents(props) {
   });
 
   useEffect(() => {
+    if(isFocused){
+      setShouldPlay(true); 
+    } else {
+      setShouldPlay(false); 
+    }
+
     initSegment(); 
     Segment.track("Home Page - Start Videos"); 
     // networkConnected(); 
@@ -163,7 +169,9 @@ export default function HomeContents(props) {
     let yesterday = new Date(Date.now() - 86400000); 
     // getLikeCount({ variables: { likerId: userId, since: yesterday }});
     setTimeout(() => {
-      setTimedOut(true);
+      if(videoData && videoData.length > 0){
+        setTimedOut(true);
+      }
     }, 5000); 
 
   }, []);
@@ -767,13 +775,7 @@ export default function HomeContents(props) {
       );    
     }
   } else {
-    if(!timedOut){
-      return (
-        <View style={styles.badInternetView}>
-          <ActivityIndicator size="small" color="#eee" />
-        </View>
-      )  
-    } else {
+    if(noMoreVideos == true){
       return (
         <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: colors.primaryBlack }}>
           <View style={{ height: '40%', width: '85%', backgroundColor: colors.primaryPurple, borderRadius: 5, padding: 10, alignItems: 'center', justifyContent: 'center' }}>
@@ -782,6 +784,12 @@ export default function HomeContents(props) {
           </View>
       </View>      
       )    
+    } else {
+      return (
+        <View style={styles.badInternetView}>
+          <ActivityIndicator size="small" color="#eee" />
+        </View>
+      )  
     }
   }
 }

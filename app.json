@@ -10,7 +10,7 @@
       "android",
       "web"
     ],
-    "version": "1.3.0",
+    "version": "1.3.1",
     "orientation": "portrait",
     "icon": "./app/assets/icon.png",
     "scheme": "reeltalk",
@@ -30,7 +30,7 @@
     ],
     "ios": {
       "bundleIdentifier": "com.dating.reeltalk",
-      "buildNumber": "1.3.0",
+      "buildNumber": "1.3.1",
       "supportsTablet": true,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Realtalk accesses your library so you can upload videos of you answering questions.",
@@ -46,7 +46,7 @@
     },
     "android": {
       "package": "com.dating.reeltalk",
-      "versionCode": 8,
+      "versionCode": 9,
       "permissions": [
         "RECORD_AUDIO",
         "CAMERA",
@@ -72,6 +72,6 @@
     },
     "facebookScheme": "fb281059376262031",
     "facebookAppId": "281059376262031",
-    "facebookDisplayName": "Reeltalk"
+    "facebookDisplayName": "Realtalk"
   }
 }

@@ -7,8 +7,6 @@ import { View, ActivityIndicator } from 'react-native';
 
 export default function AddCameraView({ route, navigation }) {
 
-    const [userId, setUserId] = useContext(UserIdContext);
-
     const { loading, error, data } = useQuery(GET_QUESTIONS)
 
     if(loading){

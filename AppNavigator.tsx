@@ -84,8 +84,9 @@ export default function AppNavigator(){
     )
   } else {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.primaryPurple, justifyContent: 'flex-end' }}>
-      </View>
+      <View style={{ flex: 1, backgroundColor: colors.primaryPurple, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: '#eee'}}>App is loading, just a sec...</Text>
+     </View>     
     ) 
   }
 }

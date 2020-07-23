@@ -53,8 +53,8 @@ export default function HomeView({route, navigation}) {
 
   useEffect(() => {
     queryVideosInit();
-    setTimeout(() => { setTimedOut(true) }, 5000); 
   }, []); 
+
 
   function assignGenderPreferences(genderGroup){
     if(genderGroup == 1){
@@ -89,13 +89,6 @@ export default function HomeView({route, navigation}) {
   }
 
   function OutOfUsers(){
-    if(!timedOut){
-      return (
-        <View style={{ backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1}}>
-          <ActivityIndicator size="small" color="#eee" />
-        </View>
-      )  
-    } else {
       return (
         <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: colors.primaryBlack }}>
           <View style={{ height: '40%', width: '85%', backgroundColor: colors.primaryPurple, borderRadius: 5, padding: 10, alignItems: 'center', justifyContent: 'center' }}>
@@ -104,20 +97,38 @@ export default function HomeView({route, navigation}) {
           </View>
       </View>     
       )
-    }
+  }
+
+  function Loading(){
+    return (
+      <View style={{ backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1}}>
+        <ActivityIndicator size="small" color="#eee" />
+      </View>
+    )  
   }
 
   const { loading, error, data } = useQuery(GET_VIDEOS, {
     variables: { userId, limit, groupPreference, lastPerformance }
   });
 
+  // useEffect(() => {
+  //   setTimeout(() => { 
+  //     if(!data || data.usersLocation.length == 0){
+  //       setTimedOut(true) 
+  //     } else {
+  //       setTimedOut(false); 
+  //     }
+  //   }, 5000); 
+  // }, [data]); 
+
+
   if(loading){
     return (
-      <OutOfUsers />
+      <Loading />
     )
   } else if(error){
     return (
-      <OutOfUsers />
+      <Loading />
     )
   } else if(data){
     if(data.usersLocation.length > 0){
@@ -140,7 +151,7 @@ export default function HomeView({route, navigation}) {
     }
   } else {
     return (
-      <OutOfUsers />
+      <Loading />
     )
   }
 

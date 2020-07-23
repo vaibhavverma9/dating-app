@@ -283,9 +283,6 @@ export default function MessagesStreamView(props) {
 
 
   function AddVideo(){
-    if(!timedOut){
-      return null;
-    } else {
       return (
         <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center' }}>
           <View style={{ height: '40%', width: '85%', backgroundColor: colors.primaryPurple, borderRadius: 5, padding: 10, alignItems: 'center' }}>
@@ -302,41 +299,44 @@ export default function MessagesStreamView(props) {
           </View>
 
       </View>           )
-    }
   }
 
   function ChannelListScreen(props){
-    if(allData.length > 0){
-      return (
-        <SafeAreaView>
-          <Chat client={chatClient}>
-            <View style={{ display: 'flex', height: '100%', padding: 10 }}>
-              <ChannelList
-                filters={{ type: 'messaging', members: { $in: [userId.toString()] } }}
-                sort={{ last_message_at: -1 }}
-                Preview={CustomChannelPreview}
-                onSelect={(channel) => {
-                  props.navigation.navigate('Channel', {
-                    channel,
-                  });
-                }}
-              />
-              <MessagesOptions 
-                visible={messagesOptionsVisible} 
-                setVisible={setMessagesOptionsVisible} 
-                userId={userId}
-                currentUserId={optionsProfileId}
-                allData={allData}
-                setAllData={setAllData}
-              />
-            </View>
-          </Chat>
-        </SafeAreaView>
-      );
+    if(allData){
+      if(allData.length > 0){
+        return (
+          <SafeAreaView>
+            <Chat client={chatClient}>
+              <View style={{ display: 'flex', height: '100%', padding: 10 }}>
+                <ChannelList
+                  filters={{ type: 'messaging', members: { $in: [userId.toString()] } }}
+                  sort={{ last_message_at: -1 }}
+                  Preview={CustomChannelPreview}
+                  onSelect={(channel) => {
+                    props.navigation.navigate('Channel', {
+                      channel,
+                    });
+                  }}
+                />
+                <MessagesOptions 
+                  visible={messagesOptionsVisible} 
+                  setVisible={setMessagesOptionsVisible} 
+                  userId={userId}
+                  currentUserId={optionsProfileId}
+                  allData={allData}
+                  setAllData={setAllData}
+                />
+              </View>
+            </Chat>
+          </SafeAreaView>
+        );
+      } else {
+        return (
+          <AddVideo />
+        )
+      }
     } else {
-      return (
-        <AddVideo />
-      )
+      return null; 
     }
   }
 
