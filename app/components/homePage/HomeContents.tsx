@@ -89,15 +89,6 @@ export default function HomeContents(props) {
   // const [lastLoaded, setLastLoaded] = useState(props.lastLoaded); 
   const [lastPerformance, setLastPerformance] = useState(props.lastPerformance); 
   const [groupPreference, setGroupPreference] = useState(props.groupPreference); 
-  const [genderGroup, setGenderGroup] = useState(props.genderGroup); 
-
-  const point = {
-    "type" : "Point", 
-    "coordinates": [-87.6298, 41.8781]
-  }; 
-
-  const [likeCount, setLikeCount] = useState(0);
-  const [likeLimit, setLikeLimit] = useState(10); 
   const [videoCount, setVideoCount] = useContext(VideoCountContext); 
 
   const [getVideosLower, { data: videosLower }] = useLazyQuery(GET_VIDEOS, 

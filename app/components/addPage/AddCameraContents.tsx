@@ -49,14 +49,6 @@ export default function AddCameraContents(props) {
         setTimeout(() => { setTimedOut(true) }, 3000); 
     }, []);
 
-    function reload(){
-        setTimedOut(false);   
-        getCameraPermission();
-        getAudioPermission(); 
-        Segment.screen('Add');
-        setTimeout(() => { setTimedOut(true) }, 3000); 
-    }
-
     async function getCameraPermission(){
         const { status } = await Permissions.getAsync(Permissions.CAMERA);
         setHasCameraPermission(status === 'granted');
@@ -216,7 +208,6 @@ export default function AddCameraContents(props) {
                         <MaterialIcons name="video-library" color={"#eee"} size={40}/> 
                         <Text style={styles.iconText}>Library</Text>
                     </TouchableOpacity>
-                    {/* <Progress.Pie progress={0.4} size={50} /> */}
                     <MaterialIcons name="fiber-manual-record" onPress={record} color={"#eee"} size={60}/>  
                     <TouchableOpacity onPress={setCameraType} style={styles.iconGroup}>
                         <MaterialIcons name="switch-camera" color={"#eee"} size={40}/>                     
@@ -382,13 +373,7 @@ export default function AddCameraContents(props) {
             )
         }
     } else {
-        if(!timedOut){
-            return (
-                <View style={styles.activityView}>
-                  <ActivityIndicator size="small" color="#eee" />
-                </View>
-            )          
-          } else {
+        if(timedOut){
             return (
                 <View style={styles.badInternetView}>
                     <View style={{ borderWidth: 1, borderColor: '#eee', justifyContent: 'center', borderRadius: 5}}>
@@ -396,7 +381,13 @@ export default function AddCameraContents(props) {
                     </View>
                 </View>
               )
-          }  
+          } else {
+            return (
+                <View style={styles.activityView}>
+                  <ActivityIndicator size="small" color="#eee" />
+                </View>
+            )          
+        }  
     }
 
 

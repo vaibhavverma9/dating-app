@@ -2,20 +2,16 @@ import React, { useEffect, useState, useContext } from 'react';
 import { View, Image, Text, TouchableOpacity, ImageBackground, ActivityIndicator, StyleSheet, RefreshControl } from 'react-native';
 import * as Segment from 'expo-analytics-segment';
 import { Dimensions } from "react-native"; 
-import { GET_LAST_DAY_VIDEOS, INSERT_INIT_VIDEO, UPDATE_LAST_UPLOADED, ON_VIDEO_UPDATED, INSERT_USER, GET_USERS_BY_UID, GET_PAST_VIDEOS, DELETE_VIDEO_PASSTHROUGH_ID, UPDATE_VIDEO_ERRORED, client } from '../../utils/graphql/GraphqlClient';
+import { GET_LAST_DAY_VIDEOS, INSERT_INIT_VIDEO, UPDATE_LAST_UPLOADED, ON_VIDEO_UPDATED, GET_PAST_VIDEOS, DELETE_VIDEO_PASSTHROUGH_ID, UPDATE_VIDEO_ERRORED } from '../../utils/graphql/GraphqlClient';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { ScrollView } from 'react-native-gesture-handler';
 import { useMutation, useSubscription, useLazyQuery } from '@apollo/client';
 import FullPageVideos from '../modals/FullPageVideos';
-import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid, _retrieveName, _retrieveBio } from '../../utils/asyncStorage'; 
+import { _retrieveName, _retrieveBio } from '../../utils/asyncStorage'; 
 import axios from 'axios';
 import { Ionicons, MaterialIcons, Entypo, SimpleLineIcons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { colors } from '../../styles/colors'; 
 import SettingsPopup from '../modals/SettingsPopup';
-import * as UpChunk from '@mux/upchunk';
-import * as FileSystem from 'expo-file-system';
-import RNFetchBlob from 'rn-fetch-blob'
-import { isTypeSystemDefinitionNode } from 'graphql';
 import * as Sentry from 'sentry-expo'; 
 import Constants from 'expo-constants';
 import { useDoormanUser } from 'react-native-doorman'
@@ -25,9 +21,7 @@ export default function VideosView(props) {
 
     const [lastDayVideos, setLastDayVideos] = useState([]); 
     const [storedLastDayVideos, setStoredLastDayVideos] = useState([]);
-    const [pastVideos, setPastVideos] = useState([]); 
     const [userId, setUserId] = useContext(UserIdContext);
-    // const [userId, setUserId] = useState(1675); 
     const [insertInitVideo, { insertInitVideoData }] = useMutation(INSERT_INIT_VIDEO); 
     const [updateLastUploaded, { updateLastUploadedData }] = useMutation(UPDATE_LAST_UPLOADED);
     const [deleteVideoPassthrough, { deleteVideoPassthroughData }] = useMutation(DELETE_VIDEO_PASSTHROUGH_ID); 
@@ -44,7 +38,7 @@ export default function VideosView(props) {
     const [averageVideos, setAverageVideos] = useState([]);
     const [worstVideos, setWorstVideos] = useState([]);
 
-    let yesterday = new Date(Date.now() - 86400000); 
+    const yesterday = new Date(Date.now() - 86400000); 
     const thumbnailPadding = '0.2%'; 
     const length = 110; 
 
@@ -96,14 +90,6 @@ export default function VideosView(props) {
         setTimeout(() => { setTimedOut(true) }, 3000); 
     }, [])
 
-    function reload(){
-        setTimedOut(false);   
-        getStoredLastDayVideos({variables: { userId, yesterday}}); 
-        getPastVideos({variables: { userId, yesterday}}); 
-        initProfile(); 
-        setTimeout(() => { setTimedOut(true) }, 3000);   
-    }
-
     useEffect(() => {
         props.navigation.addListener('focus', () => {
             initProfile(); 
@@ -119,7 +105,7 @@ export default function VideosView(props) {
 
     // changes in routes
     useEffect(() => {
-        let params = props.route.params;
+        const params = props.route.params;
         if (params != undefined){
             setUploadedVideos([params, ...uploadedVideos]);
             postVideo(params);
@@ -175,19 +161,19 @@ export default function VideosView(props) {
             if(data){
                 const videos = data.videos; 
                 if(videos.length > 0){
-                    const video_data = videos[0];
-                    const status = video_data.status;
+                    const videoData = videos[0];
+                    const status = videoData.status;
                     if(status == "preparing" || status == "ready"){ 
                         const tempUploadedVideos = uploadedVideos.map(uploadedVideo => {
                             if(uploadedVideo.passthroughId == passthroughId && uploadedVideo.status != "errored"){
-                                return {...uploadedVideo, status: status, id: video_data.id}
+                                return {...uploadedVideo, status: status, id: videoData.id}
                             } else { return uploadedVideo }
                         })
                         setUploadedVideos(tempUploadedVideos); 
                     } else if (status == "errored"){
                         const tempUploadedVideos = uploadedVideos.map(uploadedVideo => {
                             if(uploadedVideo.passthroughId == passthroughId){
-                                return {...uploadedVideo, status: status, id: video_data.id}
+                                return {...uploadedVideo, status: status, id: videoData.id}
                             } else { return uploadedVideo }
                         })
                         setUploadedVideos(tempUploadedVideos); 
@@ -373,7 +359,7 @@ export default function VideosView(props) {
             xhr.send(null); 
         });
 
-        let res = await axios({
+        const res = await axios({
             method: 'post', 
             url: 'https://gentle-brook-91508.herokuapp.com/muxAuthenticatedUrl',
             data: { "passthroughId" : passthroughId }
@@ -383,13 +369,13 @@ export default function VideosView(props) {
         const status = res.data.status;
 
         await insertInitVideo({ variables: { questionId: questionId, userId: userId, passthroughId: passthroughId, status: status }})
-        .then(response => { })
+        .then()
         .catch(error => {
             Sentry.captureException(error);
         }); 
 
         try {
-            let res3 = await fetch(authenticatedUrl, {
+            await fetch(authenticatedUrl, {
                 method: 'PUT', 
                 body: blob, 
                 headers: { "content-type": blob.type}
@@ -406,7 +392,7 @@ export default function VideosView(props) {
 
         blob.close();
 
-        let timestamp = new Date(); 
+        const timestamp = new Date(); 
         updateLastUploaded({ variables: {userId: userId, timestamp: timestamp}});
     }
 
@@ -627,13 +613,7 @@ export default function VideosView(props) {
             </ScrollView>
         );
     } else {
-        if(!timedOut){
-            return (
-                <View style={styles.activityView}>
-                  <ActivityIndicator size="small" color="#eee" />
-                </View>
-            )          
-        } else {
+        if(timedOut){
             return (
                 <View style={styles.badInternetView}>
                     <View style={{ borderWidth: 1, borderColor: '#eee', justifyContent: 'center', borderRadius: 5}}>
@@ -641,6 +621,12 @@ export default function VideosView(props) {
                     </View>
                 </View>
               )
+        } else {
+            return (
+                <View style={styles.activityView}>
+                  <ActivityIndicator size="small" color="#eee" />
+                </View>
+            )     
         }
     }
 }

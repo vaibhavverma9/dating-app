@@ -19,17 +19,11 @@ export default function HomeView({route, navigation}) {
   const [groupPreference, setGroupPreference] = useState([0]); 
   
   const [timedOut, setTimedOut] = useState(false);
-  let currentDate = new Date();
+  // let currentDate = new Date();
   // const [lastLoaded, setLastLoaded] = useState(currentDate); 
 
   const [lastPerformance, setLastPerformance] = useState(1.0); 
 
-  const point = {
-    "type" : "Point", 
-    "coordinates": [-87.6298, 41.8781]
-  }; 
-
-  const [notIntoGender, setNotIntoGender] = useState(''); 
 
   const [getGenderGroup, { data: genderGroupData }] = useLazyQuery(GET_GENDER_GROUP, 
     { 
