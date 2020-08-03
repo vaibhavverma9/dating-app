@@ -43,8 +43,12 @@ export default function MultipleVideos(props) {
             if(userIndex == renderedUserIndex){
                 const renderedVideoIndexA = videoIndex; 
 
-                const muxPlaybackIdA = user.userVideos[renderedVideoIndexA].muxPlaybackId; 
-                const muxPlaybackUrlA = 'https://stream.mux.com/' + muxPlaybackIdA + '.m3u8';
+                let muxPlaybackUrlA = ''; 
+                
+                if(videoIndex < videoCount){
+                    const muxPlaybackIdA = user.userVideos[renderedVideoIndexA].muxPlaybackId; 
+                    muxPlaybackUrlA = 'https://stream.mux.com/' + muxPlaybackIdA + '.m3u8';    
+                }
 
                 renderedVideos.push(
                     <PlayingVideo

@@ -199,7 +199,7 @@ export default function AddCameraView(props) {
 
     function sendVideo() {
         const passthroughId = Math.floor(Math.random() * 1000000000) + 1; 
-        props.navigation.navigate('Videos', { screen: 'VideosView', params: {videoUri: videoUri, thumbnailUri: thumbnailUri, questionText: questionData[index].questionText, questionId: questionData[index].id, status: 'waiting', passthroughId: passthroughId.toString(), type: 'uploadedVideo', id: passthroughId }});
+        props.navigation.navigate('Your Videos', { screen: 'VideosView', params: {videoUri: videoUri, thumbnailUri: thumbnailUri, questionText: questionData[index].questionText, questionId: questionData[index].id, status: 'waiting', passthroughId: passthroughId.toString(), type: 'uploadedVideo', id: passthroughId }});
         setVideoUri(''); 
         setThumbnailUri(''); 
     }

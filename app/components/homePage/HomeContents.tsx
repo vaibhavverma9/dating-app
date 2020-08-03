@@ -8,7 +8,7 @@ import { INSERT_LIKE, GET_LIKE, client, GET_VIDEOS, INSERT_USER, UPDATE_LIKE, GE
 import OptionsModal from './OptionsModal'; 
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import * as Segment from 'expo-analytics-segment';
-import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid, _retrieveLatitude, _retrieveLongitude, _retrieveName, _retrievePushShown, _storePushShown, _storeName, _storeBio, _retrieveBio, _storeGenderInterest, _retrieveGenderGroup} from '../../utils/asyncStorage'; 
+import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid, _retrieveLatitude, _retrieveLongitude, _retrieveName, _retrievePushShown, _storePushShown, _storeName, _storeBio, _retrieveBio, _storeGenderInterest, _retrieveGenderGroup, _storeAddVideoShown, _retrieveAddVideoShown } from '../../utils/asyncStorage'; 
 import AddVideoPopup from '../modals/AddVideoPopup'; 
 import NoLikesPopup from '../modals/NoLikesPopup'; 
 import PushPopup from '../modals/PushPopup'; 
@@ -22,7 +22,7 @@ import axios from 'axios';
 import * as Network from 'expo-network';
 import { TouchableOpacity } from 'react-native';
 import SingleVideo from '../videosPage/SingleVideo';
-import ProgressBar from 'react-native-progress/Bar'
+import ProgressBar from 'react-native-progress/Bar';
 import { Dimensions } from 'react-native';
 import { getDistance } from 'geolib';
 import { colors } from '../../styles/colors';
@@ -66,7 +66,6 @@ export default function HomeContents(props) {
   const [addPopupVisible, setAddPopupVisible] = useState(false); 
 
   const [expoPushToken, setExpoPushToken] = useState(''); 
-  const [pushPopupShown, setPushPopupShown] = useState(false); 
   const [pushPopupVisible, setPushPopupVisible] = useState(false);
   const [pushName, setPushName] = useState(''); 
 
@@ -288,6 +287,18 @@ export default function HomeContents(props) {
     }); 
   }
 
+  async function createChannel(likedId){
+    try {
+      const response = await axios.post("https://gentle-brook-91508.herokuapp.com/createChannelStream", {
+        userId: userId.toString(),
+        likerId: likedId.toString(),
+      });
+    } catch (err) {
+      console.log(err); 
+      return;
+    }
+  }
+
   async function onLike() { 
 
     const likedId = currentUserId; 
@@ -295,11 +306,18 @@ export default function HomeContents(props) {
     const likedVideoIndex = videoIndex; 
     const likerName = name; 
 
-    // if(profileVideoCount == 0 && userIndex % 5 == 3){
-    //   setAddPopupVisible(true); 
-    // }
+    if(profileVideoCount == 0 && userIndex % 5 == 2){
+      const addVideoShown = await _retrieveAddVideoShown(); 
+      if(!addVideoShown){
+        const { status: existingStatus } = await Permissions.getAsync(Permissions.NOTIFICATIONS);
+        if(existingStatus !== 'granted'){
+          setAddPopupVisible(true); 
+        }
+        _storeAddVideoShown(true);  
+      }
+    }
 
-    if(!pushPopupShown){
+    if(userIndex % 5 == 4){
       const pushShown = await _retrievePushShown(); 
       if (!pushShown && Constants.isDevice) {
         const { status: existingStatus } = await Permissions.getAsync(Permissions.NOTIFICATIONS);
@@ -309,7 +327,6 @@ export default function HomeContents(props) {
         }        
         _storePushShown(true); 
       }
-      setPushPopupShown(true); 
     }
 
     if(userIndex == 10 * (videoCount + 1) || userIndex == 10){
@@ -318,9 +335,8 @@ export default function HomeContents(props) {
       if(!likeColors[likedIndex].like){  
         nextUser(); 
         insertLike({ variables: { likedId: likedId, likerId: userId, matched: false, dislike: false }});
-        if(profileVideoCount > 0){
-          sendLike(likedId, likerName);
-        }
+        sendLike(likedId, likerName);
+        createChannel(likedId); 
         Segment.track("Like User"); 
       } else {
         nextUser(); 
@@ -393,13 +409,15 @@ export default function HomeContents(props) {
       setCurrentCity(videoData[userIndex].city);
       setCurrentRegion(videoData[userIndex].region); 
 
-      setMuxPlaybackId(videoData[userIndex].userVideos[videoIndex].muxPlaybackId); 
- 
       setUserCount(videoData.length); 
       setCurrentUserVideoCount(videoData[userIndex].userVideos.length);
-      setQuestionText(videoData[userIndex].userVideos[videoIndex].videoQuestion.questionText);
-      setFlags(videoData[userIndex].userVideos[videoIndex].flags); 
-      setVideoId(videoData[userIndex].userVideos[videoIndex].id); 
+
+      if(videoIndex < videoData[userIndex].userVideos.length){
+        setMuxPlaybackId(videoData[userIndex].userVideos[videoIndex].muxPlaybackId);  
+        setQuestionText(videoData[userIndex].userVideos[videoIndex].videoQuestion.questionText);
+        setFlags(videoData[userIndex].userVideos[videoIndex].flags); 
+        setVideoId(videoData[userIndex].userVideos[videoIndex].id);   
+      }
     }
 
     if(videoData && userIndex + props.limit > videoData.length && !querying){
@@ -688,6 +706,7 @@ export default function HomeContents(props) {
             setVisible={setAddPopupVisible}
             goToAddVideo={goToAddVideo}
             name={currentName}
+            registerForPushNotificationsAsync={registerForPushNotificationsAsync}
           />
           <PushPopup
             visible={pushPopupVisible}
@@ -713,7 +732,7 @@ export default function HomeContents(props) {
             >
             </SingleVideo>
             <ProgressBarsContainer />
-            <BlurView tint="dark" intensity={20} style={homeStyles.questionContainer}>
+            <BlurView tint="dark" intensity={40} style={homeStyles.questionContainer}>
               <Text style={styles.questionText}>{questionText}</Text>
   
             </BlurView>
@@ -751,6 +770,7 @@ export default function HomeContents(props) {
             visible={addPopupVisible}
             setVisible={setAddPopupVisible}
             goToAddVideo={goToAddVideo}
+            registerForPushNotificationsAsync={registerForPushNotificationsAsync}            
           />
           <PushPopup
             visible={pushPopupVisible}

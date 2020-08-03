@@ -2,12 +2,12 @@ import React, { useEffect, useState, useContext } from 'react';
 import { View, Image, Text, TouchableOpacity, ImageBackground, ActivityIndicator, StyleSheet, RefreshControl } from 'react-native';
 import * as Segment from 'expo-analytics-segment';
 import { Dimensions } from "react-native"; 
-import { GET_LAST_DAY_VIDEOS, INSERT_INIT_VIDEO, UPDATE_LAST_UPLOADED, ON_VIDEO_UPDATED, GET_PAST_VIDEOS, DELETE_VIDEO_PASSTHROUGH_ID, UPDATE_VIDEO_ERRORED } from '../../utils/graphql/GraphqlClient';
+import { GET_LAST_DAY_VIDEOS, INSERT_INIT_VIDEO, UPDATE_LAST_UPLOADED, ON_VIDEO_UPDATED, UPDATE_PROFILE_URL, GET_PAST_VIDEOS, DELETE_VIDEO_PASSTHROUGH_ID, UPDATE_VIDEO_ERRORED, GET_PROFILE_INFO } from '../../utils/graphql/GraphqlClient';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { ScrollView } from 'react-native-gesture-handler';
 import { useMutation, useSubscription, useLazyQuery } from '@apollo/client';
 import FullPageVideos from '../modals/FullPageVideos';
-import { _retrieveName, _retrieveBio } from '../../utils/asyncStorage'; 
+import { _retrieveName, _retrieveBio, _retrieveProfileUrl, _storeProfileUrl } from '../../utils/asyncStorage'; 
 import axios from 'axios';
 import { Ionicons, MaterialIcons, Entypo, SimpleLineIcons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { colors } from '../../styles/colors'; 
@@ -16,6 +16,10 @@ import * as Sentry from 'sentry-expo';
 import Constants from 'expo-constants';
 import { useDoormanUser } from 'react-native-doorman'
 import { _clearDoormanUid, _clearOnboarded, _clearUserId, _clearBio, _clearName } from '../../utils/asyncStorage'; 
+import * as Permissions from 'expo-permissions';
+import * as ImagePicker from 'expo-image-picker';
+import firebaseApp from '../../utils/firebase/fbConfig';
+import * as FileSystem from 'expo-file-system';
 
 export default function VideosView(props) {
 
@@ -26,9 +30,11 @@ export default function VideosView(props) {
     const [updateLastUploaded, { updateLastUploadedData }] = useMutation(UPDATE_LAST_UPLOADED);
     const [deleteVideoPassthrough, { deleteVideoPassthroughData }] = useMutation(DELETE_VIDEO_PASSTHROUGH_ID); 
     const [updateVideoErrored, { updateVideoErroredData }] = useMutation(UPDATE_VIDEO_ERRORED); 
+    const [updateProfileUrl, { updateProfileUrlData }] = useMutation(UPDATE_PROFILE_URL);
 
     const [uploadedVideos, setUploadedVideos] = useState([]); 
     const [name, setName] = useState(''); 
+    const [imageUri, setImageUri] = useState('');
     const [bio, setBio] = useState(''); 
     const [initialized, setInitialized] = useState(false); 
     const [settingsVisible, setSettingsVisible] = useState(false); 
@@ -45,6 +51,7 @@ export default function VideosView(props) {
     const { signOut } = useDoormanUser();
 
     const pressSignOut = async () => {
+    
         await _clearDoormanUid();
         await _clearOnboarded(); 
         await _clearUserId();  
@@ -64,6 +71,20 @@ export default function VideosView(props) {
         onCompleted: (getPastVideosData) => { initPastVideos(getPastVideosData.videos) } 
     }); 
 
+    const [getProfileInfo, { data: getProfileInfoData }] = useLazyQuery(GET_PROFILE_INFO, 
+    { 
+        onCompleted: (getProfileInfoData) => { 
+        
+            const name = getProfileInfoData.users[0].firstName;
+            setName(name);
+            const profileUrl = getProfileInfoData.users[0].profileUrl;
+            // const likeCount = getProfileInfoData.users[0].likesByLikedId_aggregate.aggregate.count;
+            // const videoCount = getProfileInfoData.users[0].userVideos_aggregate.aggregate.count;
+            if(profileUrl != null){
+                setImageUri(profileUrl);     
+            }
+        } 
+    }); 
 
     function wait(timeout) {
         return new Promise(resolve => {
@@ -86,21 +107,28 @@ export default function VideosView(props) {
         Segment.screen('Videos'); 
         getStoredLastDayVideos({variables: { userId, yesterday}}); 
         getPastVideos({variables: { userId, yesterday}}); 
-        initProfile(); 
+        initProfileInfo(); 
+        resetName(); 
         setTimeout(() => { setTimedOut(true) }, 3000); 
     }, [])
 
     useEffect(() => {
         props.navigation.addListener('focus', () => {
-            initProfile(); 
+            resetName(); 
         });  
       }, [props.navigation]);
 
-    async function initProfile(){
+    async function initProfileInfo(){
+        const profileUrl = await _retrieveProfileUrl(); 
+        if(profileUrl != ''){
+            setImageUri(profileUrl); 
+        }
+        getProfileInfo({variables: { userId }}); 
+    }
+
+    async function resetName(){
         const name = await _retrieveName(); 
-        const bio = await _retrieveBio(); 
         setName(name);
-        setBio(bio);
     }
 
     // changes in routes
@@ -129,7 +157,7 @@ export default function VideosView(props) {
     const thumbnailHeight = windowWidth * 0.4; 
 
     function goToAddPage(){
-        props.navigation.navigate('Add');
+        props.navigation.navigate('Add Video');
     }
 
     function VideoView({ video }){
@@ -359,7 +387,32 @@ export default function VideosView(props) {
             xhr.send(null); 
         });
 
-        const res = await axios({
+        // console.log("checking blob", blob); 
+
+        // const video = {
+        //     uri: videoUri,
+        //     type: 'video'
+        // }
+
+        // const data = new FormData(); 
+        // data.append("name", "avatar");
+        // data.append("fileData", video);
+        // data.append("passthroughId", passthroughId); 
+
+        // const config = {
+        //     method: 'POST',
+        //     headers: {
+        //         'Accept': 'application/json',
+        //         'Content-Type': 'multipart/form-data',
+        //     },
+        //     body: data,
+        // };
+
+        // const response = await fetch("https://gentle-brook-91508.herokuapp.com/" + "muxUpload", config);
+
+        // console.log(response); 
+
+        const res = await axios({ 
             method: 'post', 
             url: 'https://gentle-brook-91508.herokuapp.com/muxAuthenticatedUrl',
             data: { "passthroughId" : passthroughId }
@@ -368,29 +421,43 @@ export default function VideosView(props) {
         const authenticatedUrl = res.data.url;
         const status = res.data.status;
 
-        await insertInitVideo({ variables: { questionId: questionId, userId: userId, passthroughId: passthroughId, status: status }})
-        .then()
-        .catch(error => {
-            Sentry.captureException(error);
-        }); 
+        // await insertInitVideo({ variables: { questionId: questionId, userId: userId, passthroughId: passthroughId, status: status }})
+        // .then()
+        // .catch(error => {
+        //     Sentry.captureException(error);
+        // }); 
 
-        try {
-            await fetch(authenticatedUrl, {
-                method: 'PUT', 
-                body: blob, 
-                headers: { "content-type": blob.type}
-            });        
-        } catch(error){
-            const tempUploadedVideos = uploadedVideos.map(uploadedVideo => {
-                if(uploadedVideo.passthroughId == passthroughId){
-                    return {...uploadedVideo, status: "errored"}
-                } else { return uploadedVideo }
-            })
-            setUploadedVideos(tempUploadedVideos); 
-            Sentry.captureException(error);
-        }
 
-        blob.close();
+        // const response = await axios.post("https://gentle-brook-91508.herokuapp.com/muxUpload", {
+        //     blob: blob, 
+        //     passthroughId: passthroughId 
+        // });
+
+        // console.log(response);
+
+        FileSystem.uploadAsync(authenticatedUrl, videoUri, {
+            headers: { "content-type": 'video' },
+            httpMethod: 'PUT'
+        });
+
+        // try {
+        //     await fetch(authenticatedUrl, {
+        //         method: 'PUT', 
+        //         body: blob, 
+        //         headers: { "content-type": blob.type}
+        //     });        
+        // } catch(error){
+        //     console.log(error); 
+            // Sentry.captureException(error);
+            // const tempUploadedVideos = uploadedVideos.map(uploadedVideo => {
+            //     if(uploadedVideo.passthroughId == passthroughId){
+            //         return {...uploadedVideo, status: "errored"}
+            //     } else { return uploadedVideo }
+            // })
+            // setUploadedVideos(tempUploadedVideos); 
+        // }
+
+        // blob.close();}
 
         const timestamp = new Date(); 
         updateLastUploaded({ variables: {userId: userId, timestamp: timestamp}});
@@ -526,9 +593,9 @@ export default function VideosView(props) {
         goToAddPageStyle: {backgroundColor: colors.secondaryBlack, width: thumbnailWidth, height: thumbnailHeight, justifyContent: 'center', alignItems: 'center' },
         videoSectionStyle: { flex: 1, flexDirection: 'row' },
         sectionSubtitles: { color: colors.secondaryWhite },
-        tapToAddName: { fontWeight: '600', fontSize: 20, color: colors.primaryWhite },
-        title: { fontWeight: 'bold', fontSize: 20, color: colors.primaryWhite },
-        namePadding: { padding: 15},
+        tapToAddName: { fontWeight: '400', fontSize: 16, color: colors.primaryWhite },
+        title: { fontWeight: '500', fontSize: 20, color: colors.primaryWhite },
+        namePadding: { paddingTop: 10 },
         bioPadding: { paddingBottom: 25},
         bio: { fontWeight: '200', fontSize: 14, color: colors.primaryWhite },
         editProfileButtonStyle: {  borderWidth: 1, borderRadius: 3, height: 30, width: 130, justifyContent: 'center', alignItems: 'center', borderColor: colors.primaryWhite},
@@ -540,7 +607,7 @@ export default function VideosView(props) {
         headerContainer: { alignItems: 'center'},
         thumbnailPaddingTop: { paddingTop: 10, paddingLeft: thumbnailPadding },
         thumbnailPaddingTop2: { paddingTop: 30, paddingLeft: thumbnailPadding },
-        settingsContainer: { position: "absolute", top: 50, right: 15},
+        settingsContainer: { position: "absolute", top: 10, right: 15},
         badInternetView: { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1},
         reloadText: { color: '#eee', fontSize: 20, paddingHorizontal: 20, paddingVertical: 5}
       
@@ -562,6 +629,80 @@ export default function VideosView(props) {
         }
     }
 
+    function ProfilePicture(){
+        if(imageUri != ''){
+            return(
+                <Image
+                    style={{ height: 120, width: 120, borderRadius: 60}}
+                    source={{ uri: imageUri}}
+                />
+            )
+        } else {
+            return (
+                    <View
+                        style={{ height: 120, width: 120, borderRadius: 60,  borderColor: colors.primaryPurple, borderWidth: 1, justifyContent: 'center', alignItems: 'center' }}
+                    >
+                        <Ionicons name="md-person" size={60} color={colors.primaryPurple} />
+                    </View>
+            )    
+        }
+    }
+
+    const getPermissionAsync = async () => {
+        const { status } = await Permissions.askAsync(Permissions.CAMERA_ROLL);
+        if (status !== 'granted') {
+        alert('Sorry, we need camera roll permissions to make this work!');
+        }
+    };
+
+
+    const pickProfilePicture = async () => {
+        await getPermissionAsync(); 
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.All,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 1,
+            });
+            if (!result.cancelled && result.type == 'video') {
+                alert('Sorry, please upload an image!');      
+            }
+            if (!result.cancelled && result.type == 'image') {
+                setImageUri(result.uri);
+                uploadImage(result.uri); 
+            }
+        } catch (error) {}
+    }
+
+    const uploadImage = async(uri) => {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        const randomId = Math.floor(Math.random() * 1000) + 1; 
+        const imageName = userId + '-' + randomId;
+        var ref = firebaseApp.storage().ref().child('profilePictures/' + imageName);
+        await ref.put(blob);
+        const profileUrl = await ref.getDownloadURL(); 
+        updateProfileUrl({ variables: { userId, profileUrl }})
+        _storeProfileUrl(profileUrl); 
+
+        const profileIds = [{
+            id: userId.toString(), 
+            name: name,
+            image: profileUrl
+        }]; 
+
+        try {
+            const response = await axios.post("https://gentle-brook-91508.herokuapp.com/updateUsersStream", {
+              likerIds: profileIds
+            });
+        } catch (err) {
+            console.log(err); 
+            return;
+        }
+    }
+
+
     if(initialized){
         return (
             <ScrollView 
@@ -569,9 +710,16 @@ export default function VideosView(props) {
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={'#eee'} />}
             >
                 <View style={styles.viewFlexStart}>
-                    <View style={styles.headerContainer}>
+                    <View style={{ paddingLeft: '5%', paddingTop: '5%', width: 140, alignItems: 'center'}}>
+                        <TouchableOpacity onPress={pickProfilePicture}>
+                            <ProfilePicture />
+                        </TouchableOpacity>
                         <Name />
-                        <Bio /> 
+                    </View>
+
+
+
+                    <View style={styles.headerContainer}>
                         <EditProfileButton /> 
                     </View>
                     <View style={styles.thumbnailPaddingTop}>
@@ -629,4 +777,5 @@ export default function VideosView(props) {
             )     
         }
     }
+    
 }

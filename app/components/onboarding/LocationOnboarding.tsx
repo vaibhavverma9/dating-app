@@ -79,7 +79,7 @@ export default function LocationOnboarding() {
 
     if(locationServices) {
         return (
-            <TermsOnboarding />
+            <TabStack /> 
         )
     } else {
         return (
@@ -96,7 +96,7 @@ export default function LocationOnboarding() {
                         </TouchableOpacity>
                     </View>
                 </View>
-                <TouchableOpacity onPress={skipForNow} style={{ height: '25%', justifyContent: 'center'}}>
+                <TouchableOpacity onPress={skipForNow} style={{ height: '5%', justifyContent: 'center'}}>
                     <Text style={{ fontWeight: 'bold', color: secondaryColor, fontSize: 14 }}>Skip for now</Text>
                 </TouchableOpacity>
             </View>

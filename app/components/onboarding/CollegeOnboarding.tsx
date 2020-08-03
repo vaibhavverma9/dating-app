@@ -10,7 +10,7 @@ import { _storeLatitude, _storeLongitude, _storeCollege, _storeCollegeLatitude, 
 import { colors } from '../../styles/colors';
 import CollegeEventsOnboarding from './CollegeEventsOnboarding';
 import Autocomplete from 'react-native-autocomplete-input';
-import LocationOnboarding from './LocationOnboarding';
+import ProfilePictureOnboarding from './ProfilePictureOnboarding';
 import * as Segment from 'expo-analytics-segment';
 
 export default function CollegeOnboarding() {
@@ -21,8 +21,8 @@ export default function CollegeOnboarding() {
     const [college, setCollege] = useState(''); 
     const [nickname, setNickname] = useState('');
     const [submitHidden, setSubmitHidden] = useState(true); 
-    const [colleges, setColleges] = useState(null); 
-    const [filteredColleges, setFilteredColleges] = useState(null); 
+    const [colleges, setColleges] = useState([]); 
+    const [filteredColleges, setFilteredColleges] = useState([]); 
     const [hideResults, setHideResults] = useState(true); 
     const [collegeId, setCollegeId] = useState(null); 
     const [collegeLatitude, setCollegeLatitude] = useState(null); 
@@ -88,9 +88,9 @@ export default function CollegeOnboarding() {
     
     if(collegeSubmitted) {
         return (
-            <LocationOnboarding />
+            <ProfilePictureOnboarding />
         )
-    } else if(filteredColleges) {
+    } else {
         return (
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                 <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: primaryColor }}>
@@ -105,23 +105,22 @@ export default function CollegeOnboarding() {
                             width: '100%', 
                             alignItems: 'center', 
                         }}>
-
-                        <Autocomplete
-                            data={filteredColleges}
-                            defaultValue={college}
-                            onChangeText={item => handleChangeText(item)}
-                            hideResults={hideResults}
-                            renderItem={({ item }) => (
-                                <TouchableOpacity 
-                                    onPress={() => handleSelectItem(item)}
-                                    style={{ height: 40, justifyContent: 'center'}}
-                                >
-                                  <Text style={{ color: primaryColor, fontSize: 14}}>{item.name} ({item.nickname})</Text>
-                                </TouchableOpacity>
-                            )}
-                            containerStyle={{ width: '100%'}}
-                            keyExtractor={(item) => item.id.toString()}
-                        />
+                            <Autocomplete
+                                data={filteredColleges}
+                                defaultValue={college}
+                                onChangeText={item => handleChangeText(item)}
+                                hideResults={hideResults}
+                                renderItem={({ item }) => (
+                                    <TouchableOpacity 
+                                        onPress={() => handleSelectItem(item)}
+                                        style={{ height: 40, justifyContent: 'center'}}
+                                    >
+                                    <Text style={{ color: primaryColor, fontSize: 14}}>{item.name} ({item.nickname})</Text>
+                                    </TouchableOpacity>
+                                )}
+                                containerStyle={{ width: '100%'}}
+                                keyExtractor={(item) => item.id.toString()}
+                            />
                         </View>
                         <SubmitButton />
                     </View>
@@ -130,28 +129,6 @@ export default function CollegeOnboarding() {
                 </View>
             </TouchableWithoutFeedback>
         );
-    } else {
-        return(
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: primaryColor }}>
-                <View style={{ height: '40%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center' }}>
-                    <View style={{ paddingTop: '10%', height: '25%'}}>
-                        <Ionicons name="md-person" size={45} color={primaryColor} />
-                    </View>        
-                    <Text style={{ fontSize: 25, fontWeight: 'bold', padding: 15, height: '25%', color: primaryColor }}>Choose a college</Text>
-                    <View style={{ 
-                            height: '15%',
-                            width: '100%', 
-                            alignItems: 'center', 
-                        }}>
-                    </View>    
-                    <SubmitButton />
-                </View>
-                <View style={{ height: '25%', justifyContent: 'center'}}>
-                </View>
-            </View>
-        </TouchableWithoutFeedback>
-        )
     }
 }
 

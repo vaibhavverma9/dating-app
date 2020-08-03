@@ -1,6 +1,7 @@
 import React from 'react';
 import HomeView from '../components/homePage/HomeView';
 import AddCameraView from '../components/addPage/AddCameraView';
+import LikesView from '../components/likesPage/LikesView'; 
 import MessagesStreamView from '../components/messagesPage/MessagesStreamView'; 
 import VideosView from '../components/videosPage/VideosView'; 
 import EditProfileView from '../components/videosPage/EditProfileView'; 
@@ -68,12 +69,14 @@ export default function TabStack (){
         
                 if (route.name === 'Home') {
                     iconName = 'home';
-                } else if (route.name === 'Add') {
+                } else if (route.name === 'Add Video') {
                     iconName = 'add';
-                } else if (route.name === 'Messages') {
+                } else if (route.name === 'Matches') {
                     iconName = 'inbox';
-                } else if (route.name === 'Videos') {
+                } else if (route.name === 'Your Videos') {
                     iconName = 'video-library';
+                } else if (route.name === 'Likes'){
+                    iconName = 'mood'; 
                 }; 
         
         
@@ -91,9 +94,10 @@ export default function TabStack (){
                 }}
             >
                 <Tab.Screen name="Home" component={HomeView} />
-                <Tab.Screen name="Add" component={AddCameraView} />
-                <Tab.Screen name="Messages" component={MessagesStreamView} />
-                <Tab.Screen name="Videos" component={VideosStack} />
+                <Tab.Screen name="Add Video" component={AddCameraView} />
+                <Tab.Screen name="Likes" component={LikesView} /> 
+                <Tab.Screen name="Matches" component={MessagesStreamView} />
+                <Tab.Screen name="Your Videos" component={VideosStack} />
             </Tab.Navigator>
 
         </NavigationContainer>

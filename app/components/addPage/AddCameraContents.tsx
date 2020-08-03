@@ -23,6 +23,7 @@ export default function AddCameraContents(props) {
     const [type, setType] = useState(Camera.Constants.Type.back);
     const [index, setIndex] = useState(0);
     const [videoUri, setVideoUri] = useState('');
+    const [fileName, setFileName] = useState(''); 
     const [thumbnailUri, setThumbnailUri] = useState('');
     const [recording, setRecording] = useState(false); 
     const [shouldPlay, setShouldPlay] = useState(true);
@@ -109,6 +110,8 @@ export default function AddCameraContents(props) {
         const filteredQuestions = questionData.questions.filter((question, index) => {
             if(index % 7 == weekday){
                 return question; 
+            } else if (props.firstVideo){
+                return question; 
             }
         });
         setQuestionData(filteredQuestions); 
@@ -134,11 +137,12 @@ export default function AddCameraContents(props) {
         await getPermissionAsync(); 
         try {
             const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.All,
-            allowsEditing: true,
-            aspect: [4, 3],
-            quality: 1,
+                mediaTypes: ImagePicker.MediaTypeOptions.All,
+                allowsEditing: true,
+                aspect: [4, 3],
+                quality: 1,
             });
+
             if (!result.cancelled && result.type == 'video') {
                 setVideoUri(result.uri);
                 const { uri } = await VideoThumbnails.getThumbnailAsync(result.uri, { time: 0 }); 
@@ -174,6 +178,7 @@ export default function AddCameraContents(props) {
         if(camera){
             setRecording(true); 
             const recording = await camera.current.recordAsync();
+            console.log(recording);
             setVideoUri(recording.uri); 
             const { uri } = await VideoThumbnails.getThumbnailAsync(recording.uri, { time: 0 }); 
             setThumbnailUri(uri);           
@@ -215,8 +220,7 @@ export default function AddCameraContents(props) {
     async function sendVideo() {
         const passthroughId = Math.floor(Math.random() * 1000000000) + 1; 
 
-        console.log(videoUri, thumbnailUri, questionData[index].questionText, questionData[index].id, passthroughId.toString());
-        await props.navigation.navigate('Videos', { screen: 'VideosView', params: {videoUri: videoUri, thumbnailUri: thumbnailUri, questionText: questionData[index].questionText, questionId: questionData[index].id, status: 'waiting', passthroughId: passthroughId.toString(), type: 'uploadedVideo', id: passthroughId, videoId: null }});
+        await props.navigation.navigate('Your Videos', { screen: 'VideosView', params: {videoUri: videoUri, thumbnailUri: thumbnailUri, questionText: questionData[index].questionText, questionId: questionData[index].id, status: 'waiting', passthroughId: passthroughId.toString(), type: 'uploadedVideo', id: passthroughId, videoId: null }});
         setVideoUri(''); 
         setThumbnailUri(''); 
         setVideoCount(videoCount + 1);     

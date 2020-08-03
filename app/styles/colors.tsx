@@ -6,5 +6,6 @@ export const colors= {
     chineseWhite: '#E1E1E1',
     primaryGray: '#808080',
     secondaryGray: '#778899',
-    primaryPurple: '#734f96'
+    primaryPurple: '#734f96',
+    lightPurple: '#b19cd9'
 };

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext, createRef } from 'react';
 import { StreamChat } from 'stream-chat';
-import { View, SafeAreaView, TouchableOpacity, Text, StyleSheet, Dimensions, ImageBackground } from "react-native";
+import { View, SafeAreaView, TouchableOpacity, Text, StyleSheet, Dimensions, ImageBackground, Image } from "react-native";
 import { UserIdContext } from '../../utils/context/UserIdContext';
 import { _retrieveStreamToken, _storeStreamToken, _retrieveName } from '../../utils/asyncStorage'; 
 import {
@@ -16,13 +16,14 @@ import {
 import { createAppContainer } from 'react-navigation';
 import { createStackNavigator } from 'react-navigation-stack';
 import axios from 'axios';
-import { GET_MATCHES_LIKES, INSERT_LIKE } from '../../utils/graphql/GraphqlClient';
+import { GET_MATCHES, INSERT_LIKE } from '../../utils/graphql/GraphqlClient';
 import { useLazyQuery, useMutation } from '@apollo/client';
 import * as Segment from 'expo-analytics-segment';
 import { colors } from '../../styles/colors';
 import FullPageVideos from '../modals/FullPageVideos';
 import { Ionicons, Feather, Entypo } from '@expo/vector-icons'
 import MessagesOptions from './MessagesOptions'; 
+import MultipleVideoPopup from '../modals/MultipleVideosPopup'; 
 
 const chatClient = new StreamChat('9uzx7652xgte');
 
@@ -30,53 +31,28 @@ export default function MessagesStreamView(props) {
 
   const [userId, setUserId] = useContext(UserIdContext);
   const [loading, setLoading] = useState(false);
-  const [allData, setAllData] = useState([]); 
-  const [likesData, setLikesData] = useState([]); 
-  const [matchesData, setMatchesData] = useState([]);
-  const [enabledData, setEnabledData] = useState([])
-  const [timedOut, setTimedOut] = useState(false);
-
-  const initDisabled = { all: true, matches: false, likes: false };
-  const [disabled, setDisabled] = useState(initDisabled);
-
+  const [matchesData, setMatchesData] = useState(null);
   const [messagesOptionsVisible, setMessagesOptionsVisible] = useState(false); 
   const [optionsProfileId, setOptionsProfileId] = useState(null); 
-  const [insertLike, { insertLikeData }] = useMutation(INSERT_LIKE);
 
-  const [getLikes, { data: likesQueried }] = useLazyQuery(GET_MATCHES_LIKES, 
+  const [getLikes, { data: likesQueried }] = useLazyQuery(GET_MATCHES, 
   { 
     onCompleted: (likesQueried) => { 
-      const matches = likesQueried.matches;
-      const likes = likesQueried.likes;
-      setAllData([...matches, ...likes]); 
+      const matches = likesQueried.likes;
       setMatchesData(matches);
-      setLikesData(likes);
-    } 
+    }
   }); 
 
   useEffect(() => {
     Segment.screen('Messages'); 
     getLikes({ variables: { userId }}); 
-    setTimeout(() => { setTimedOut(true) }, 3000); 
-  }, []);
+  }, []); 
 
   useEffect(() => {
-    if(allData.length > 0){
-      if(disabled.all){
-        setEnabledData(allData); 
-      } else if(disabled.matches){
-        setEnabledData(matchesData); 
-      } else if(disabled.likes){
-        setEnabledData(likesData); 
-      }
-    }
-  }, [disabled, allData]);
-
-  useEffect(() => {
-    if(allData.length > 0){
+    if(matchesData && matchesData.length > 0){
       initClient(); 
     }   
-  }, [allData]);
+  }, [matchesData]);
 
   async function initClient() {
     setLoading(true);
@@ -93,7 +69,6 @@ export default function MessagesStreamView(props) {
 
     let name = await _retrieveName(); 
 
-
     await chatClient.disconnect();
 
     await chatClient.setUser( 
@@ -106,30 +81,6 @@ export default function MessagesStreamView(props) {
 
     setLoading(false);
 
-    const profileIds = allData.map(like => {
-      if(like.profileUser.userVideos.length > 0){
-        return { 
-          id: like.profileId.toString(),
-          name: like.profileUser.firstName,
-          image: 'https://image.mux.com/' + like.profileUser.userVideos[0].muxPlaybackId + '/thumbnail.jpg?time=0'
-        };   
-      } else {
-        return { 
-          id: like.profileId.toString(),
-          name: like.profileUser.firstName
-        };   
-      }
-    });
-
-    try {
-      const response = await axios.post("https://gentle-brook-91508.herokuapp.com/updateUsersStream", {
-        likerIds: profileIds
-      });
-    } catch (err) {
-      console.log(err); 
-      return;
-    }
-
     const filter = { type: 'messaging', $and : [{ members: { $in: [userId.toString()]}}]};
     const sort = { last_message_at: -1 };
 
@@ -138,35 +89,11 @@ export default function MessagesStreamView(props) {
       watch: true,
       state: true,
     });  
-
-    for(let i=0; i < allData.length; i++){
-      const like = allData[i]; 
-      const profileId = like.profileId; 
-
-      const filter = { type: 'messaging', $and : [{ members: { $in: [userId.toString()]}}, { members: { $in: [profileId.toString()]}}]};
-      const sort = { last_message_at: -1 };
-  
-  
-      const channels = await chatClient.queryChannels(filter, sort, {
-        watch: true,
-        state: true,
-      });  
-
-      if(channels.length == 0){
-        try {
-          const response = await axios.post("https://gentle-brook-91508.herokuapp.com/createChannelStream", {
-            userId: userId.toString(),
-            likerId: profileId.toString(),
-          });
-        } catch (err) {
-          return;
-        }
-      }
-    }
   };
 
   function CustomChannelPreview(props){
     const channelPreviewButton = createRef(); 
+    const [popupVisible, setPopupVisible] = useState(false); 
 
     const onSelectChannel = () => {
       props.setActiveChannel(props.channel); 
@@ -179,7 +106,7 @@ export default function MessagesStreamView(props) {
       return memberId != userId.toString(); 
     })[0]);    
 
-    const like = enabledData.filter(like => {
+    const like = matchesData.filter(like => {
       return profileId == like.profileId; 
     });
 
@@ -188,7 +115,11 @@ export default function MessagesStreamView(props) {
     }
 
     const firstName = like[0].profileUser.firstName;
+    const city = like[0].profileUser.city;
+    const region = like[0].profileUser.region;
+    const college = like[0].profileUser.college;
     const videos = like[0].profileUser.userVideos;
+    const profileUrl = like[0].profileUser.profileUrl;
     // console.log(like[0].profileUser.id); 
     const latestMessage = props.latestMessage.text;
 
@@ -236,6 +167,40 @@ export default function MessagesStreamView(props) {
       )
     }
 
+    function watchVideos(){
+      setPopupVisible(true); 
+  }
+
+    function ProfilePicture(){
+      if(profileUrl != null){
+        if(videos.length > 0){
+          return(
+            <View style={{ paddingTop: '2%'}}>
+              <TouchableOpacity onPress={watchVideos} style={{ height: 70, width: 70, borderRadius: 35, borderColor: colors.primaryPurple, borderWidth: 3, alignItems: 'center', justifyContent: 'center'}}>
+                <Image
+                    style={{ height: 60, width: 60, borderRadius: 30 }}
+                    source={{ uri: profileUrl}}
+                />
+              </TouchableOpacity> 
+            </View>
+          )
+        } else {
+          return(
+            <View style={{ paddingTop: '2%'}}>
+              <View style={{ height: 70, width: 70, borderRadius: 35, alignItems: 'center', justifyContent: 'center'}}>
+                  <Image
+                      style={{ height: 60, width: 60, borderRadius: 30 }}
+                      source={{ uri: profileUrl}}
+                  />
+              </View>
+            </View>
+          )                    
+        }
+      } else {
+          return null;  
+      }
+  }
+
     return (
       <TouchableOpacity
         style={{
@@ -246,8 +211,9 @@ export default function MessagesStreamView(props) {
         }}
         onPress={onSelectChannel}
       >
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-          <View style={{ justifyContent: 'space-around', height: 40}}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', height: 60, paddingBottom: 10}}>
+          <ProfilePicture />
+          <View style={{ justifyContent: 'space-around', height: 40, paddingLeft: 5}}>
             <Text
               style={{
                 fontWeight: 'bold',
@@ -270,7 +236,17 @@ export default function MessagesStreamView(props) {
             </Text>
           </View>
         </View>
-        <VideosDisplay videos={videos} />
+        <MultipleVideoPopup 
+          userVideos={videos}
+          visible={popupVisible}
+          setVisible={setPopupVisible}
+          name={firstName}
+          city={city}
+          region={region}
+          college={college}
+        />
+
+        {/* <VideosDisplay videos={videos} /> */}
 
       </TouchableOpacity>
     );
@@ -289,7 +265,7 @@ export default function MessagesStreamView(props) {
               <View style={{ paddingTop: '5%', height: '25%'}}>
                   <Feather name="video" size={45} color={colors.primaryWhite} />
               </View>        
-              <Text style={{ fontSize: 22, fontWeight: 'bold', paddingTop: 12, paddingBottom: 5, color: colors.primaryWhite }}>No likes yet!</Text>
+              <Text style={{ fontSize: 22, fontWeight: 'bold', paddingTop: 12, paddingBottom: 5, color: colors.primaryWhite }}>No matches yet!</Text>
               <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: '300', paddingHorizontal: 5, color: colors.primaryWhite }}>Add videos to get likes from users :)</Text>
               <TouchableOpacity onPress={goToAddVideo} style={{ paddingTop: '8%' }}>
                   <View style={styles.addVideoContainer}>
@@ -302,12 +278,13 @@ export default function MessagesStreamView(props) {
   }
 
   function ChannelListScreen(props){
-    if(allData){
-      if(allData.length > 0){
+    if(matchesData){
+      if(matchesData.length > 0){
         return (
           <SafeAreaView>
             <Chat client={chatClient}>
-              <View style={{ display: 'flex', height: '100%', padding: 10 }}>
+              <View style={{ display: 'flex', height: '100%', paddingLeft: '5%' }}>
+                <Text style={{ fontSize: 27, fontWeight: '500', paddingBottom: '15%'}}>Matches</Text>
                 <ChannelList
                   filters={{ type: 'messaging', members: { $in: [userId.toString()] } }}
                   sort={{ last_message_at: -1 }}
@@ -323,8 +300,8 @@ export default function MessagesStreamView(props) {
                   setVisible={setMessagesOptionsVisible} 
                   userId={userId}
                   currentUserId={optionsProfileId}
-                  allData={allData}
-                  setAllData={setAllData}
+                  allData={matchesData}
+                  setAllData={setMatchesData}
                 />
               </View>
             </Chat>
@@ -340,16 +317,6 @@ export default function MessagesStreamView(props) {
     }
   }
 
-  function disableHeader({text}){
-    if(text == 'ALL') {
-      setDisabled({all: true, matches: false, likes: false }); 
-    } else if (text == 'MATCHES') {
-      setDisabled({all: false, matches: true, likes: false }); 
-    } else if (text == 'LIKES'){
-      setDisabled({all: false, matches: false, likes: true }); 
-    }
-  }
-
   function HeaderButton({text, disabled}){
     const textStyle = disabled ? styles.headerText: styles.disabledHeaderText;
 
@@ -362,13 +329,7 @@ export default function MessagesStreamView(props) {
   }
 
   ChannelListScreen.navigationOptions = () => ({
-    headerTitle: () => (
-      <View style={{ paddingBottom: '1%', flexDirection: 'row', justifyContent: 'space-around', width: '100%' }}>
-          <HeaderButton text={'ALL'} disabled={disabled.all} />
-          <HeaderButton text={'MATCHES'} disabled={disabled.matches} />
-          <HeaderButton text={'LIKES'} disabled={disabled.likes} />
-      </View>
-    ),
+    headerShown: false
   });
 
   function ChannelScreen(props){
@@ -395,7 +356,7 @@ export default function MessagesStreamView(props) {
       return memberId != userId.toString(); 
     })[0]);    
 
-    const like = enabledData.filter(like => {
+    const like = matchesData.filter(like => {
       return profileId == like.profileId; 
     });
 

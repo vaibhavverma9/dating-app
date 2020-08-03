@@ -18,7 +18,6 @@ const iosWriteKey = "0QHHf9Gg55EE10Hi5o0LYMfLMN4X7ypl";
 const androidWriteKey = "idFwR27mq8yZxEpQFGdmdAJ0yzMM6wV0"; 
 
 const graphqlEndpoint = 'https://reel-talk-2.herokuapp.com/v1/graphql'; 
-// const graphqlEndpoint = 'https://vital-robin-42.hasura.app/v1/graphql'; 
 
 const App = React.memo(function App() {
 

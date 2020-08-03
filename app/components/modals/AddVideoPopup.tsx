@@ -6,7 +6,8 @@ import { TouchableOpacity } from 'react-native';
 
 export default function AddVideoPopup(props) {
 
-    function onScreenPress(){
+    function remindLater(){
+        props.registerForPushNotificationsAsync(); 
         props.setVisible(false); 
     }   
 
@@ -16,7 +17,7 @@ export default function AddVideoPopup(props) {
         transparent={true}
         visible={props.visible}>
             <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: '#00000090'}}>
-                <View style={{ backgroundColor: colors.primaryPurple, height: '25%', justifyContent: 'space-evenly', alignItems:'center', borderRadius: 5}}>
+                <View style={{ backgroundColor: colors.primaryPurple, height: '23%', justifyContent: 'space-evenly', alignItems:'center', borderRadius: 5}}>
                     <Text style={{ color: colors.secondaryWhite, fontSize: 16}}>
                         Users won't see your likes until you add a video!
                     </Text>
@@ -24,9 +25,9 @@ export default function AddVideoPopup(props) {
                         <TouchableOpacity onPress={props.goToAddVideo} style={styles.facebookContainer}>
                             <Text style={styles.facebookText}>Add Video</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={onScreenPress} style={{ paddingTop: 10}}>
-                            <Text style={{ color: colors.secondaryWhite}}>
-                                Skip
+                        <TouchableOpacity onPress={remindLater} style={{ paddingTop: 10}}>
+                            <Text style={{ color: colors.secondaryWhite, fontWeight: '600'}}>
+                                Remind you in a few hours?
                             </Text>
                         </TouchableOpacity>
                     </View>

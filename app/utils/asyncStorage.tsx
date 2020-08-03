@@ -216,6 +216,25 @@ export const _retrievePushShown = async() => {
     }
 }
 
+export const _storeAddVideoShown = async(addVideoShown) => {
+    try {
+        await AsyncStorage.setItem('@addVideoShown', addVideoShown.toString());
+    } catch (error) {}
+}
+
+export const _retrieveAddVideoShown = async() => {
+    try {
+        const value = await AsyncStorage.getItem('@addVideoShown');
+        if (value !== null) {
+            return value == "true"; 
+        } else {
+            return false; 
+        }
+    } catch (error) {
+        return false; 
+    }
+}
+
 export const _storeBio = async(bio) => {
     try {
         await AsyncStorage.setItem('@bio', bio);
@@ -468,5 +487,30 @@ export const _retrieveGenderGroup = async () => {
       }
     } catch (error) {
         return 0; 
+    }
+};
+
+export const _storeProfileUrl = async(profileUrl) => {
+    try {
+        await AsyncStorage.setItem('@profileUrl', profileUrl);
+    } catch (error){}
+}
+
+export const _clearProfileUrl = async () => {
+    try {
+        await AsyncStorage.setItem('@profileUrl', '');
+    } catch (error){}
+}
+
+export const _retrieveProfileUrl = async () => {
+    try {
+      const value = await AsyncStorage.getItem('@profileUrl');
+      if (value !== null) {
+        return value; 
+      } else {
+          return ''; 
+      }
+    } catch (error) {
+        return ''; 
     }
 };

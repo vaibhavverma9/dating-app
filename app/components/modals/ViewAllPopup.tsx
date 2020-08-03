@@ -28,11 +28,11 @@ export default function ViewAllPopup(props) {
     };
 
     const ItemSeparator = () => {
-    return (
-        <View style={{ padding: '5%'}}>
-            <Divider /> 
-        </View>
-    );
+        return (
+            <View style={{ padding: '5%'}}>
+                <Divider /> 
+            </View>
+        );
     }
     
 

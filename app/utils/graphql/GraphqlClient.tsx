@@ -5,7 +5,8 @@ import { ApolloClient, HttpLink, InMemoryCache, gql } from '@apollo/client';
 import { WebSocketLink } from 'apollo-link-ws';
 import { createHttpLink } from 'apollo-link-http';
 import { setContext } from 'apollo-link-context';
- 
+// import gql from 'graphql-tag';
+
 export const client = new ApolloClient({
     cache: new InMemoryCache(),
     link: new WebSocketLink({
@@ -120,6 +121,15 @@ export const GET_QUESTIONS = gql`
   }
 `
 
+export const GET_FIRST_QUESTIONS = gql`
+  query GetFirstQuestions {
+    questions(where: {firstSet: {_eq: true}}, order_by: {id: desc}) {
+      id
+      questionText
+    }
+  }
+`
+
 export const GET_QUESTIONS_SAMPLE = gql`
   query GetQuestions {
     questions {
@@ -190,22 +200,18 @@ export const GET_ASSET_STATUS = `
 
 export const GET_LIKES = gql`
   query GetLikes($userId: Int) {
-    likes(distinct_on: likerId, where: {_and: [
-      {likedId: {_eq: $userId}}, 
-      {Liker: {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}}},
-      {Liker: {userVideos: {status: {_eq: "ready"}}}},
-      {dislike: {_eq: false}}
-    ]}) {
-      matched
-      likerId
-      created_at
-      Liker {
+    likes(where: {_and: [{_not: {Liker: {blocksByBlockedId: {blockerId: {_eq: $userId}}}}}, {_not: {Liker: {likesByLikedId: {likerId: {_eq: $userId}}}}, likedId: {_eq: $userId}, dislike: {_eq: false}}]}, distinct_on: likerId) {
+      id
+      userId: likedId
+      profileId: likerId
+      profileUser: Liker {
         firstName
         id
         city
         region
         college
-        userVideos(limit: 3, order_by: {created_at: asc}, where: {muxPlaybackId: {_is_null: false}}) {
+        profileUrl
+        userVideos(limit: 3, order_by: {created_at: asc}, where: {status: {_eq: "ready"}, muxPlaybackId: {_is_null: false}}) {
           videoQuestion {
             questionText
           }
@@ -217,9 +223,10 @@ export const GET_LIKES = gql`
   }
 `
 
-export const GET_MATCHES_LIKES = gql`
+export const GET_MATCHES = gql`
   query GetMatchesLikes($userId: Int){
-    matches: likes(where: {_and: [{_not: {Liker: {blocksByBlockedId: {blockerId: {_eq: 1528}}}}},{Liker: {likesByLikedId: {likerId: {_eq: $userId}, dislike: {_eq: false}}}, likedId: {_eq: $userId}, dislike: {_eq: false}}]}, distinct_on: likerId) {
+    likes(where: {_and: [{_not: {Liker: {blocksByBlockedId: {blockerId: {_eq: 1528}}}}},{Liker: {likesByLikedId: {likerId: {_eq: $userId}, dislike: {_eq: false}}}, likedId: {_eq: $userId}, dislike: {_eq: false}}]}, distinct_on: likerId) {
+      id
       userId: likedId
       profileId: likerId
       profileUser: Liker {
@@ -228,25 +235,8 @@ export const GET_MATCHES_LIKES = gql`
         city
         region
         college
-        userVideos(limit: 3, order_by: {created_at: asc}, where: {muxPlaybackId: {_is_null: false}}) {
-          videoQuestion {
-            questionText
-          }
-          id
-          muxPlaybackId
-        }
-      }
-    }
-    likes: likes(where: {_and: [{_not: {Liker: {blocksByBlockedId: {blockerId: {_eq: $userId}}}}}, {_not: {Liker: {likesByLikedId: {likerId: {_eq: $userId}, dislike: {_eq: false}}}}, likedId: {_eq: $userId}, dislike: {_eq: false}}]}, distinct_on: likerId) {
-      userId: likedId
-      profileId: likerId
-      profileUser: Liker {
-        firstName
-        id
-        city
-        region
-        college
-        userVideos(limit: 3, order_by: {created_at: asc}, where: {muxPlaybackId: {_is_null: false}}) {
+        profileUrl
+        userVideos(limit: 3, order_by: {created_at: asc}, where: {status: {_eq: "ready"}, muxPlaybackId: {_is_null: false}}) {
           videoQuestion {
             questionText
           }
@@ -299,9 +289,17 @@ export const UPDATE_LIKE = gql`
 
 export const UPDATE_LAST_UPLOADED = gql`
     mutation UpdateLastUploaded($userId: Int, $timestamp: timestamptz){
-      update_users(where: {id: {_eq: $userId}}, _set: {lastUploaded: $timestamp, performance: 0.55}) {
+      update_users(where: {id: {_eq: $userId}}, _set: {lastUploaded: $timestamp, performance: 0.9}) {
         affected_rows
       }
+    }
+`
+
+export const UPDATE_PROFILE_URL = gql`
+    mutation UpdateProfileUrl($userId: Int, $profileUrl: String){
+      update_users(where: {id: {_eq: $userId}}, _set: {profileUrl: $profileUrl}) {
+        affected_rows
+      }    
     }
 `
 
@@ -344,7 +342,7 @@ export const GET_USERS_BY_UID = gql`
 
 export const GET_NUMBER_VIDEOS = gql`
   query GetNumberVideos ($userId: Int) {
-    videos_aggregate(where: {_and: {userId: {_eq: $userId}, muxPlaybackId: {_is_null: false}}}) {
+    videos_aggregate(where: {_and: {userId: {_eq: $userId}, status: {_eq: "ready"}, muxPlaybackId: {_is_null: false}}}) {
       aggregate {
         count
       }
@@ -572,6 +570,26 @@ export const GET_GENDER_GROUP = gql`
       group
     }
   }
+`
+
+export const GET_PROFILE_INFO = gql`
+  query GetProfileInfo($userId: Int){
+    users(where: {id: {_eq: $userId}}) {
+      firstName
+      profileUrl
+      likesByLikedId_aggregate(where: {dislike: {_eq: false}}) {
+        aggregate {
+          count
+        }
+      }
+      userVideos_aggregate(where: {status: {_eq: "ready"}}) {
+        aggregate {
+          count
+        }
+      }
+    }
+  }
+
 `
 
 export const UPDATE_GENDER_GROUP = gql`
