@@ -12,12 +12,12 @@ import CollegeEventsOnboarding from './CollegeEventsOnboarding';
 import Autocomplete from 'react-native-autocomplete-input';
 import ProfilePictureOnboarding from './ProfilePictureOnboarding';
 import * as Segment from 'expo-analytics-segment';
+import GenderInterestOnboarding from './GenderInterestOnboarding';
 
-export default function CollegeOnboarding() {
+export default function CollegeOnboarding(props) {
 
     const [userId, setUserId] = useContext(UserIdContext);
     const [updateCollege, { updateCollegeData }] = useMutation(UPDATE_COLLEGE);
-    const [collegeSubmitted, setCollegeSubmitted] = useState(false); 
     const [college, setCollege] = useState(''); 
     const [nickname, setNickname] = useState('');
     const [submitHidden, setSubmitHidden] = useState(true); 
@@ -27,6 +27,8 @@ export default function CollegeOnboarding() {
     const [collegeId, setCollegeId] = useState(null); 
     const [collegeLatitude, setCollegeLatitude] = useState(null); 
     const [collegeLongitude, setCollegeLongitude] = useState(null); 
+    const [sendBack, setSendBack] = useState(false);
+
 
     const [getColleges, { data: collegeData }] = useLazyQuery(GET_COLLEGES, 
         { 
@@ -49,7 +51,7 @@ export default function CollegeOnboarding() {
         _storeCollegeLongitude(collegeLongitude);  
 
         updateCollege({ variables: { userId, college: college, collegeId: collegeId }});
-        setCollegeSubmitted(true); 
+        props.navigation.navigate("ProfilePictureOnboarding")
     }
 
     function handleSelectItem(item){
@@ -74,10 +76,13 @@ export default function CollegeOnboarding() {
 
     function SubmitButton(){
         if(submitHidden){
-            return null;
+            return (
+                <View style={{ paddingTop: '6%' }}>
+                </View>    
+            )
         } else {
             return (
-                <View style={{ paddingTop: '12%' }}>
+                <View style={{ paddingTop: '6%' }}>
                     <TouchableOpacity onPress={submitCollege} style={styles.locationsContainer}>
                         <Text style={styles.locationsText}>Submit</Text>
                     </TouchableOpacity>
@@ -85,51 +90,58 @@ export default function CollegeOnboarding() {
             )    
         }
     }
-    
-    if(collegeSubmitted) {
-        return (
-            <ProfilePictureOnboarding />
-        )
-    } else {
-        return (
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: primaryColor }}>
-                    <View style={{ height: '40%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center' }}>
-                        <View style={{ paddingTop: '10%', height: '25%'}}>
-                            <Ionicons name="md-person" size={45} color={primaryColor} />
-                        </View>        
-                        <Text style={{ fontSize: 25, fontWeight: 'bold', padding: 15, height: '25%', color: primaryColor }}>Choose a college</Text>
 
-                        <View style={{ 
-                            height: '15%',
-                            width: '100%', 
-                            alignItems: 'center', 
-                        }}>
-                            <Autocomplete
-                                data={filteredColleges}
-                                defaultValue={college}
-                                onChangeText={item => handleChangeText(item)}
-                                hideResults={hideResults}
-                                renderItem={({ item }) => (
-                                    <TouchableOpacity 
-                                        onPress={() => handleSelectItem(item)}
-                                        style={{ height: 40, justifyContent: 'center'}}
-                                    >
-                                    <Text style={{ color: primaryColor, fontSize: 14}}>{item.name} ({item.nickname})</Text>
-                                    </TouchableOpacity>
-                                )}
-                                containerStyle={{ width: '100%'}}
-                                keyExtractor={(item) => item.id.toString()}
-                            />
-                        </View>
-                        <SubmitButton />
-                    </View>
-                    <View style={{ height: '25%', justifyContent: 'center'}}>
-                    </View>
-                </View>
-            </TouchableWithoutFeedback>
-        );
+    function SkipButton(){
+        if(!hideResults && filteredColleges.length > 0){
+            return null; 
+        } else {
+            return (
+                <TouchableOpacity onPress={() => {props.navigation.navigate("ProfilePictureOnboarding")}}>
+                    <Text style={{ paddingTop: '3%', color: primaryColor}}>Skip</Text>
+                </TouchableOpacity>
+            )
+        }
     }
+    
+    return (
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: primaryColor }}>
+                <View style={{ height: '40%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center' }}>
+                    <View style={{ paddingTop: '10%', height: '25%'}}>
+                        <Ionicons name="md-person" size={45} color={primaryColor} />
+                    </View>        
+                    <Text style={{ fontSize: 25, fontWeight: 'bold', padding: 15, height: '25%', color: primaryColor }}>Choose a college</Text>
+
+                    <View style={{ 
+                        height: '15%',
+                        width: '100%', 
+                        alignItems: 'center', 
+                    }}>
+                        <Autocomplete
+                            data={filteredColleges}
+                            defaultValue={college}
+                            onChangeText={item => handleChangeText(item)}
+                            hideResults={hideResults}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity 
+                                    onPress={() => handleSelectItem(item)}
+                                    style={{ height: 40, justifyContent: 'center'}}
+                                >
+                                <Text style={{ color: primaryColor, fontSize: 14}}>{item.name} ({item.nickname})</Text>
+                                </TouchableOpacity>
+                            )}
+                            containerStyle={{ width: '100%'}}
+                            keyExtractor={(item) => item.id.toString()}
+                        />
+                    </View>
+                    <SubmitButton />
+                    <SkipButton />
+                </View>
+                <View style={{ height: '25%', justifyContent: 'center'}}>
+                </View>
+            </View>
+        </TouchableWithoutFeedback>
+    );
 }
 
 const primaryColor = colors.primaryPurple;

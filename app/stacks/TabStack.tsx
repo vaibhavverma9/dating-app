@@ -61,7 +61,6 @@ export default function TabStack (){
     }
 
     return (
-        <NavigationContainer>
             <Tab.Navigator
             screenOptions={({ route }) => ({
                 tabBarIcon: ({ color, size }) => {
@@ -100,6 +99,5 @@ export default function TabStack (){
                 <Tab.Screen name="Your Videos" component={VideosStack} />
             </Tab.Navigator>
 
-        </NavigationContainer>
     )
 }

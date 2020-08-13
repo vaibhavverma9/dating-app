@@ -16,46 +16,45 @@ import {
 import { createAppContainer } from 'react-navigation';
 import { createStackNavigator } from 'react-navigation-stack';
 import axios from 'axios';
-import { GET_MATCHES, INSERT_LIKE } from '../../utils/graphql/GraphqlClient';
-import { useLazyQuery, useMutation } from '@apollo/client';
+import { GET_MATCHES, INSERT_LIKE, ON_MATCHES_UPDATED } from '../../utils/graphql/GraphqlClient';
+import { useLazyQuery, useMutation, useSubscription } from '@apollo/client';
 import * as Segment from 'expo-analytics-segment';
 import { colors } from '../../styles/colors';
 import FullPageVideos from '../modals/FullPageVideos';
 import { Ionicons, Feather, Entypo } from '@expo/vector-icons'
 import MessagesOptions from './MessagesOptions'; 
 import MultipleVideoPopup from '../modals/MultipleVideosPopup'; 
+import * as FileSystem from 'expo-file-system';
 
 const chatClient = new StreamChat('9uzx7652xgte');
 
 export default function MessagesStreamView(props) {
 
   const [userId, setUserId] = useContext(UserIdContext);
-  const [loading, setLoading] = useState(false);
   const [matchesData, setMatchesData] = useState(null);
   const [messagesOptionsVisible, setMessagesOptionsVisible] = useState(false); 
   const [optionsProfileId, setOptionsProfileId] = useState(null); 
+  const [initialized, setInitialized] = useState(false); 
 
-  const [getLikes, { data: likesQueried }] = useLazyQuery(GET_MATCHES, 
-  { 
-    onCompleted: (likesQueried) => { 
-      const matches = likesQueried.likes;
-      setMatchesData(matches);
-    }
-  }); 
+  const { data, loading, error } = useSubscription(ON_MATCHES_UPDATED, {variables: { userId }}); 
 
   useEffect(() => {
     Segment.screen('Messages'); 
-    getLikes({ variables: { userId }}); 
   }, []); 
+
+  useEffect(() => {
+    if(data){
+      setMatchesData(data.likes)
+    }
+  }, [data]); 
 
   useEffect(() => {
     if(matchesData && matchesData.length > 0){
       initClient(); 
     }   
-  }, [matchesData]);
+  }, [matchesData]); 
 
   async function initClient() {
-    setLoading(true);
     let token;
     try {
       const response = await axios.post("https://gentle-brook-91508.herokuapp.com/joinStream", {
@@ -69,17 +68,19 @@ export default function MessagesStreamView(props) {
 
     let name = await _retrieveName(); 
 
-    await chatClient.disconnect();
+    if(!initialized){
+      await chatClient.disconnect();
 
-    await chatClient.setUser( 
-      {
-        id: userId.toString(),
-        name: name
-      },
-      token
-    );
+      await chatClient.setUser( 
+        {
+          id: userId.toString(),
+          name: name
+        },
+        token
+      );
 
-    setLoading(false);
+      setInitialized(true); 
+    }
 
     const filter = { type: 'messaging', $and : [{ members: { $in: [userId.toString()]}}]};
     const sort = { last_message_at: -1 };
@@ -254,7 +255,7 @@ export default function MessagesStreamView(props) {
   }
 
   function goToAddVideo(){
-    props.navigation.navigate('Add');
+    props.navigation.navigate('Add Video');
   }
 
 

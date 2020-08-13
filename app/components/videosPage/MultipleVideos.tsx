@@ -7,7 +7,7 @@ import { View, Animated } from 'react-native';
 export default function MultipleVideos(props) {
 
     const playingData = { 
-        isMuted: false, 
+        isMuted: props.isMuted, 
         shouldPlay: props.shouldPlay, 
         playbackObject: props.playbackObject, 
         _onPlaybackStatusUpdate: props._onPlaybackStatusUpdate, 
@@ -116,8 +116,6 @@ function PlayingVideo({playbackObject, source, isMuted, shouldPlay, _onPlaybackS
         <Video
             ref={playbackObject}
             source={{uri: source}}
-            // posterSource={{ uri: posterSource}}
-            // posterStyle={{ width: '100%', height: '100%', display: display, flex: 1 }}
             rate={1.0}
             volume={1.0}
             isMuted={isMuted}
@@ -128,7 +126,7 @@ function PlayingVideo({playbackObject, source, isMuted, shouldPlay, _onPlaybackS
             progressUpdateIntervalMillis={50}
             isLooping
             style={videoStyle}
-            >
+        >
         </Video>
     )
 }

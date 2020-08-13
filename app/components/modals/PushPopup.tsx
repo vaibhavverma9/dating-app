@@ -1,5 +1,5 @@
-import { View, Modal, Text, TouchableHighlight, StyleSheet } from 'react-native';
-import React from 'react'; 
+import { View, Modal, Text, TouchableHighlight, StyleSheet, Image } from 'react-native';
+import React, { useEffect } from 'react'; 
 import { TouchableWithoutFeedback } from 'react-native-gesture-handler';
 import { colors } from '../../styles/colors';
 
@@ -14,6 +14,19 @@ export default function PushPopup(props) {
         props.setVisible(false); 
     }
 
+    function ProfilePicture(){
+        if(props.profileUrl){
+            return (
+                <Image
+                    style={{ height:60, width: 60, borderRadius: 30 }}
+                    source={{ uri: props.profileUrl}}
+                />
+            )
+        } else {
+            return null; 
+        }
+    }
+
     return (
         <Modal
         animationType="slide"
@@ -26,9 +39,15 @@ export default function PushPopup(props) {
                     </View>
                 </TouchableWithoutFeedback> */}
                 <View style={{ backgroundColor: colors.primaryPurple, padding: 16, height: '25%', justifyContent: 'space-evenly', alignItems:'center', borderRadius: 4}}>
-                    <Text style={{ fontSize: 20, fontWeight: 'bold', textAlign: 'center', color: colors.secondaryWhite }}>
-                        Would you like to be notified when users like you back?
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center',  width: '100%'}}>
+                        <ProfilePicture />
+                        <View style={{ width: '80%'}}>
+                            <Text style={{ fontSize: 20, fontWeight: '500', textAlign: 'center', color: colors.secondaryWhite }}>
+                                Would you like to be notified when {props.name} like you back?
+                            </Text>
+                        </View>
+                    </View>                
+
                     <View style={{ flexDirection: 'row', justifyContent: 'space-around', width: '100%'}}>
                         <TouchableHighlight onPress={props.setVisible} style={styles.pushOptionsContainer}>
                             <Text style={styles.pushOptionsText}>No</Text>

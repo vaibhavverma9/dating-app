@@ -49,8 +49,8 @@ const termsLink = () => {
 }
   
 async function sendFeedback () {
-    const { result } = await SMS.sendSMSAsync(
-      ['9496146745'],
-      'Hi Vaibhav from the Reeltalk team! I have some feedback :)'
-    );
+  const { result } = await SMS.sendSMSAsync(
+    ['9496146745'],
+    'Text feedback here :)'
+  );
 };

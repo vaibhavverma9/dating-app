@@ -178,7 +178,6 @@ export default function AddCameraContents(props) {
         if(camera){
             setRecording(true); 
             const recording = await camera.current.recordAsync();
-            console.log(recording);
             setVideoUri(recording.uri); 
             const { uri } = await VideoThumbnails.getThumbnailAsync(recording.uri, { time: 0 }); 
             setThumbnailUri(uri);           
@@ -219,6 +218,8 @@ export default function AddCameraContents(props) {
 
     async function sendVideo() {
         const passthroughId = Math.floor(Math.random() * 1000000000) + 1; 
+
+        Segment.track("Upload Video"); 
 
         await props.navigation.navigate('Your Videos', { screen: 'VideosView', params: {videoUri: videoUri, thumbnailUri: thumbnailUri, questionText: questionData[index].questionText, questionId: questionData[index].id, status: 'waiting', passthroughId: passthroughId.toString(), type: 'uploadedVideo', id: passthroughId, videoId: null }});
         setVideoUri(''); 

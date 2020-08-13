@@ -11,23 +11,32 @@ export default function AddVideoPopup(props) {
         props.setVisible(false); 
     }   
 
+    function skip(){
+        props.setVisible(false); 
+    }
+
     return (
         <Modal
         animationType="slide"
         transparent={true}
         visible={props.visible}>
             <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: '#00000090'}}>
-                <View style={{ backgroundColor: colors.primaryPurple, height: '23%', justifyContent: 'space-evenly', alignItems:'center', borderRadius: 5}}>
+                <View style={{ backgroundColor: colors.primaryPurple, height: '30%', justifyContent: 'space-evenly', alignItems:'center', borderRadius: 5}}>
                     <Text style={{ color: colors.secondaryWhite, fontSize: 16}}>
-                        Users won't see your likes until you add a video!
+                        You won't get likes until you add a video!
                     </Text>
-                    <View style={{ alignItems: 'center'}}>
+                    <View style={{ height: '60%', justifyContent: 'space-evenly'}}>
                         <TouchableOpacity onPress={props.goToAddVideo} style={styles.facebookContainer}>
                             <Text style={styles.facebookText}>Add Video</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={remindLater} style={{ paddingTop: 10}}>
-                            <Text style={{ color: colors.secondaryWhite, fontWeight: '600'}}>
-                                Remind you in a few hours?
+                        <TouchableOpacity onPress={remindLater} style={styles.facebookContainer}>
+                            <Text style={styles.facebookText}>
+                                Remind you later?
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={skip} style={styles.facebookContainer}>
+                            <Text style={styles.facebookText}>
+                                Skip
                             </Text>
                         </TouchableOpacity>
                     </View>
@@ -41,8 +50,8 @@ const styles = StyleSheet.create({
     facebookContainer: { 
         backgroundColor: colors.secondaryWhite, 
         borderRadius: 5,
-        width: 300,
-        height: 50, 
+        width: 225,
+        height: 40, 
         justifyContent: 
         'center', 
         alignItems: 'center'

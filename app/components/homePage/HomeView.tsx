@@ -1,17 +1,17 @@
 import React, { useContext, useState, useEffect } from 'react';
 import HomeContents from './HomeContents';
 import { useQuery, useLazyQuery } from '@apollo/client';
-import { GET_VIDEOS, GET_GENDER_INTEREST, GET_GENDER_GROUP } from '../../utils/graphql/GraphqlClient';
+import { GET_VIDEOS, GET_GENDER_GROUP } from '../../utils/graphql/GraphqlClient';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { _retrieveLatitude, _retrieveLongitude, _retrieveGender, _storeGender, _retrieveGenderInterest, _storeGenderInterest, _storeLastWatchedUpper, _storeLastWatchedLower, _retrieveLastWatchedUpper, _retrieveLastWatchedLower, _retrieveCollegeLatitude, _storeCollegeLatitude, _retrieveCollegeLongitude, _storeCollegeLongitude, _retrieveGenderGroup, _storeGenderGroup} from '../../utils/asyncStorage'; 
-import { View, ActivityIndicator, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import { colors } from '../../styles/colors';
-import { Feather } from '@expo/vector-icons'; 
 
 export default function HomeView({route, navigation}) {
 
   // const [data, setData] = useState(null); 
   const [userId, setUserId] = useContext(UserIdContext);
+  const [secondId, setSecondId] = useState(userId); 
   const limit = 4;
   
   const [genderInterest, setGenderInterest] = useState(''); 
@@ -96,13 +96,13 @@ export default function HomeView({route, navigation}) {
   function Loading(){
     return (
       <View style={{ backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1}}>
-        <ActivityIndicator size="small" color="#eee" />
+        <ActivityIndicator size="small" color="#eee" style={{ opacity: 0.4 }} />
       </View>
     )  
   }
 
   const { loading, error, data } = useQuery(GET_VIDEOS, {
-    variables: { userId, limit, groupPreference, lastPerformance }
+    variables: { userId, limit, groupPreference, lastPerformance, secondId }
   });
 
   // useEffect(() => {
@@ -114,6 +114,12 @@ export default function HomeView({route, navigation}) {
   //     }
   //   }, 5000); 
   // }, [data]); 
+
+  useEffect(() => {
+    if(data && data.usersLocation.length < limit && secondId > 0){
+      setSecondId(0); 
+    }
+  }, [data]); 
 
 
   if(loading){
@@ -136,12 +142,19 @@ export default function HomeView({route, navigation}) {
           lastPerformance={lastPerformance}
           genderGroup={genderGroup}
           assignGenderPreferences={assignGenderPreferences}
+          secondId={secondId}
         />
       )  
     } else {
-      return (
-        <OutOfUsers />
-      )  
+      if(secondId > 0){
+        return (
+          <Loading />
+        )    
+      } else {
+        return (
+          <OutOfUsers />
+        )    
+      }
     }
   } else {
     return (

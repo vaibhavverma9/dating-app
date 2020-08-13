@@ -10,8 +10,9 @@ import GenderInterestOnboarding from './GenderInterestOnboarding';
 import { colors } from '../../styles/colors';
 import * as Segment from 'expo-analytics-segment';
 import { _storeGender } from '../../utils/asyncStorage'; 
+import NameOnboarding from './NameOnboarding';
 
-export default function GenderOnboarding() {
+export default function GenderOnboarding(props) {
 
     const [userId, setUserId] = useContext(UserIdContext);
     const [updateGender, { updateGenderData }] = useMutation(UPDATE_GENDER);
@@ -26,6 +27,7 @@ export default function GenderOnboarding() {
         setGenderSubmitted(true); 
         setGender(1); 
         _storeGender('Man'); 
+        props.navigation.navigate("GenderInterestOnboarding", { gender: 1});
     };
 
     const genderWoman = () => {
@@ -33,6 +35,7 @@ export default function GenderOnboarding() {
         setGenderSubmitted(true); 
         setGender(2); 
         _storeGender('Woman'); 
+        props.navigation.navigate("GenderInterestOnboarding", { gender: 2});
     };
 
     const genderMore = () => {
@@ -42,7 +45,6 @@ export default function GenderOnboarding() {
     const submitGender = () => {
         updateGender({ variables: { userId, gender: genderText }});
         setGenderSubmitted(true); 
-        Segment.track('Onboarding - Submit Gender'); 
     };
 
     const moreMenInterest = () => {
@@ -50,6 +52,7 @@ export default function GenderOnboarding() {
         setGender(1); 
         _storeGender('Man'); 
         setMoreGenders(false); 
+        props.navigation.navigate("GenderInterestOnboarding", { gender: 1});
     };
 
     const moreWomenInterest = () => {
@@ -57,15 +60,10 @@ export default function GenderOnboarding() {
         setGender(2); 
         _storeGender('Woman'); 
         setMoreGenders(false); 
+        props.navigation.navigate("GenderInterestOnboarding", { gender: 2});
     }
 
-    if(!moreGenders && genderSubmitted) {
-        return (
-            <GenderInterestOnboarding
-                gender={gender}
-            />
-        )
-    } else if(moreGenders) {
+    if(moreGenders) {
         if (!genderSubmitted){
             return (
                 <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -95,25 +93,51 @@ export default function GenderOnboarding() {
                                 </TouchableOpacity>
                             </View>
                         </View>
-                        <View style={{ height: '25%', justifyContent: 'center'}}>
-                        </View>
                     </View>
                 </TouchableWithoutFeedback>
             );
         } else {
             return (
+                    <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: primaryColor }}>
+                        <View style={{ height: '40%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center' }}>
+                            <View style={{ paddingTop: '10%', height: '25%'}}>
+                                <Ionicons name="md-person" size={45} color={primaryColor} />
+                            </View>        
+                            <Text style={{ fontSize: 25, fontWeight: 'bold', paddingTop: 15, textAlign: 'center', color: primaryColor }}>Show me to people looking for</Text>
+                            <View style={{ justifyContent: 'space-evenly', height: '50%'}}>
+                                <TouchableOpacity onPress={moreWomenInterest} style={styles.genderContainer}>
+                                    <Text style={styles.genderText}>Women</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={moreMenInterest} style={styles.genderContainer}>
+                                    <Text style={styles.genderText}>Men</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                        <TouchableOpacity style={{ height: '25%', justifyContent: 'center'}}>
+                            <Text style={{ fontWeight: 'bold', color: secondaryColor, fontSize: 14 }}></Text>
+                        </TouchableOpacity>
+                    </View>
+            );
+        }
+    } else {
+        return (
+            <View>
                 <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: primaryColor }}>
                     <View style={{ height: '40%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center' }}>
+
                         <View style={{ paddingTop: '10%', height: '25%'}}>
                             <Ionicons name="md-person" size={45} color={primaryColor} />
                         </View>        
-                        <Text style={{ fontSize: 25, fontWeight: 'bold', paddingTop: 15, textAlign: 'center', color: primaryColor }}>Show me to people looking for</Text>
-                        <View style={{ justifyContent: 'space-evenly', height: '50%'}}>
-                            <TouchableOpacity onPress={moreWomenInterest} style={styles.genderContainer}>
-                                <Text style={styles.genderText}>Women</Text>
+                        <Text style={{ fontSize: 25, fontWeight: 'bold', paddingTop: 15, color: primaryColor }}>What's your gender?</Text>
+                        <View style={{ justifyContent: 'space-evenly', height: '60%'}}>
+                            <TouchableOpacity onPress={genderWoman} style={styles.genderContainer}>
+                                <Text style={styles.genderText}>Woman</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={moreMenInterest} style={styles.genderContainer}>
-                                <Text style={styles.genderText}>Men</Text>
+                            <TouchableOpacity onPress={genderMan} style={styles.genderContainer}>
+                                <Text style={styles.genderText}>Man</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={genderMore} style={styles.genderContainer}>
+                                <Text style={styles.genderText}>More</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -121,31 +145,6 @@ export default function GenderOnboarding() {
                         <Text style={{ fontWeight: 'bold', color: secondaryColor, fontSize: 14 }}></Text>
                     </TouchableOpacity>
                 </View>
-            );
-        }
-    } else {
-        return (
-            <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: primaryColor }}>
-                <View style={{ height: '40%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center' }}>
-                    <View style={{ paddingTop: '10%', height: '25%'}}>
-                        <Ionicons name="md-person" size={45} color={primaryColor} />
-                    </View>        
-                    <Text style={{ fontSize: 25, fontWeight: 'bold', paddingTop: 15, color: primaryColor }}>What's your gender?</Text>
-                    <View style={{ justifyContent: 'space-evenly', height: '60%'}}>
-                        <TouchableOpacity onPress={genderWoman} style={styles.genderContainer}>
-                            <Text style={styles.genderText}>Woman</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={genderMan} style={styles.genderContainer}>
-                            <Text style={styles.genderText}>Man</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={genderMore} style={styles.genderContainer}>
-                            <Text style={styles.genderText}>More</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-                <TouchableOpacity style={{ height: '25%', justifyContent: 'center'}}>
-                    <Text style={{ fontWeight: 'bold', color: secondaryColor, fontSize: 14 }}></Text>
-                </TouchableOpacity>
             </View>
         );
     } 

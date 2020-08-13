@@ -29,13 +29,12 @@ export default function VideosDetailView(props) {
     }, [props.route]);
 
     function goToAddPage(){
-        props.navigation.navigate('Add');
+        props.navigation.navigate('Add Video');
     }
 
     function removeVideo(videoId){
         setVideos(videos.filter(video => {return video.id != videoId })); 
     }
-
 
     function VideoView({ video }){
         if(video.item.type == 'blankVideo') {

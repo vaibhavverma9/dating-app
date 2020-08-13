@@ -20,6 +20,7 @@ import * as Permissions from 'expo-permissions';
 import * as ImagePicker from 'expo-image-picker';
 import firebaseApp from '../../utils/firebase/fbConfig';
 import * as FileSystem from 'expo-file-system';
+import FeedbackPopup from '../modals/FeedbackPopup';
 
 export default function VideosView(props) {
 
@@ -38,11 +39,11 @@ export default function VideosView(props) {
     const [bio, setBio] = useState(''); 
     const [initialized, setInitialized] = useState(false); 
     const [settingsVisible, setSettingsVisible] = useState(false); 
+    const [feedbackVisible, setFeedbackVisible] = useState(false); 
     const [timedOut, setTimedOut] = useState(false);
 
     const [bestVideos, setBestVideos] = useState([]);
     const [averageVideos, setAverageVideos] = useState([]);
-    const [worstVideos, setWorstVideos] = useState([]);
 
     const yesterday = new Date(Date.now() - 86400000); 
     const thumbnailPadding = '0.2%'; 
@@ -59,7 +60,6 @@ export default function VideosView(props) {
         await _clearName(); 
         signOut();
     }
-
 
     const [getStoredLastDayVideos, { data: storedLastDayVideosData }] = useLazyQuery(GET_LAST_DAY_VIDEOS, 
     { 
@@ -135,6 +135,10 @@ export default function VideosView(props) {
     useEffect(() => {
         const params = props.route.params;
         if (params != undefined){
+            if(uploadedVideos.length == 0 && storedLastDayVideos.length == 0){
+                setFeedbackVisible(true);
+            }
+
             setUploadedVideos([params, ...uploadedVideos]);
             postVideo(params);
         }
@@ -147,8 +151,7 @@ export default function VideosView(props) {
 
     function initPastVideos(videoData){
         setBestVideos(videoData.filter(video => { return video.rank == 1 }));
-        setAverageVideos(videoData.filter(video => { return video.rank == 2 }));
-        setWorstVideos(videoData.filter(video => { return video.rank == 3 }));
+        setAverageVideos(videoData.filter(video => { return video.rank == 2 || video.rank == 3 }));
         setInitialized(true); 
     }
 
@@ -176,41 +179,41 @@ export default function VideosView(props) {
             setFullVideoVisible(true); 
         }
 
-        function VideoSubscription({passthroughId}){
-            const { data, loading, error } = useSubscription(ON_VIDEO_UPDATED, {variables: { passthroughId : passthroughId }}); 
-            if(loading){
-                return null; 
-            } 
+        // function VideoSubscription({passthroughId}){
+        //     const { data, loading, error } = useSubscription(ON_VIDEO_UPDATED, {variables: { passthroughId : passthroughId }}); 
+        //     if(loading){
+        //         return null; 
+        //     } 
             
-            if(error || !data) {
-                return null; 
-            }
+        //     if(error || !data) {
+        //         return null; 
+        //     }
 
-            if(data){
-                const videos = data.videos; 
-                if(videos.length > 0){
-                    const videoData = videos[0];
-                    const status = videoData.status;
-                    if(status == "preparing" || status == "ready"){ 
-                        const tempUploadedVideos = uploadedVideos.map(uploadedVideo => {
-                            if(uploadedVideo.passthroughId == passthroughId && uploadedVideo.status != "errored"){
-                                return {...uploadedVideo, status: status, id: videoData.id}
-                            } else { return uploadedVideo }
-                        })
-                        setUploadedVideos(tempUploadedVideos); 
-                    } else if (status == "errored"){
-                        const tempUploadedVideos = uploadedVideos.map(uploadedVideo => {
-                            if(uploadedVideo.passthroughId == passthroughId){
-                                return {...uploadedVideo, status: status, id: videoData.id}
-                            } else { return uploadedVideo }
-                        })
-                        setUploadedVideos(tempUploadedVideos); 
-                    }
-                }
-            }
+        //     if(data){
+        //         const videos = data.videos; 
+        //         if(videos.length > 0){
+        //             const videoData = videos[0];
+        //             const status = videoData.status;
+        //             if(status == "preparing" || status == "ready"){ 
+        //                 const tempUploadedVideos = uploadedVideos.map(uploadedVideo => {
+        //                     if(uploadedVideo.passthroughId == passthroughId && uploadedVideo.status != "errored"){
+        //                         return {...uploadedVideo, status: status, id: videoData.id}
+        //                     } else { return uploadedVideo }
+        //                 })
+        //                 setUploadedVideos(tempUploadedVideos); 
+        //             } else if (status == "errored"){
+        //                 const tempUploadedVideos = uploadedVideos.map(uploadedVideo => {
+        //                     if(uploadedVideo.passthroughId == passthroughId){
+        //                         return {...uploadedVideo, status: status, id: videoData.id}
+        //                     } else { return uploadedVideo }
+        //                 })
+        //                 setUploadedVideos(tempUploadedVideos); 
+        //             }
+        //         }
+        //     }
 
-            return null; 
-        }
+        //     return null; 
+        // }
     
         const [fullVideoVisible, setFullVideoVisible] = useState(false);
         const [status, setStatus] = useState(uploadingVideo.status);
@@ -221,28 +224,28 @@ export default function VideosView(props) {
         const passthroughId = uploadingVideo.passthroughId; 
         const id = uploadingVideo.id; 
 
-        async function reuploadVideo(){
+        // async function reuploadVideo(){
 
-            const uploadedVideosFiltered = uploadedVideos.filter(video => { return video.id !== id })
-            deleteVideoPassthrough({ variables: { passthroughId: passthroughId }}); 
+        //     const uploadedVideosFiltered = uploadedVideos.filter(video => { return video.id !== id })
+        //     deleteVideoPassthrough({ variables: { passthroughId: passthroughId }}); 
 
-            const newPassthroughId = Math.floor(Math.random() * 1000000000) + 1; 
+        //     const newPassthroughId = Math.floor(Math.random() * 1000000000) + 1; 
 
-            const params = {
-                questionText: questionText,
-                questionId: questionId, 
-                thumbnailUri: thumbnailUri,
-                videoUri: videoUri,
-                passthroughId:  newPassthroughId.toString(),
-                status: 'waiting',
-                type: 'uploadedVideo',
-                id: newPassthroughId, 
-                videoId: null
-            }; 
+        //     const params = {
+        //         questionText: questionText,
+        //         questionId: questionId, 
+        //         thumbnailUri: thumbnailUri,
+        //         videoUri: videoUri,
+        //         passthroughId:  newPassthroughId.toString(),
+        //         status: 'waiting',
+        //         type: 'uploadedVideo',
+        //         id: newPassthroughId, 
+        //         videoId: null
+        //     }; 
 
-            setUploadedVideos([params, ...uploadedVideosFiltered]);
-            postVideo(params);
-        };
+        //     setUploadedVideos([params, ...uploadedVideosFiltered]);
+        //     postVideo(params);
+        // };
 
 
         if (status == "ready" || status == "preparing"){
@@ -265,22 +268,6 @@ export default function VideosView(props) {
                     />
                 </View>
             )
-        } else if(status == "errored") {
-            return (
-                <TouchableOpacity onPress={reuploadVideo} style={styles.thumbnailPaddingStyle}>
-                    <ImageBackground
-                        style={styles.thumbnailDimensions}
-                        source={{uri: thumbnailUri}}
-                    >
-                        <View style={styles.activityView}>
-                            <Ionicons name="ios-refresh" color={"#eee"} size={40} />
-                            <Text style={{ color: '#eee', fontSize: 16 }}>Upload failed</Text>
-                        </View>
-                    </ImageBackground>
-                    <VideoSubscription passthroughId={passthroughId} />
-                </TouchableOpacity>
-
-            )
         } else {
             return (
                 <View style={styles.thumbnailPaddingStyle}>
@@ -292,7 +279,6 @@ export default function VideosView(props) {
                             <ActivityIndicator size="small" color="#eee" />
                         </View>
                     </ImageBackground>
-                    <VideoSubscription passthroughId={passthroughId} />
                 </View>
 
             )
@@ -304,7 +290,6 @@ export default function VideosView(props) {
         setStoredLastDayVideos(storedLastDayVideos.filter(video => { return video.id !== videoId }));
         setBestVideos(bestVideos.filter(video => { return video.id !== videoId }));
         setAverageVideos(averageVideos.filter(video => { return video.id !== videoId }));
-        setWorstVideos(worstVideos.filter(video => { return video.id !== videoId }));
     }
 
     function IndividualVideoView({ video }){
@@ -369,9 +354,7 @@ export default function VideosView(props) {
         const thumbnailUri = params.thumbnailUri;
         const videoUri = params.videoUri; 
         const passthroughId = params.passthroughId; 
-
-        
-        Segment.trackWithProperties("Upload Video", { questionId: questionId}); 
+        const videoId = params.videoId;
 
         // Create a blob from the videoUri
         const blob = await new Promise((resolve, reject) => {
@@ -387,31 +370,6 @@ export default function VideosView(props) {
             xhr.send(null); 
         });
 
-        // console.log("checking blob", blob); 
-
-        // const video = {
-        //     uri: videoUri,
-        //     type: 'video'
-        // }
-
-        // const data = new FormData(); 
-        // data.append("name", "avatar");
-        // data.append("fileData", video);
-        // data.append("passthroughId", passthroughId); 
-
-        // const config = {
-        //     method: 'POST',
-        //     headers: {
-        //         'Accept': 'application/json',
-        //         'Content-Type': 'multipart/form-data',
-        //     },
-        //     body: data,
-        // };
-
-        // const response = await fetch("https://gentle-brook-91508.herokuapp.com/" + "muxUpload", config);
-
-        // console.log(response); 
-
         const res = await axios({ 
             method: 'post', 
             url: 'https://gentle-brook-91508.herokuapp.com/muxAuthenticatedUrl',
@@ -421,46 +379,35 @@ export default function VideosView(props) {
         const authenticatedUrl = res.data.url;
         const status = res.data.status;
 
-        // await insertInitVideo({ variables: { questionId: questionId, userId: userId, passthroughId: passthroughId, status: status }})
-        // .then()
-        // .catch(error => {
-        //     Sentry.captureException(error);
-        // }); 
-
-
-        // const response = await axios.post("https://gentle-brook-91508.herokuapp.com/muxUpload", {
-        //     blob: blob, 
-        //     passthroughId: passthroughId 
-        // });
-
-        // console.log(response);
+        await insertInitVideo({ variables: { questionId: questionId, userId: userId, passthroughId: passthroughId, status: status }})
+        .then()
+        .catch(error => {
+            Sentry.captureException(error);
+        }); 
 
         FileSystem.uploadAsync(authenticatedUrl, videoUri, {
             headers: { "content-type": 'video' },
             httpMethod: 'PUT'
         });
 
-        // try {
-        //     await fetch(authenticatedUrl, {
-        //         method: 'PUT', 
-        //         body: blob, 
-        //         headers: { "content-type": blob.type}
-        //     });        
-        // } catch(error){
-        //     console.log(error); 
-            // Sentry.captureException(error);
-            // const tempUploadedVideos = uploadedVideos.map(uploadedVideo => {
-            //     if(uploadedVideo.passthroughId == passthroughId){
-            //         return {...uploadedVideo, status: "errored"}
-            //     } else { return uploadedVideo }
-            // })
-            // setUploadedVideos(tempUploadedVideos); 
-        // }
-
-        // blob.close();}
-
         const timestamp = new Date(); 
         updateLastUploaded({ variables: {userId: userId, timestamp: timestamp}});
+
+        const uploadedVideosFiltered = uploadedVideos.filter(video => { return video.id !== passthroughId });
+
+        const newParams = {
+            questionText: questionText,
+            questionId: questionId, 
+            thumbnailUri: thumbnailUri,
+            videoUri: videoUri,
+            passthroughId:  passthroughId,
+            status: 'preparing',
+            type: 'uploadedVideo',
+            id: passthroughId, 
+            videoId: null
+        }; 
+
+        setUploadedVideos([newParams, ...uploadedVideosFiltered]);
     }
 
     function VideoSection ({ videos }) {        
@@ -471,13 +418,21 @@ export default function VideosView(props) {
         )
     }
 
-    function LastDayVideosSubtitle({ videosLength }) {
-        if(videosLength == 0){
-            return null;
-        } else {
+    function LastDayVideosSubtitle() {
+        if(bestVideos.length > 0 || averageVideos.length > 0){
             return (
-                <Text style={styles.sectionSubtitles}>Add videos to stay on top of the feed</Text>
-            )
+                <Text style={styles.sectionSubtitles}>Add videos to stay on top of the feed.</Text>
+            )    
+        } else {
+            if(lastDayVideos.length > 1){
+                return (
+                    <Text style={styles.sectionSubtitles}>We show up to four videos to each user.</Text>   
+                )    
+            } else {
+                return (
+                    <Text style={styles.sectionSubtitles}>Add videos to get likes from users.</Text>   
+                )    
+            }
         }
     }
 
@@ -527,7 +482,7 @@ export default function VideosView(props) {
     }
 
     function goToNewVideos(){
-        const title = 'New Videos'; 
+        const title = 'Recent Videos'; 
         props.navigation.navigate('VideosDetail', {title, videos: lastDayVideos}); 
     }
 
@@ -537,14 +492,10 @@ export default function VideosView(props) {
     }
 
     function goToAverageVideos(){
-        const title = 'Your Good Videos'; 
+        const title = 'Archived Videos'; 
         props.navigation.navigate('VideosDetail', {title, videos: averageVideos});
     }
 
-    function goToWorstVideos(){
-        const title = 'Your Not-So-Great Videos'; 
-        props.navigation.navigate('VideosDetail', {title, videos: worstVideos});
-    }
 
     function EditProfileButton () {
         return (
@@ -575,7 +526,17 @@ export default function VideosView(props) {
     function BestVideoSubtitle(){
         if(bestVideos.length > 0){
             return (
-                <Text style={styles.sectionSubtitles}>We show your best videos to each user.</Text>
+                <Text style={styles.sectionSubtitles}>We show your best videos more often.</Text>
+            )    
+        } else {
+            return null; 
+        }
+    }
+
+    function AverageVideosSubtitle(){
+        if(averageVideos.length > 0){
+            return (
+                <Text style={styles.sectionSubtitles}>We no longer show these videos.</Text>
             )    
         } else {
             return null; 
@@ -604,13 +565,12 @@ export default function VideosView(props) {
         titleView: { flexDirection: 'row', alignItems: 'flex-end'},
         scrollViewStyle: { flex: 1, backgroundColor: colors.primaryBlack },
         viewFlexStart: { justifyContent: 'flex-start'},
-        headerContainer: { alignItems: 'center'},
+        headerContainer: { alignItems: 'center', paddingTop: 10},
         thumbnailPaddingTop: { paddingTop: 10, paddingLeft: thumbnailPadding },
         thumbnailPaddingTop2: { paddingTop: 30, paddingLeft: thumbnailPadding },
         settingsContainer: { position: "absolute", top: 10, right: 15},
         badInternetView: { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', flex: 1},
         reloadText: { color: '#eee', fontSize: 20, paddingHorizontal: 20, paddingVertical: 5}
-      
     });
 
     function Settings(){
@@ -702,6 +662,30 @@ export default function VideosView(props) {
         }
     }
 
+    function RecentVideosTitle(){
+        if(bestVideos.length > 0 || averageVideos.length > 0){
+            return (
+                <View>
+                    <TouchableOpacity onPress={goToNewVideos} style={styles.titleView}>
+                        <Text style={styles.title}>Recent Videos</Text>
+                        <Entypo name="chevron-right" color={colors.primaryWhite} size={17}/>  
+                    </TouchableOpacity>
+                    <LastDayVideosSubtitle />
+                </View>
+            )
+        } else {
+            return (
+                <View>
+                    <TouchableOpacity onPress={goToNewVideos} style={styles.titleView}>
+                        <Text style={styles.title}>Videos</Text>
+                        <Entypo name="chevron-right" color={colors.primaryWhite} size={17}/>  
+                    </TouchableOpacity>
+                    <LastDayVideosSubtitle />
+                </View>
+            )
+        }
+    }
+
 
     if(initialized){
         return (
@@ -710,7 +694,7 @@ export default function VideosView(props) {
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={'#eee'} />}
             >
                 <View style={styles.viewFlexStart}>
-                    <View style={{ paddingLeft: '5%', paddingTop: '5%', width: 140, alignItems: 'center'}}>
+                    <View style={{ paddingLeft: '5%', paddingTop: '5%', width: '100%', alignItems: 'center', justifyContent: 'center'}}>
                         <TouchableOpacity onPress={pickProfilePicture}>
                             <ProfilePicture />
                         </TouchableOpacity>
@@ -723,13 +707,7 @@ export default function VideosView(props) {
                         <EditProfileButton /> 
                     </View>
                     <View style={styles.thumbnailPaddingTop}>
-                        <TouchableOpacity onPress={goToNewVideos}>
-                            <View style={styles.titleView}>
-                                <Text style={styles.title}>New Videos</Text>
-                                <Entypo name="chevron-right" color={colors.primaryWhite} size={17}/>  
-                            </View>
-                            <LastDayVideosSubtitle videosLength={lastDayVideos.length} />
-                        </TouchableOpacity>
+                        <RecentVideosTitle />
                         <VideoSection videos={lastDayVideos.slice(0, 3)}/>
                         <VideoSection videos={lastDayVideos.slice(3, 6)}  />
                     </View>
@@ -743,39 +721,24 @@ export default function VideosView(props) {
                     </View>
                     <View style={styles.thumbnailPaddingTop2}>
                         <TouchableOpacity style={styles.titleView} onPress={goToAverageVideos}>
-                            <SectionTitle text={'Good Videos'} videos={averageVideos} />
+                            <SectionTitle text={'Archived Videos'} videos={averageVideos} />
                         </TouchableOpacity>
+                        <AverageVideosSubtitle />
                         <VideoSection videos={averageVideos.slice(0, 3)}  />
                         <VideoSection videos={averageVideos.slice(3, 6)}  />
-                    </View>
-                    <View style={styles.thumbnailPaddingTop2}>
-                        <TouchableOpacity style={styles.titleView} onPress={goToWorstVideos}>
-                            <SectionTitle text={'Not-So-Great Videos'} videos={worstVideos} />
-                        </TouchableOpacity>
-                        <VideoSection videos={worstVideos.slice(0, 3)}  />
-                        <VideoSection videos={worstVideos.slice(3, 6)}  />
                     </View>
                 </View>
                 <Settings />
                 <SettingsPopup visible={settingsVisible} setVisible={setSettingsVisible} />
+                <FeedbackPopup visible={feedbackVisible} setVisible={setFeedbackVisible} />
             </ScrollView>
         );
     } else {
-        if(timedOut){
-            return (
-                <View style={styles.badInternetView}>
-                    <View style={{ borderWidth: 1, borderColor: '#eee', justifyContent: 'center', borderRadius: 5}}>
-                        <Text style={styles.reloadText}>We're losing you. Please check your network connection.</Text>          
-                    </View>
-                </View>
-              )
-        } else {
-            return (
-                <View style={styles.activityView}>
-                  <ActivityIndicator size="small" color="#eee" />
-                </View>
-            )     
-        }
+        return (
+            <View style={styles.activityView}>
+                <ActivityIndicator size="small" color="#eee" />
+            </View>
+        )     
     }
     
 }

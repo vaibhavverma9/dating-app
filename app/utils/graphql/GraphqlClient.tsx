@@ -30,6 +30,7 @@ export const client = new ApolloClient({
 export const GET_VIDEOS = gql`
   fragment videoFields on users {
     firstName
+    birthday
     city
     region
     college
@@ -51,17 +52,20 @@ export const GET_VIDEOS = gql`
     id
     lastUploaded
     performance
+    profileUrl
   }
 
-  query GetVideos ($userId: Int, $limit: Int, $groupPreference: [Int!], $lastPerformance: numeric) { 
+  query GetVideos ($userId: Int, $limit: Int, $groupPreference: [Int!], $lastPerformance: numeric, $secondId: Int) { 
     usersLocation: users (
       limit: $limit, 
       where: {_and: [
-        {userVideos: {status: {_eq: "ready"}}},
+        {userVideos: {status: {_eq: "ready"}, _or: [{rank: {_eq: 1}},{views: {_lt: 10}}]}},
         {_not: {id: {_eq: $userId}}},        
         {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}},
         {performance: {_lt: $lastPerformance}},
-        {_not: {likesByLikedId: {likerId: {_eq: $userId}}}}, 
+        {_or: [{_not: {likesByLikedId: {likerId: {_eq: $userId}}}},
+          {_not: {likesByLikedId: {likerId: {_eq: $secondId}}}}
+        ]},
         {group: {_in: $groupPreference}}
       ]}, 
       order_by: {performance: desc_nulls_last}
@@ -76,7 +80,7 @@ export const GET_LAST_DAY_VIDEOS = gql`
     videos(where: 
       {userId: {_eq: $userId}, 
       status: {_eq: "ready"},
-      created_at: {_gt: $yesterday}}
+      views: {_lt: 10}}
     , order_by: {created_at: desc}){
       id
       muxPlaybackId
@@ -96,7 +100,7 @@ export const GET_PAST_VIDEOS = gql`
     videos(where: 
       {userId: {_eq: $userId}, 
       status: {_eq: "ready"},
-      created_at: {_lte: $yesterday}}
+      views: {_gte: 10}}
     , order_by: {created_at: desc}){
       id
       muxPlaybackId
@@ -123,7 +127,7 @@ export const GET_QUESTIONS = gql`
 
 export const GET_FIRST_QUESTIONS = gql`
   query GetFirstQuestions {
-    questions(where: {firstSet: {_eq: true}}, order_by: {id: desc}) {
+    questions(where: {firstSet: {_eq: true}}, order_by: {id: asc}) {
       id
       questionText
     }
@@ -207,11 +211,12 @@ export const GET_LIKES = gql`
       profileUser: Liker {
         firstName
         id
+        birthday
         city
         region
         college
         profileUrl
-        userVideos(limit: 3, order_by: {created_at: asc}, where: {status: {_eq: "ready"}, muxPlaybackId: {_is_null: false}}) {
+        userVideos(limit: 4, order_by: {created_at: asc}, where: {_or: [{rank: {_eq: 1}},{views: {_lt: 10}}], status: {_eq: "ready"}, muxPlaybackId: {_is_null: false}}) {
           videoQuestion {
             questionText
           }
@@ -231,12 +236,13 @@ export const GET_MATCHES = gql`
       profileId: likerId
       profileUser: Liker {
         firstName
+        birthday
         id
         city
         region
         college
         profileUrl
-        userVideos(limit: 3, order_by: {created_at: asc}, where: {status: {_eq: "ready"}, muxPlaybackId: {_is_null: false}}) {
+        userVideos(limit: 4, order_by: {created_at: asc}, where: {_or: [{rank: {_eq: 1}},{views: {_lt: 10}}], status: {_eq: "ready"}, muxPlaybackId: {_is_null: false}}) {
           videoQuestion {
             questionText
           }
@@ -331,6 +337,31 @@ export const ON_VIDEO_UPDATED = gql`
   }
 `
 
+export const ON_MATCHES_UPDATED = gql`
+  subscription OnMatchesUpdated($userId: Int){
+    likes(where: {_and: [{_not: {Liker: {blocksByBlockedId: {blockerId: {_eq: 1528}}}}},{Liker: {likesByLikedId: {likerId: {_eq: $userId}, dislike: {_eq: false}}}, likedId: {_eq: $userId}, dislike: {_eq: false}}]}, distinct_on: likerId) {
+      id
+      userId: likedId
+      profileId: likerId
+      profileUser: Liker {
+        firstName
+        id
+        city
+        region
+        college
+        profileUrl
+        userVideos(limit: 3, order_by: {created_at: asc}, where: {status: {_eq: "ready"}, muxPlaybackId: {_is_null: false}}) {
+          videoQuestion {
+            questionText
+          }
+          id
+          muxPlaybackId
+        }
+      }
+    }
+  }
+`
+
 export const GET_USERS_BY_UID = gql`
   query GetUsersByUid ($uid: String){
     users(where: {uid: {_eq: $uid}}) {
@@ -393,6 +424,14 @@ export const UPDATE_REGION = gql`
 export const UPDATE_NAME = gql`
   mutation UpdateName ($userId: Int, $firstName: String) {
     update_users(where: {id: {_eq: $userId}}, _set: {firstName: $firstName}) {
+      affected_rows
+    }
+  }
+`
+
+export const UPDATE_BIRTHDAY = gql`
+  mutation UpdateBirthday($userId: Int, $birthday: date){
+    update_users(where: {id: {_eq: $userId}}, _set: {birthday: $birthday}) {
       affected_rows
     }
   }
@@ -596,6 +635,14 @@ export const UPDATE_GENDER_GROUP = gql`
   mutation UpdateGenderGroup ($userId: Int, $group: Int) {
     update_users(where: {id: {_eq: $userId}}, _set: {group: $group}) {
       affected_rows
+    }
+  }
+`
+
+export const INSERT_NPS = gql`
+  mutation InsertNps ($userId: Int, $nps: Int) {
+    insert_feedback_one(object: {nps: $nps, userId: $userId}) {
+      userId
     }
   }
 `

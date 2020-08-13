@@ -6,7 +6,6 @@ import { UserIdContext } from '../../utils/context/UserIdContext'
 import { useMutation } from '@apollo/client';
 import { UPDATE_GENDER_INTEREST, UPDATE_GENDER_GROUP } from '../../utils/graphql/GraphqlClient';
 import { _storeGenderInterest, _storeGenderGroup } from '../../utils/asyncStorage'; 
-import CollegeOnboarding from './CollegeOnboarding';
 import { colors } from '../../styles/colors';
 import * as Segment from 'expo-analytics-segment';
 
@@ -17,14 +16,13 @@ export default function GenderInterestOnboarding(props) {
     const [updateGenderInterest, { updateGenderInterestData }] = useMutation(UPDATE_GENDER_INTEREST);
     const [updateGenderGroup, { updateGenderGroupData }] = useMutation(UPDATE_GENDER_GROUP);
 
-
     const interestMan = () => {
         updateGenderInterest({ variables: { userId, genderInterest: 'Men' }});
-        if(props.gender == 1){
+        if(props.route.params.gender == 1){
             // user identifies as a man
             _storeGenderGroup(4); 
             updateGenderGroup({ variables: { userId, group: 4}});
-        } else if(props.gender == 2){
+        } else if(props.route.params.gender == 2){
             // user identifies as a woman
             _storeGenderGroup(2); 
             updateGenderGroup({ variables: { userId, group: 2}});
@@ -36,15 +34,16 @@ export default function GenderInterestOnboarding(props) {
         _storeGenderInterest('Men'); 
         setGenderInterestSubmitted(true); 
         Segment.track("Onboarding - Submit Gender");
+        props.navigation.navigate("AgeOnboarding");
     };
 
     const interestWoman = () => {
         updateGenderInterest({ variables: { userId, genderInterest: 'Women' }});
-        if(props.gender == 1){
+        if(props.route.params.gender == 1){
             // user identifies as a man
             _storeGenderGroup(1); 
             updateGenderGroup({ variables: { userId, group: 1}});
-        } else if(props.gender == 2){
+        } else if(props.route.params.gender == 2){
             // user identifies as a woman
             _storeGenderGroup(5); 
             updateGenderGroup({ variables: { userId, group: 5}});
@@ -55,15 +54,16 @@ export default function GenderInterestOnboarding(props) {
         _storeGenderInterest('Women');
         setGenderInterestSubmitted(true); 
         Segment.track("Onboarding - Submit Gender");
+        props.navigation.navigate("AgeOnboarding");
     };
 
     const interestEveryone = () => {
         updateGenderInterest({ variables: { userId, genderInterest: 'Everyone' }});
-        if(props.gender == 1){
+        if(props.route.params.gender == 1){
             // user identifies as a man
             _storeGenderGroup(3); 
             updateGenderGroup({ variables: { userId, group: 3}});
-        } else if(props.gender == 2){
+        } else if(props.route.params.gender == 2){
             // user identifies as a woman
             _storeGenderGroup(6); 
             updateGenderGroup({ variables: { userId, group: 6}});
@@ -74,38 +74,33 @@ export default function GenderInterestOnboarding(props) {
         _storeGenderInterest('Everyone');
         setGenderInterestSubmitted(true); 
         Segment.track("Onboarding - Submit Gender");
+        props.navigation.navigate("AgeOnboarding");
     }; 
 
-    if(genderInterestSubmitted) {
-        return (
-            <CollegeOnboarding />
-        )
-    } else {
-        return (
-            <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: primaryColor }}>
-                <View style={{ height: '40%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center' }}>
-                    <View style={{ paddingTop: '10%', height: '25%'}}>
-                        <Ionicons name="md-person" size={45} color={primaryColor} />
-                    </View>        
-                    <Text style={{ fontSize: 25, fontWeight: 'bold', paddingTop: 15, textAlign: 'center', color: primaryColor }}>I'm looking to date</Text>
-                    <View style={{ justifyContent: 'space-evenly', height: '60%'}}>
-                        <TouchableOpacity onPress={interestWoman} style={styles.genderContainer}>
-                            <Text style={styles.genderText}>Women</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={interestMan} style={styles.genderContainer}>
-                            <Text style={styles.genderText}>Men</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={interestEveryone} style={styles.genderContainer}>
-                            <Text style={styles.genderText}>Everyone</Text>
-                        </TouchableOpacity>
-                    </View>
+    return (
+        <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: primaryColor }}>
+            <View style={{ height: '40%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center' }}>
+                <View style={{ paddingTop: '10%', height: '25%'}}>
+                    <Ionicons name="md-person" size={45} color={primaryColor} />
+                </View>        
+                <Text style={{ fontSize: 25, fontWeight: 'bold', paddingTop: 15, textAlign: 'center', color: primaryColor }}>I'm looking to date</Text>
+                <View style={{ justifyContent: 'space-evenly', height: '60%'}}>
+                    <TouchableOpacity onPress={interestWoman} style={styles.genderContainer}>
+                        <Text style={styles.genderText}>Women</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={interestMan} style={styles.genderContainer}>
+                        <Text style={styles.genderText}>Men</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={interestEveryone} style={styles.genderContainer}>
+                        <Text style={styles.genderText}>Everyone</Text>
+                    </TouchableOpacity>
                 </View>
-                <TouchableOpacity style={{ height: '25%', justifyContent: 'center'}}>
-                    <Text style={{ fontWeight: 'bold', color: secondaryColor, fontSize: 14 }}></Text>
-                </TouchableOpacity>
             </View>
-        );
-    }
+            <TouchableOpacity style={{ height: '25%', justifyContent: 'center'}}>
+                <Text style={{ fontWeight: 'bold', color: secondaryColor, fontSize: 14 }}></Text>
+            </TouchableOpacity>
+        </View>
+    );
 }
 
 const primaryColor = colors.primaryPurple;

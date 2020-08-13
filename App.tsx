@@ -13,6 +13,8 @@ import AppNavigator from './AppNavigator';
 import { colors } from './app/styles/colors';
 import { withOta } from './app/hoc/with-ota';
 import firebaseApp from './app/utils/firebase/fbConfig';
+import * as Network from 'expo-network';
+import { View, Text, TouchableOpacity } from 'react-native'; 
 
 const iosWriteKey = "0QHHf9Gg55EE10Hi5o0LYMfLMN4X7ypl"; 
 const androidWriteKey = "idFwR27mq8yZxEpQFGdmdAJ0yzMM6wV0"; 
@@ -20,8 +22,6 @@ const androidWriteKey = "idFwR27mq8yZxEpQFGdmdAJ0yzMM6wV0";
 const graphqlEndpoint = 'https://reel-talk-2.herokuapp.com/v1/graphql'; 
 
 const App = React.memo(function App() {
-
-  console.log("rerendering App"); 
 
   useEffect(() => {
     if (!global.btoa) {
@@ -91,22 +91,20 @@ function DoormanAuthenticatedApp () {
       const token = await user.getIdToken(); 
       const idTokenResult = await user.getIdTokenResult();
       const hasuraClaim = idTokenResult.claims["https://hasura.io/jwt/claims"];
-
       
-      if(hasuraClaim){
-        setAuthState({ status: "in", token });
+      if (hasuraClaim) {
+        setAuthState({ status: "in", user, token });
       } else {
         // Check if refresh is required.
-        const metadataRef = firebaseApp
+        const metadataRef = firebase
           .database()
           .ref("metadata/" + user.uid + "/refreshTime");
-  
+
         metadataRef.on("value", async (data) => {
-          if(!data.exists()) return;
+          if(!data.exists) return
           // Force refresh to pick up the latest custom claims changes.
           const token = await user.getIdToken(true);
-          // console.log(token); 
-          setAuthState({ status: "in", token });
+          setAuthState({ status: "in", user, token });
         });
       }
     } else {
@@ -120,6 +118,17 @@ function DoormanAuthenticatedApp () {
 }
 
 function FirebaseAuthenticatedApp({authState}){
+
+  const [connectedInternet, setConnectedInternet] = useState(true); 
+
+  async function networkConnected(){
+    const networkInfo = await Network.getNetworkStateAsync(); 
+    setConnectedInternet(networkInfo.isConnected); 
+  }
+
+  useEffect(() => {
+    networkConnected(); 
+  }, []); 
 
   const isIn = authState.status === "in";
   const headers = isIn ? { Authorization: `Bearer ${authState.token}` } : {};
@@ -138,15 +147,25 @@ function FirebaseAuthenticatedApp({authState}){
     })
   });
 
-  // console.log(client); 
+  if(connectedInternet){
+    return (
+      <ApolloProvider client={client}>
+        <UserIdContextProvider>
+          <AppNavigator />
+        </UserIdContextProvider>
+      </ApolloProvider>
+    )  
+  } else {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.primaryPurple, justifyContent: 'center', alignItems: 'center'}}>
+        <TouchableOpacity style={{ padding: 5, borderColor: '#eee', borderRadius: 5, borderWidth: 1}} onPress={networkConnected}>
+          <Text style={{ fontSize: 18, fontWeight: '500', color: '#eee'}}>Reload</Text>
+        </TouchableOpacity>
+        <Text style={{ color: '#eee', paddingTop: 20}}>The Internet connection appears to be offline.</Text>
 
-  return (
-    <ApolloProvider client={client}>
-      <UserIdContextProvider>
-        <AppNavigator />
-      </UserIdContextProvider>
-    </ApolloProvider>
-  )
+     </View>     
+    )
+  }
 }
 
 export default withOta(App);

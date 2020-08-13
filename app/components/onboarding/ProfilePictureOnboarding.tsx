@@ -15,13 +15,18 @@ import { UPDATE_PROFILE_URL } from '../../utils/graphql/GraphqlClient';
 import { useMutation } from '@apollo/client';
 import axios from 'axios';
 
-export default function ProfilePictureOnboarding() {
+export default function ProfilePictureOnboarding(props) {
 
     const [userId, setUserId] = useContext(UserIdContext);
     const [profilePictureSubmitted, setProfilePictureSubmitted] = useState(false); 
     const [imageUri, setImageUri] = useState('');
     const [updateProfileUrl, { updateProfileUrlData }] = useMutation(UPDATE_PROFILE_URL);
     const [name, setName] = useState(''); 
+    const [sendBack, setSendBack] = useState(false);
+
+    function tapBack(){
+        setSendBack(true); 
+    }
 
     useEffect(() => {
         initName(); 
@@ -86,7 +91,7 @@ export default function ProfilePictureOnboarding() {
 
     const submitProfilePicture = () => {
         uploadImage(imageUri); 
-        setProfilePictureSubmitted(true); 
+        props.navigation.navigate("LocationOnboarding")
     }
 
     function ProfilePicture(){
@@ -125,35 +130,30 @@ export default function ProfilePictureOnboarding() {
         }
     }
 
-    if(profilePictureSubmitted) {
-        return (
-            <LocationOnboarding />
-        )
-    } else {
-        return (
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: primaryColor }}>
-                    <View style={{ height: '40%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center', justifyContent: 'space-evenly' }}>
-                        <Text style={{ fontSize: 25, fontWeight: 'bold', height: '25%', color: primaryColor }}>Add a profile picture</Text>
 
-                        <TouchableOpacity onPress={pickProfilePicture} style={{ 
-                            height: '15%',
-                            width: '100%', 
-                            alignItems: 'center', 
-                            justifyContent: 'center'
-                        }}>
-                            <ProfilePicture />
-                        </TouchableOpacity>
-                        <View style={{ paddingTop: '12%' }}>
-                            <SubmitButton />
-                        </View>
-                    </View>
-                    <View style={{ height: '25%', justifyContent: 'center'}}>
+    return (
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: primaryColor }}>
+                <View style={{ height: '40%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center', justifyContent: 'space-evenly' }}>
+                    <Text style={{ fontSize: 25, fontWeight: 'bold', height: '25%', color: primaryColor }}>Add a profile picture</Text>
+
+                    <TouchableOpacity onPress={pickProfilePicture} style={{ 
+                        height: '15%',
+                        width: '100%', 
+                        alignItems: 'center', 
+                        justifyContent: 'center'
+                    }}>
+                        <ProfilePicture />
+                    </TouchableOpacity>
+                    <View style={{ paddingTop: '12%' }}>
+                        <SubmitButton />
                     </View>
                 </View>
-            </TouchableWithoutFeedback>
-        );
-    }
+                <View style={{ height: '25%', justifyContent: 'center'}}>
+                </View>
+            </View>
+        </TouchableWithoutFeedback>
+    );
 }
 
 const primaryColor = colors.primaryPurple;

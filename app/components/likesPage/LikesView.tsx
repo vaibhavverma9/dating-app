@@ -8,7 +8,7 @@ import { Feather, Entypo, Ionicons } from '@expo/vector-icons'
 import { colors } from '../../styles/colors';
 import { FlatList, ScrollView} from 'react-native-gesture-handler';
 import { Divider } from 'react-native-paper';
-import { INSERT_LIKE } from '../../utils/graphql/GraphqlClient';
+import { INSERT_LIKE, GET_NUMBER_VIDEOS } from '../../utils/graphql/GraphqlClient';
 import { _retrieveName  } from '../../utils/asyncStorage'; 
 import axios from 'axios';
 import MultipleVideoPopup from '../modals/MultipleVideosPopup'; 
@@ -18,7 +18,8 @@ export default function MessagesStreamView(props) {
     const [userId, setUserId] = useContext(UserIdContext);
     const [likes, setLikes] = useState(null); 
     const [insertLike, { insertLikeData }] = useMutation(INSERT_LIKE);
-    const [name, setName] = useState(''); 
+    const [userName, setUserName] = useState(''); 
+    const [profileVideoCount, setProfileVideoCount] = useState(null); 
 
     const [getLikes, { data: likesQueried }] = useLazyQuery(GET_LIKES, 
     { 
@@ -27,31 +28,52 @@ export default function MessagesStreamView(props) {
         } 
     }); 
 
+    const [getNumberVideos, { data: numberVideos }] = useLazyQuery(GET_NUMBER_VIDEOS,
+      {
+        onCompleted: (numberVideos) => {
+          const count = numberVideos.videos_aggregate.aggregate.count;
+          setProfileVideoCount(count); 
+        }
+      });
+    
+
     useEffect(() => {
         Segment.screen('Likes'); 
         getLikes({ variables: { userId }})
         initName(); 
-    }, []);
+        getNumberVideos({variables: { userId }}); 
+      }, []);
 
     async function initName(){
         let name = await _retrieveName(); 
-        setName(name); 
+        setUserName(name); 
     }
 
     function goToAddVideo(){
-        props.navigation.navigate('Add');
+        props.navigation.navigate('Add Video');
+    }
+
+    function AddVideoCta(){
+      if(profileVideoCount > 0){
+        return (
+          <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.primaryWhite }}>Add videos to get more likes!</Text>
+        )
+      } else {
+        return (
+          <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.primaryWhite }}>Add videos to get likes!</Text>
+        )
+      }
     }
 
     function AddVideo(){
         return (
             <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center' }}>
-                <View style={{ height: '40%', width: '85%', backgroundColor: colors.primaryPurple, borderRadius: 5, padding: 10, alignItems: 'center' }}>
-                    <View style={{ paddingTop: '5%', height: '25%'}}>
+                <View style={{ height: '30%', width: '85%', backgroundColor: colors.primaryPurple, borderRadius: 5, padding: 10, alignItems: 'center', justifyContent: 'space-evenly' }}>
+                    <View style={{ }}>
                         <Feather name="video" size={45} color={colors.primaryWhite} />
                     </View>        
-                    <Text style={{ fontSize: 22, fontWeight: 'bold', paddingTop: 12, paddingBottom: 5, color: colors.primaryWhite }}>No likes!</Text>
-                    <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: '300', paddingHorizontal: 5, color: colors.primaryWhite }}>Add videos to get likes from users :)</Text>
-                    <TouchableOpacity onPress={goToAddVideo} style={{ paddingTop: '8%' }}>
+                    <AddVideoCta />
+                    <TouchableOpacity onPress={goToAddVideo} style={{ }}>
                         <View style={styles.addVideoContainer}>
                             <Text style={styles.addVideoText}>Add Video</Text>
                         </View>
@@ -88,6 +110,16 @@ export default function MessagesStreamView(props) {
           return;
         }
       }
+
+    function _calculateAge(birthday) { // birthday is a date
+        var today = new Date();
+        var age = today.getFullYear() - birthday.getFullYear();
+        var m = today.getMonth() - birthday.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthday.getDate())) {
+            age--;
+        }
+        return age;
+    }
     
 
     function Item({profileUser}){
@@ -100,10 +132,16 @@ export default function MessagesStreamView(props) {
         const profileUrl = profileUser.profileUrl; 
         const profileUserId = profileUser.id; 
         const userVideos = profileUser.userVideos; 
+        let age = null; 
 
+        if(profileUser.birthday){
+            const birthday = new Date(profileUser.birthday);
+            age = _calculateAge(birthday);
+        } 
+  
         function onLike(){
             insertLike({ variables: { likedId: profileUserId, likerId: userId, matched: false, dislike: false }});
-            sendLike(profileUserId, name);   
+            sendLike(profileUserId, userName);   
             createChannel(profileUserId); 
 
             setLikes(likes.filter(like => {
@@ -161,6 +199,7 @@ export default function MessagesStreamView(props) {
                         city={city}
                         region={region}
                         college={college}
+                        age={age}
                     />         
                 </View>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-evenly' }}>
@@ -184,7 +223,8 @@ export default function MessagesStreamView(props) {
         )
     }
 
-    function UserInfo({name, city, region, college}){
+    function UserInfo({name, city, region, college, age}){
+
 
         function DistanceSeparator(){
           if(city != null || region != null){
@@ -205,6 +245,26 @@ export default function MessagesStreamView(props) {
             return null; 
           }
         }
+
+        function AgeSeparator(){
+            if(age != null){
+              return (
+                <Text style={{ fontSize: 5, paddingLeft: 5}}>{'\u2B24'}</Text>
+              )  
+            } else {
+              return null; 
+            }    
+          }
+      
+          function Age(){
+            if(age != null){
+              return (
+                <Text style={{ paddingLeft: 5}}>{age}</Text>
+              )
+            } else {
+              return null; 
+            }
+          }
     
     
         if(name){
@@ -216,6 +276,8 @@ export default function MessagesStreamView(props) {
                     {/* <Text style={styles.separatorText}>{'\u2B24'}</Text> */}
                     <DistanceSeparator />
                     <Distance />  
+                    <AgeSeparator />
+                    <Age />
                   </View>
                   <Text style={{ paddingBottom: '2%'}}>{college}</Text>   
                 </View>   
@@ -223,9 +285,11 @@ export default function MessagesStreamView(props) {
           } else {
             return (
                 <View style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: '5%' }}>
-                  <Text >{name}</Text>     
-                  <DistanceSeparator />
-                  <Distance />    
+                    <Text >{name}</Text>     
+                    <DistanceSeparator />
+                    <Distance />    
+                    <AgeSeparator />
+                    <Age />
                 </View> 
             )    
           }

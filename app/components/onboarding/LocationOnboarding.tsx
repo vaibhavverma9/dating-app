@@ -10,15 +10,16 @@ import { _storeLatitude, _storeLongitude, _storeCity, _storeRegion, _storeOnboar
 import TermsOnboarding from './TermsOnboarding';
 import { colors } from '../../styles/colors';
 import * as Segment from 'expo-analytics-segment';
+import ProfilePictureOnboarding from './ProfilePictureOnboarding';
+import { Ionicons } from '@expo/vector-icons';
 
-export default function LocationOnboarding() {
+export default function LocationOnboarding(props) {
 
     const [errorMsg, setErrorMsg] = useState(null);
     const [userId, setUserId] = useContext(UserIdContext);
     // const [updateLatitudeLongitude, { updateLatitudeLongitudeData }] = useMutation(UPDATE_LATITUDE_LONGITUDE);
     const [updateCity, { updateCityData }] = useMutation(UPDATE_CITY);
     const [updateRegion, { updateRegionData }] = useMutation(UPDATE_REGION);
-    const [locationServices, setLocationServices] = useState(false); 
     const [updateOnboarded, { updateOnboardedData }] = useMutation(UPDATE_ONBOARDED);
     const [onboarded, setOnboarded] = useState(false); 
 
@@ -29,7 +30,6 @@ export default function LocationOnboarding() {
                 setErrorMsg('Permission to access location was denied');
             }
 
-            setLocationServices(true); 
 
             let location = await Location.getCurrentPositionAsync({});
 
@@ -61,13 +61,14 @@ export default function LocationOnboarding() {
             updateRegion({ variables: { userId, region }}); 
             Segment.track("Onboarding - Enable Location");
             completeOnboarding(); 
+            props.navigation.navigate("TabStack")
         })();
     }
 
     const skipForNow = () => {
-        setLocationServices(true); 
         Segment.track("Onboarding - Skip Location");
         completeOnboarding(); 
+        props.navigation.navigate("TabStack")
     }
 
     function completeOnboarding(){
@@ -77,31 +78,25 @@ export default function LocationOnboarding() {
         Segment.track("Onboarding - Complete Onboarding");
     }
 
-    if(locationServices) {
-        return (
-            <TabStack /> 
-        )
-    } else {
-        return (
-            <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: primaryColor }}>
-                <View style={{ height: '40%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center' }}>
-                    <View style={{ paddingTop: '10%', height: '25%'}}>
-                        <FontAwesome5 name="city" size={45} color={primaryColor} />
-                    </View>        
-                    <Text style={{ fontSize: 25, textAlign: 'center', padding: 15, color: primaryColor }}>Get matches near you</Text>
-                    <Text style={{ textAlign: 'center', fontSize: 14, padding: 15, color: primaryColor}}>This app uses your location to find matches near you.</Text>
-                    <View style={{ paddingTop: '12%' }}>
-                        <TouchableOpacity onPress={enableLocation} style={styles.locationsContainer}>
-                            <Text style={styles.locationsText}>Enable Location</Text>
-                        </TouchableOpacity>
-                    </View>
+    return (
+        <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: primaryColor }}>
+            <View style={{ height: '40%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center' }}>
+                <View style={{ paddingTop: '10%', height: '25%'}}>
+                    <FontAwesome5 name="city" size={45} color={primaryColor} />
+                </View>        
+                <Text style={{ fontSize: 25, textAlign: 'center', padding: 15, color: primaryColor }}>Get matches near you</Text>
+                <Text style={{ textAlign: 'center', fontSize: 14, padding: 15, color: primaryColor}}>This app uses your location to find matches near you.</Text>
+                <View style={{ paddingTop: '12%' }}>
+                    <TouchableOpacity onPress={enableLocation} style={styles.locationsContainer}>
+                        <Text style={styles.locationsText}>Enable Location</Text>
+                    </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={skipForNow} style={{ height: '5%', justifyContent: 'center'}}>
-                    <Text style={{ fontWeight: 'bold', color: secondaryColor, fontSize: 14 }}>Skip for now</Text>
-                </TouchableOpacity>
             </View>
-        );
-    } 
+            <TouchableOpacity onPress={skipForNow} style={{ height: '25%', justifyContent: 'flex-start'}}>
+                <Text style={{ paddingTop: '4%', fontWeight: 'bold', color: secondaryColor, fontSize: 14 }}>Skip for now</Text>
+            </TouchableOpacity>
+        </View>
+    );
 }
 
 const primaryColor = colors.primaryPurple;

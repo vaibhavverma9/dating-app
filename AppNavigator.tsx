@@ -10,6 +10,7 @@ import OnboardingStack from './app/stacks/OnboardingStack';
 import { colors } from './app/styles/colors';
 import { VideoCountContextProvider } from './app/utils/context/VideoCountContext';
 import * as Sentry from 'sentry-expo'; 
+import { NavigationContainer } from '@react-navigation/native';
 
 export default function AppNavigator(){
 
@@ -67,17 +68,18 @@ export default function AppNavigator(){
 
   if (onboarded == false){
     return (
-      // <UserIdContextProvider>
+      <NavigationContainer>
         <OnboardingStack />
-      // {/* </UserIdContextProvider> */}
+      </NavigationContainer>
     )
   } else if (onboarded == true){
     return (      
-      // <UserIdContextProvider>
         <VideoCountContextProvider>
-          <TabStack />
+          <NavigationContainer>
+            <TabStack />
+
+          </NavigationContainer>
         </VideoCountContextProvider>
-      // </UserIdContextProvider>
 
     )
   } else {
