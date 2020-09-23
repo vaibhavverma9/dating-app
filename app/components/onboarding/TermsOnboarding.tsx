@@ -28,7 +28,7 @@ export default function TermsOnboarding() {
 
     const termsLink = () => {
         Linking.openURL('https://reeltalk.me/terms-and-conditions'); 
-      }
+    }
       
 
     if(accepted){

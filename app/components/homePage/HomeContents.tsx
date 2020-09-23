@@ -8,7 +8,7 @@ import { INSERT_LIKE, GET_VIDEOS, GET_NUMBER_VIDEOS, UPDATE_PUSH_TOKEN, GET_USER
 import OptionsModal from './OptionsModal'; 
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import * as Segment from 'expo-analytics-segment';
-import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid, _retrieveLatitude, _retrieveLongitude, _retrieveName, _retrievePushShown, _storePushShown, _storeName, _storeBio, _retrieveBio, _storeGenderInterest, _retrieveGenderGroup, _storeAddVideoShown, _retrieveAddVideoShown } from '../../utils/asyncStorage'; 
+import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid, _retrieveLatitude, _retrieveLongitude, _retrieveName, _retrievePushShown, _storePushShown, _storeName, _storeBio, _retrieveBio, _storeGenderInterest, _retrieveGenderGroup, _storeAddVideoShown, _retrieveAddVideoShown, _retrieveExplanationShown, _storeExplanationShown } from '../../utils/asyncStorage'; 
 import AddVideoPopup from '../modals/AddVideoPopup'; 
 import NoLikesPopup from '../modals/NoLikesPopup'; 
 import PushPopup from '../modals/PushPopup'; 
@@ -28,7 +28,9 @@ import { getDistance } from 'geolib';
 import { colors } from '../../styles/colors';
 import { VideoCountContext } from '../../utils/context/VideoCountContext';
 import { useIsFocused } from '@react-navigation/native';
- 
+import LikeDislikeExplanation from '../modals/LikeDislikeExplanation'; 
+import { Linking } from 'expo';
+
 export default function HomeContents(props) {
   const isFocused = useIsFocused();
   const { uid, phoneNumber } = useDoormanUser();
@@ -44,6 +46,7 @@ export default function HomeContents(props) {
   const [currentAge, setCurrentAge] = useState(null);
 
   const [currentName, setCurrentName] = useState('');
+  const [currentInstagram, setCurrentInstagram] = useState(''); 
 
   const [currentCollege, setCurrentCollege] = useState(''); 
   const [currentCity, setCurrentCity] = useState(null);
@@ -68,6 +71,7 @@ export default function HomeContents(props) {
 
   const [expoPushToken, setExpoPushToken] = useState(''); 
   const [pushPopupVisible, setPushPopupVisible] = useState(false);
+  const [likeDislikeExplanation, setLikeDislikeExplanation] = useState(false); 
   const [pushName, setPushName] = useState(''); 
   const [pushProfileUrl, setProfileUrl] = useState(''); 
 
@@ -91,8 +95,15 @@ export default function HomeContents(props) {
   const [groupPreference, setGroupPreference] = useState(props.groupPreference); 
   const [videoCount, setVideoCount] = useContext(VideoCountContext); 
   const [secondId, setSecondId] = useState(props.secondId); 
+  const [region1, setRegion1] = useState(props.region1); 
+  const [region2, setRegion2] = useState(props.region2); 
   const [isMuted, setIsMuted] = useState(false); 
   const [currentProgress, setCurrentProgress] = useState(0); 
+
+  const videoLimit = 10; 
+
+  const [liked, setLiked] = useState(false); 
+  const [disliked, setDisliked] = useState(false); 
 
   const [getVideosLower, { data: videosLower }] = useLazyQuery(GET_VIDEOS, 
   { 
@@ -138,7 +149,8 @@ export default function HomeContents(props) {
     onPanResponderTerminationRequest: (evt, gestureState) => true,
     onPanResponderRelease: (evt, gestureState) => {
 
-      setShouldPlay(!shouldPlay);         
+      nextVideo(); 
+      // setShouldPlay(!shouldPlay);         
     },
     // onPanResponderTerminate: (evt, gestureState) => {},
     onShouldBlockNativeResponder: (evt, gestureState) => true
@@ -151,22 +163,13 @@ export default function HomeContents(props) {
       setShouldPlay(false); 
     }
 
+    initPopups(); 
     initSegment(); 
     Segment.track("Home Page - Start Videos"); 
     // networkConnected(); 
     getNumberVideos({variables: { userId }}); 
 
   }, []);
-
-  useEffect(() => {
-    processVideos(props.data); 
-  }, [props.data]); 
-
-  // async function networkConnected(){
-  //   const networkInfo = await Network.getNetworkStateAsync(); 
-  //   setConnectedInternet(networkInfo.isConnected); 
-  // }
-
 
   async function initSegment() {
     const name = await _retrieveName(); 
@@ -202,12 +205,13 @@ export default function HomeContents(props) {
 
   async function queryVideos(){
 
-    getVideosLower({ variables: { userId, limit: props.limit, groupPreference, lastPerformance, secondId } })
+    getVideosLower({ variables: { userId, limit: props.limit, groupPreference, lastPerformance, secondId, region1, region2} })
   }
 
   function processVideos(data){
     
     const users = data.usersLocation; 
+    initColors(users); 
 
     if (users.length > 0){
       if(!initialized){
@@ -215,10 +219,10 @@ export default function HomeContents(props) {
         setVideoData(users);
         setCurrentUserId(users[0].id); 
         setCurrentName(users[0].firstName);
+        setCurrentInstagram(users[0].instagram);
         setCurrentCollege(users[0].college);
         setCurrentCity(users[0].city);
         setCurrentRegion(users[0].region); 
-        initColors(users);
 
         if(users[0].birthday){
           const birthday = new Date(users[0].birthday);
@@ -238,7 +242,6 @@ export default function HomeContents(props) {
         const tempVideoData = [...videoData, ...users];
         setVideoData(tempVideoData);
         setUserCount(userCount + users.length); 
-        initColors(users); 
         setLastPerformance(users[users.length - 1].performance); 
         // setLastLoaded(users[users.length - 1].lastUploaded); 
       }
@@ -299,58 +302,74 @@ export default function HomeContents(props) {
     }
   }
 
+  const [addVideoShown, setAddVideoShown] = useState(false);
+  const [pushShown, setPushShown] = useState(false); 
+
+  async function initPopups(){
+    const addVideoShown = await _retrieveAddVideoShown(); 
+    const pushShown = await _retrievePushShown(); 
+    // const explanationShown = await _retrieveExplanationShown(); 
+
+    setAddVideoShown(addVideoShown);
+    setPushShown(pushShown); 
+
+    // if(!explanationShown){
+    //   setLikeDislikeExplanation(true); 
+    //   _storeExplanationShown(true); 
+    // }
+
+  }
+
   async function onLike() { 
 
     Segment.track("Like User"); 
 
+
     const likedId = currentUserId; 
     const likedIndex = userIndex; 
-    const likerName = currentName; 
+    const likedName = currentName; 
     let likedVideoIndex = videoIndex; 
 
     if(currentProgress < 0.25 && videoIndex > 0){
       likedVideoIndex = videoIndex - 1; 
     } 
 
-    if(profileVideoCount == 0 && userIndex % 6 == 2){
-      const addVideoShown = await _retrieveAddVideoShown(); 
-      if(!addVideoShown){
-        const { status: existingStatus } = await Permissions.getAsync(Permissions.NOTIFICATIONS);
-        if(existingStatus !== 'granted'){
-          setAddPopupVisible(true); 
-        }
+    if (!pushShown && Constants.isDevice) {
+      const { status: existingStatus } = await Permissions.getAsync(Permissions.NOTIFICATIONS);
+      if(existingStatus !== 'granted'){
+        setPushName(likedName); 
+        setProfileUrl(videoData[likedIndex].profileUrl)
+        setPushPopupVisible(true); 
+        setPushShown(true); 
+      }        
+      _storePushShown(true); 
+    }
+
+    if(profileVideoCount == 0 && userIndex == 6){
+      if(pushShown && !addVideoShown){
+        setAddPopupVisible(true); 
+        setAddVideoShown(true); 
         _storeAddVideoShown(true);  
       }
     }
 
-    if(userIndex % 6 == 4){
-      const pushShown = await _retrievePushShown(); 
-      if (!pushShown && Constants.isDevice) {
-        const { status: existingStatus } = await Permissions.getAsync(Permissions.NOTIFICATIONS);
-        if(existingStatus !== 'granted'){
-          setPushName(likerName); 
-          setProfileUrl(videoData[likedIndex].profileUrl)
-          setPushPopupVisible(true); 
-        }        
-        _storePushShown(true); 
-      }
-    }
-
-    if(userIndex == 12 * (videoCount + 1) || userIndex == 12){
+    if((userIndex == videoLimit * (videoCount + 1) || userIndex == videoLimit) && profileVideoCount == 0){
       setNoLikesLeft(true);
       Segment.track("Home - Out of Likes")
     } else {
       if(!likeColors[likedIndex].like){  
-        nextUser(); 
+
+          nextUser(); 
+
         insertLike({ variables: { likedId: likedId, likerId: userId, matched: false, dislike: false }});
-        sendLike(likedId, likerName);
+        sendLike(likedId, name);
         createChannel(likedId); 
 
         updateVideoLikes({ variables: { id : videoId, likes: videoData[likedIndex].userVideos[likedVideoIndex].likes + 1 }});
         updateVideoViews({ variables: { id : videoId, views: videoData[likedIndex].userVideos[likedVideoIndex].views + 1 }});      
     
       } else {
-        nextUser(); 
+          nextUser(); 
       }
     }
   }
@@ -358,6 +377,7 @@ export default function HomeContents(props) {
   async function onDislike() { 
 
     Segment.track("Dislike User"); 
+
 
     const dislikedId = currentUserId; 
     const dislikedIndex = userIndex; 
@@ -367,11 +387,11 @@ export default function HomeContents(props) {
       dislikedVideoIndex = videoIndex - 1; 
     } 
 
-    if(userIndex == 12 * (videoCount + 1) || userIndex == 12){
+    if((userIndex == videoLimit * (videoCount + 1) || userIndex == videoLimit) && profileVideoCount == 0){
       setNoLikesLeft(true);
       Segment.track("Home - Out of Likes")
     } else {
-      nextUser();
+        nextUser(); 
 
       if(!dislikeColors[dislikedIndex].dislike && !likeColors[dislikedIndex].like){
         // setLikeCount(likeCount + 1); 
@@ -384,6 +404,7 @@ export default function HomeContents(props) {
   }
 
   function initColors(users){
+    // console.log(users);
     const newLikeColors = users.map(user => {
       if(user.likesByLikedId.length == 0){
         return { like: false, color: '#eee' }
@@ -430,6 +451,7 @@ export default function HomeContents(props) {
     if(videoData && videoData.length > 0){
       setCurrentUserId(videoData[userIndex].id); 
       setCurrentName(videoData[userIndex].firstName);
+      setCurrentInstagram(videoData[userIndex].instagram);
       setCurrentCollege(videoData[userIndex].college); 
       setCurrentCity(videoData[userIndex].city);
       setCurrentRegion(videoData[userIndex].region); 
@@ -499,12 +521,6 @@ export default function HomeContents(props) {
 
   // tapping forward arrow
   const nextUser = () => {
-
-    // setTimerSet(true); 
-
-    // setTimeout(() => {
-    //   setTimerSet(false); 
-    // }, 1000); 
 
     if(userIndex !== userCount - 1){
       // setLikeCount(likeCount + 1); 
@@ -624,7 +640,7 @@ export default function HomeContents(props) {
       if(shouldPlay){
         setCurrentProgress(progress);   
       }
-      if(playbackStatus.positionMillis == playbackStatus.durationMillis){
+      if(playbackStatus.positionMillis == playbackStatus.durationMillis || playbackStatus.didJustFinish){
         nextVideo(); 
       }
     } else {
@@ -636,6 +652,12 @@ export default function HomeContents(props) {
     }
 
   };
+
+  const instagramLink = () => {
+    const link = 'https://www.instagram.com/' + currentInstagram.replace('@', '') + '/'; 
+    Linking.openURL(link); 
+  }
+
 
   function UserInfo(){
 
@@ -679,6 +701,32 @@ export default function HomeContents(props) {
       }
     }
 
+    function InstagramSeparator(){
+      if(currentInstagram != null){
+        return (
+          <Text style={styles.separatorText}>{'\u2B24'}</Text>
+        )  
+      } else {
+        return null; 
+      }    
+    }
+
+    function Instagram(){
+      if(currentInstagram != null){
+        if(currentInstagram.includes('@')){
+          return (
+              <Text style={styles.locationText}>{currentInstagram}</Text>
+          )
+        } else {
+          return (
+            <Text style={styles.locationText}>@{currentInstagram}</Text>
+          )
+        }
+      } else {
+        return null; 
+      }
+    }
+
 
     if(currentName){
       if(currentCollege){
@@ -691,6 +739,8 @@ export default function HomeContents(props) {
                 <Distance />  
                 <AgeSeparator />
                 <Age />
+                <InstagramSeparator />
+                <Instagram />
               </View>
               <Text style={styles.locationText}>{currentCollege}</Text>      
             </View>
@@ -704,6 +754,8 @@ export default function HomeContents(props) {
               <Distance />    
               <AgeSeparator />
               <Age />
+              <InstagramSeparator />
+              <Instagram />
             </View> 
           </View>
         )    
@@ -738,6 +790,34 @@ export default function HomeContents(props) {
       return(
         <View style={{ justifyContent: 'center', alignItems: 'center', ...StyleSheet.absoluteFill}}>
           <ActivityIndicator size="small" color={colors.primaryWhite} style={{ opacity: 0.4 }} />
+        </View>
+      )
+    } else {
+      return null; 
+    }
+  }
+
+  function LikeIndicator(){
+    if(liked){
+      return (
+        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '100%', alignItems: 'center', justifyContent: 'center'}}>
+          <BlurView tint="dark" intensity={40} style={{ borderRadius: 5, width: 80, height: 50, alignItems: 'center', justifyContent: 'center'}}>
+            <Text style={{ color: '#eee', fontWeight: '500'}}>Liked</Text>
+          </BlurView>
+        </View>
+      )  
+    } else {
+      return null;
+    }
+  }
+
+  function DislikeIndicator(){
+    if(disliked){
+      return (
+        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '100%', alignItems: 'center', justifyContent: 'center'}}>
+          <BlurView tint="dark" intensity={40} style={{ borderRadius: 5, width: 80, height: 50, alignItems: 'center', justifyContent: 'center'}}>
+            <Text style={{ color: '#eee', fontWeight: '500'}}>Passed</Text>
+          </BlurView>
         </View>
       )
     } else {
@@ -781,8 +861,12 @@ export default function HomeContents(props) {
             <UserInfo />
             <PlayButton />
             <LoadingIcon />
+            <LikeIndicator />
+            <DislikeIndicator />
+
 
           </View>
+
 
           <View style={styles.heartView}>
             <TouchableOpacity onPress={onDislike}>
@@ -792,14 +876,12 @@ export default function HomeContents(props) {
               <Ionicons name='md-heart' size={65} color={likeColor} />        
             </TouchableOpacity>      
           </View>
-          <View style={{ ...StyleSheet.absoluteFill, height: '15%', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 15, flexDirection: 'row'}}>
-            <TouchableOpacity onPress={lastUser} style={{paddingRight: 10}}>
+          <View style={{ ...StyleSheet.absoluteFill, height: '15%', alignItems: 'flex-end', justifyContent: 'center'}}>
+            <TouchableOpacity onPress={lastUser} style={{ paddingRight: 10}}>
               <Entypo name='back' size={30} color='#eee' />        
             </TouchableOpacity>
-            <TouchableOpacity onPress={moreOptions} >
-              <Ionicons name='ios-more' size={30} color='#eee' />        
-            </TouchableOpacity>
           </View>
+
   
           <OptionsModal 
             visible={optionsModalVisible} 
@@ -824,6 +906,10 @@ export default function HomeContents(props) {
             registerForPushNotificationsAsync={registerForPushNotificationsAsync}
             name={pushName}
             profileUrl={pushProfileUrl}
+          />
+          <LikeDislikeExplanation 
+            visible={likeDislikeExplanation}
+            setVisible={setLikeDislikeExplanation}          
           />
           <NoLikesPopup 
             visible={noLikesLeft}
@@ -857,12 +943,9 @@ export default function HomeContents(props) {
               <Ionicons name='md-heart'  size={65} color={likeColor} />        
             </TouchableOpacity>      
           </View>
-          <View style={{ ...StyleSheet.absoluteFill, height: '15%', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 15, flexDirection: 'row'}}>
-            <TouchableOpacity onPress={lastUser} style={{paddingRight: 10}}>
+          <View style={{ ...StyleSheet.absoluteFill, height: '15%', alignItems: 'flex-end', justifyContent: 'center'}}>
+            <TouchableOpacity onPress={lastUser} style={{ paddingRight: 10}}>
               <Entypo name='back' size={30} color='#eee' />        
-            </TouchableOpacity>
-            <TouchableOpacity onPress={moreOptions} >
-              <Ionicons name='ios-more' size={30} color='#eee' />        
             </TouchableOpacity>
           </View>
 
@@ -890,6 +973,10 @@ export default function HomeContents(props) {
             name={pushName}
             profileUrl={pushProfileUrl}
           />
+          <LikeDislikeExplanation 
+            visible={likeDislikeExplanation}
+            setVisible={setLikeDislikeExplanation}          
+          />
           <NoLikesPopup 
             visible={noLikesLeft}
             setVisible={setNoLikesLeft}
@@ -901,10 +988,10 @@ export default function HomeContents(props) {
   } else {
     if(noMoreVideos == true){
       return (
-        <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: colors.primaryBlack }}>
+        <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: colors.primaryWhite }}>
           <View style={{ height: '40%', width: '85%', backgroundColor: colors.primaryPurple, borderRadius: 5, padding: 10, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 22, fontWeight: 'bold', paddingTop: 15, paddingBottom: 5, color: colors.primaryWhite }}>Out of users!</Text>
-              <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: '300', paddingHorizontal: 5, color: colors.primaryWhite }}>Come back tomorrow for more users :)</Text>
+              <Text style={{ fontSize: 22, fontWeight: 'bold', paddingTop: 15, paddingBottom: 5, color: colors.primaryWhite }}>No more users near you!</Text>
+              <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: '300', paddingHorizontal: 5, color: colors.primaryWhite }}>Come back again for new content :)</Text>
           </View>
       </View>      
       )    

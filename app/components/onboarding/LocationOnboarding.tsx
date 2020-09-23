@@ -5,13 +5,10 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import TabStack from '../../stacks/TabStack';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { useMutation } from '@apollo/client';
-import { UPDATE_LATITUDE_LONGITUDE, UPDATE_CITY, UPDATE_REGION, UPDATE_ONBOARDED } from '../../utils/graphql/GraphqlClient';
+import { UPDATE_CITY, UPDATE_REGION, UPDATE_ONBOARDED } from '../../utils/graphql/GraphqlClient';
 import { _storeLatitude, _storeLongitude, _storeCity, _storeRegion, _storeOnboarded } from '../../utils/asyncStorage'; 
-import TermsOnboarding from './TermsOnboarding';
 import { colors } from '../../styles/colors';
 import * as Segment from 'expo-analytics-segment';
-import ProfilePictureOnboarding from './ProfilePictureOnboarding';
-import { Ionicons } from '@expo/vector-icons';
 
 export default function LocationOnboarding(props) {
 
@@ -20,8 +17,8 @@ export default function LocationOnboarding(props) {
     // const [updateLatitudeLongitude, { updateLatitudeLongitudeData }] = useMutation(UPDATE_LATITUDE_LONGITUDE);
     const [updateCity, { updateCityData }] = useMutation(UPDATE_CITY);
     const [updateRegion, { updateRegionData }] = useMutation(UPDATE_REGION);
-    const [updateOnboarded, { updateOnboardedData }] = useMutation(UPDATE_ONBOARDED);
     const [onboarded, setOnboarded] = useState(false); 
+    const [updateOnboarded, { updateOnboardedData }] = useMutation(UPDATE_ONBOARDED);
 
     const enableLocation = () => {
         (async () => {
@@ -60,15 +57,15 @@ export default function LocationOnboarding(props) {
             updateCity({ variables: { userId, city }}); 
             updateRegion({ variables: { userId, region }}); 
             Segment.track("Onboarding - Enable Location");
-            completeOnboarding(); 
-            props.navigation.navigate("TabStack")
+            props.navigation.navigate("TabStack");
+            completeOnboarding();  
         })();
     }
 
     const skipForNow = () => {
         Segment.track("Onboarding - Skip Location");
-        completeOnboarding(); 
         props.navigation.navigate("TabStack")
+        completeOnboarding(); 
     }
 
     function completeOnboarding(){

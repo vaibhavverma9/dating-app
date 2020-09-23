@@ -16,6 +16,13 @@ import firebaseApp from './app/utils/firebase/fbConfig';
 import * as Network from 'expo-network';
 import { View, Text, TouchableOpacity } from 'react-native'; 
 
+// if (process.env.NODE_ENV === 'development') {
+//   const whyDidYouRender = require('@welldone-software/why-did-you-render');
+//   whyDidYouRender(React, {
+//     trackAllPureComponents: true,
+//   });
+// }
+
 const iosWriteKey = "0QHHf9Gg55EE10Hi5o0LYMfLMN4X7ypl"; 
 const androidWriteKey = "idFwR27mq8yZxEpQFGdmdAJ0yzMM6wV0"; 
 
@@ -96,7 +103,7 @@ function DoormanAuthenticatedApp () {
         setAuthState({ status: "in", user, token });
       } else {
         // Check if refresh is required.
-        const metadataRef = firebase
+        const metadataRef = firebaseApp
           .database()
           .ref("metadata/" + user.uid + "/refreshTime");
 

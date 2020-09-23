@@ -14,10 +14,12 @@ export default function NameOnboarding(props) {
 
     const [userId, setUserId] = useContext(UserIdContext);
     const [updateBirthday, { updateBirthdayData }] = useMutation(UPDATE_BIRTHDAY);
-    const [date, setDate] = useState(new Date(1598051730000));
+
+    const initDate = new Date(Date.now() - 21 * 365.3 * 86400000); 
+    const [date, setDate] = useState(initDate);
 
 
-    let maxDate = new Date(Date.now() - 18 * 365.3 * 86400000); 
+    const maxDate = new Date(Date.now() - 18 * 365.3 * 86400000); 
 
     const onChange = (event, selectedDate) => {
         const currentDate = selectedDate || date;

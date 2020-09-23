@@ -1,7 +1,7 @@
 import React, { useContext, useState, useEffect } from 'react';
 import HomeContents from './HomeContents';
 import { useQuery, useLazyQuery } from '@apollo/client';
-import { GET_VIDEOS, GET_GENDER_GROUP } from '../../utils/graphql/GraphqlClient';
+import { GET_VIDEOS, GET_GENDER_GROUP, GET_REGIONS } from '../../utils/graphql/GraphqlClient';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { _retrieveLatitude, _retrieveLongitude, _retrieveGender, _storeGender, _retrieveGenderInterest, _storeGenderInterest, _storeLastWatchedUpper, _storeLastWatchedLower, _retrieveLastWatchedUpper, _retrieveLastWatchedLower, _retrieveCollegeLatitude, _storeCollegeLatitude, _retrieveCollegeLongitude, _storeCollegeLongitude, _retrieveGenderGroup, _storeGenderGroup} from '../../utils/asyncStorage'; 
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
@@ -11,12 +11,15 @@ export default function HomeView({route, navigation}) {
 
   // const [data, setData] = useState(null); 
   const [userId, setUserId] = useContext(UserIdContext);
+
   const [secondId, setSecondId] = useState(userId); 
   const limit = 4;
   
   const [genderInterest, setGenderInterest] = useState(''); 
   const [genderGroup, setGenderGroup] = useState(0); 
   const [groupPreference, setGroupPreference] = useState([0]); 
+  const [region1, setRegion1] = useState('');
+  const [region2, setRegion2] = useState('');
   
   const [timedOut, setTimedOut] = useState(false);
   // let currentDate = new Date();
@@ -35,6 +38,20 @@ export default function HomeView({route, navigation}) {
       }
     }); 
 
+  const [getRegions, { data: regionsData }] = useLazyQuery(GET_REGIONS, 
+    { 
+      onCompleted: (regionsData) => { 
+        let regions = ['CA', 'NY', 'IL']; 
+        if(regions.includes(regionsData.users[0].region) && regions.includes(regionsData.users[0].userCollege.region)){
+          setRegion1(regionsData.users[0].region); 
+          setRegion2(regionsData.users[0].userCollege.region); 
+        } else {
+          setRegion1('IL');
+          setRegion2('CA'); 
+        }
+      }
+    }); 
+
   useEffect(() => {
     navigation.addListener('focus', async () => {
       let retrievedGroup = await _retrieveGenderGroup(); 
@@ -47,6 +64,7 @@ export default function HomeView({route, navigation}) {
 
   useEffect(() => {
     queryVideosInit();
+    getRegions({ variables: { userId }})
   }, []); 
 
 
@@ -84,10 +102,10 @@ export default function HomeView({route, navigation}) {
 
   function OutOfUsers(){
       return (
-        <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: colors.primaryBlack }}>
+        <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: colors.primaryWhite }}>
           <View style={{ height: '40%', width: '85%', backgroundColor: colors.primaryPurple, borderRadius: 5, padding: 10, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 22, fontWeight: 'bold', paddingTop: 15, paddingBottom: 5, color: colors.primaryWhite }}>Out of users!</Text>
-              <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: '300', paddingHorizontal: 5, color: colors.primaryWhite }}>Come back tomorrow for more users :)</Text>
+              <Text style={{ fontSize: 22, fontWeight: 'bold', paddingTop: 15, paddingBottom: 5, color: colors.primaryWhite }}>No users near you!</Text>
+              <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: '300', paddingHorizontal: 5, color: colors.primaryWhite }}>Come back again for new content :)</Text>
           </View>
       </View>     
       )
@@ -102,25 +120,14 @@ export default function HomeView({route, navigation}) {
   }
 
   const { loading, error, data } = useQuery(GET_VIDEOS, {
-    variables: { userId, limit, groupPreference, lastPerformance, secondId }
+    variables: { userId, limit, groupPreference, lastPerformance, secondId, region1, region2 }
   });
-
-  // useEffect(() => {
-  //   setTimeout(() => { 
-  //     if(!data || data.usersLocation.length == 0){
-  //       setTimedOut(true) 
-  //     } else {
-  //       setTimedOut(false); 
-  //     }
-  //   }, 5000); 
-  // }, [data]); 
 
   useEffect(() => {
     if(data && data.usersLocation.length < limit && secondId > 0){
       setSecondId(0); 
     }
   }, [data]); 
-
 
   if(loading){
     return (
@@ -143,6 +150,8 @@ export default function HomeView({route, navigation}) {
           genderGroup={genderGroup}
           assignGenderPreferences={assignGenderPreferences}
           secondId={secondId}
+          region1={region1}
+          region2={region2}
         />
       )  
     } else {

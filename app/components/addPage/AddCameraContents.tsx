@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, Alert } fr
 import { Camera } from 'expo-camera';
 import { BlurView } from 'expo-blur';
 import { fullPageVideoStyles } from '../../styles/fullPageVideoStyles';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons'
+import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons'
 import * as Segment from 'expo-analytics-segment';
 import * as ImagePicker from 'expo-image-picker';
 import * as Permissions from 'expo-permissions';
@@ -14,6 +14,7 @@ import * as Linking from 'expo-linking';
 import ViewAllPopup from '../modals/ViewAllPopup';
 import { VideoCountContext } from '../../utils/context/VideoCountContext';
 import Constants from 'expo-constants';
+import * as MediaLibrary from 'expo-media-library';
 
 export default function AddCameraContents(props) {
 
@@ -227,6 +228,31 @@ export default function AddCameraContents(props) {
         setVideoCount(videoCount + 1);     
     }
 
+    function save(){
+        MediaLibrary.saveToLibraryAsync(videoUri);
+        setSaved(true); 
+
+        setTimeout(() => {
+            setSaved(false); 
+        }, 1000);
+    }
+
+    const [saved, setSaved] = useState(false); 
+
+    function SavedIndicator(){
+        if(saved){
+          return (
+            <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '100%', alignItems: 'center', justifyContent: 'center'}}>
+              <BlurView tint="dark" intensity={40} style={{ borderRadius: 5, width: 80, height: 50, alignItems: 'center', justifyContent: 'center'}}>
+                <Text style={{ color: '#eee', fontWeight: '500'}}>Saved</Text>
+              </BlurView>
+            </View>
+          )
+        } else {
+          return null; 
+        }
+      }
+
     function viewAll(){
         setViewAllVisible(true); 
     }
@@ -352,10 +378,16 @@ export default function AddCameraContents(props) {
                         <Question /> 
                     </BlurView>
                     <View style={addStyles.uploadContainer}>
-                        <TouchableOpacity onPress={back} style={styles.iconGroup}>
-                            <MaterialIcons name="backspace" color={"#eee"} size={40}/>     
-                            <Text style={styles.iconTextRecorded}>Back</Text>
-                        </TouchableOpacity>
+                        <View style={{ flexDirection: 'row' }}>
+                            <TouchableOpacity onPress={back} style={styles.iconGroup}>
+                                <MaterialIcons name="backspace" color={"#eee"} size={40}/>     
+                                <Text style={styles.iconTextRecorded}>Back</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={save} style={{ alignItems: 'center', paddingLeft: 20 }}>
+                                <MaterialIcons name="file-download" color={"#eee"} size={40}/>     
+                                <Text style={styles.iconTextRecorded}>Save</Text>
+                            </TouchableOpacity>
+                        </View>
                         <TouchableOpacity onPress={sendVideo} style={styles.iconGroup}>
                             <MaterialIcons name="send" color={"#eee"} size={40}/>     
                             <Text style={styles.iconTextRecorded}>Post</Text>
@@ -367,6 +399,7 @@ export default function AddCameraContents(props) {
                         questionData={questionData}
                         setIndex={setIndex}
                     />
+                    <SavedIndicator />
                 </View>
             )
         }

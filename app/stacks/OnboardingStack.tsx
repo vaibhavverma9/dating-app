@@ -11,7 +11,8 @@ import ProfilePictureOnboarding from '../components/onboarding/ProfilePictureOnb
 import LocationOnboarding from '../components/onboarding/LocationOnboarding';
 import AgeOnboarding from '../components/onboarding/AgeOnboarding';
 import TabStack from './TabStack';
-import { forModalPresentationIOS } from 'react-navigation-stack/lib/typescript/src/vendor/TransitionConfigs/CardStyleInterpolators';
+import TutorialOnboarding from '../components/onboarding/TutorialOnboarding';
+import InstagramOnboarding from '../components/onboarding/InstagramOnboarding';
 
 const Stack = createStackNavigator(); 
 
@@ -42,6 +43,8 @@ export default function OnboardingStack (){
                 <Stack.Screen options={onboardingStyle} name="CollegeOnboarding" component={CollegeOnboarding} />
                 <Stack.Screen options={onboardingStyle} name="ProfilePictureOnboarding" component={ProfilePictureOnboarding} />
                 <Stack.Screen options={onboardingStyle} name="LocationOnboarding" component={LocationOnboarding} />
+                <Stack.Screen options={onboardingStyle} name="TutorialOnboarding" component={TutorialOnboarding} />
+                <Stack.Screen options={onboardingStyle} name="InstagramOnboarding" component={InstagramOnboarding} />
                 <Stack.Screen options={tabStyle} name="TabStack" component={TabStack} />
             </Stack.Navigator>
         // </NavigationContainer>

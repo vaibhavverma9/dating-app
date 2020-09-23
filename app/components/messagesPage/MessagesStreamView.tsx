@@ -1,32 +1,35 @@
 import React, { useEffect, useState, useContext, createRef } from 'react';
 import { StreamChat } from 'stream-chat';
-import { View, SafeAreaView, TouchableOpacity, Text, StyleSheet, Dimensions, ImageBackground, Image } from "react-native";
+import { View, SafeAreaView, TouchableOpacity, Text, StyleSheet, Dimensions, Image, ActivityIndicator } from "react-native";
 import { UserIdContext } from '../../utils/context/UserIdContext';
-import { _retrieveStreamToken, _storeStreamToken, _retrieveName } from '../../utils/asyncStorage'; 
+import { _retrieveName } from '../../utils/asyncStorage'; 
 import {
-  Avatar,
   Chat,
   Channel,
   MessageList,
   MessageInput,
   ChannelList,
-  IconBadge,
 } from "stream-chat-expo";
 
 import { createAppContainer } from 'react-navigation';
 import { createStackNavigator } from 'react-navigation-stack';
 import axios from 'axios';
-import { GET_MATCHES, INSERT_LIKE, ON_MATCHES_UPDATED } from '../../utils/graphql/GraphqlClient';
-import { useLazyQuery, useMutation, useSubscription } from '@apollo/client';
+import { ON_MATCHES_UPDATED } from '../../utils/graphql/GraphqlClient';
+import { useMutation, useSubscription } from '@apollo/client';
 import * as Segment from 'expo-analytics-segment';
 import { colors } from '../../styles/colors';
-import FullPageVideos from '../modals/FullPageVideos';
-import { Ionicons, Feather, Entypo } from '@expo/vector-icons'
+import { Ionicons, Feather } from '@expo/vector-icons'
 import MessagesOptions from './MessagesOptions'; 
 import MultipleVideoPopup from '../modals/MultipleVideosPopup'; 
-import * as FileSystem from 'expo-file-system';
+import ChannelMultipleVideos from '../modals/ChannelMultipleVideos'; 
+import * as Permissions from 'expo-permissions';
+import Constants from 'expo-constants';
+import { Notifications } from 'expo';
+import { UPDATE_PUSH_TOKEN } from '../../utils/graphql/GraphqlClient';
+import NoVideosPopup from '../modals/NoVideosPopup';
 
-const chatClient = new StreamChat('9uzx7652xgte');
+
+const chatClient = new StreamChat('9uzx7652xgte', { timeout: 6000 });
 
 export default function MessagesStreamView(props) {
 
@@ -35,6 +38,8 @@ export default function MessagesStreamView(props) {
   const [messagesOptionsVisible, setMessagesOptionsVisible] = useState(false); 
   const [optionsProfileId, setOptionsProfileId] = useState(null); 
   const [initialized, setInitialized] = useState(false); 
+  const [updatePushToken, { updatePushTokenData }] = useMutation(UPDATE_PUSH_TOKEN);
+  const [videosVisible, setVideosVisible] = useState(false); 
 
   const { data, loading, error } = useSubscription(ON_MATCHES_UPDATED, {variables: { userId }}); 
 
@@ -49,52 +54,88 @@ export default function MessagesStreamView(props) {
   }, [data]); 
 
   useEffect(() => {
+    async function askPush() {
+      const { status: existingStatus } = await Permissions.getAsync(Permissions.NOTIFICATIONS);
+      if(existingStatus !== 'granted'){
+        registerForPushNotificationsAsync(); 
+      }
+  
+    }
+  
+    async function initClient() {
+      let token;
+      try {
+        const response = await axios.post("https://gentle-brook-91508.herokuapp.com/joinStream", {
+          userId: userId.toString()
+        });
+        token = response.data.token;
+      } catch (err) {
+        console.log(err); 
+        return;
+      }
+  
+      let name = await _retrieveName(); 
+  
+      if(!initialized){
+        await chatClient.disconnect();
+  
+        await chatClient.setUser( 
+          {
+            id: userId.toString(),
+            name: name
+          },
+          token
+        );
+
+        await chatClient.addDevice(
+          Constants.installationId,
+          'apn', 
+          userId.toString()
+        );
+  
+        setInitialized(true); 
+      }
+  
+      const filter = { type: 'messaging', $and : [{ members: { $in: [userId.toString()]}}]};
+      const sort = { last_message_at: -1 };
+  
+  
+      const channels = await chatClient.queryChannels(filter, sort, {
+        watch: true,
+        state: true,
+      });  
+    };
+
     if(matchesData && matchesData.length > 0){
-      initClient(); 
+      initClient();
+      askPush();  
     }   
   }, [matchesData]); 
 
-  async function initClient() {
-    let token;
-    try {
-      const response = await axios.post("https://gentle-brook-91508.herokuapp.com/joinStream", {
-        userId: userId.toString()
+  const registerForPushNotificationsAsync = async () => {
+    if (Constants.isDevice) {
+      const { status } = await Permissions.askAsync(Permissions.NOTIFICATIONS);
+      const token = await Notifications.getExpoPushTokenAsync();
+      updatePushToken({ variables: { userId, expoPushToken: token } })
+    } else {
+      alert('Must use physical device for Push Notifications');
+    }
+
+    if ('android' in Constants.platform) {
+      Notifications.createChannelAndroidAsync('default', {
+        name: 'default',
+        sound: true,
+        priority: 'max',
+        vibrate: [0, 250, 250, 250],
       });
-      token = response.data.token;
-    } catch (err) {
-      console.log(err); 
-      return;
     }
-
-    let name = await _retrieveName(); 
-
-    if(!initialized){
-      await chatClient.disconnect();
-
-      await chatClient.setUser( 
-        {
-          id: userId.toString(),
-          name: name
-        },
-        token
-      );
-
-      setInitialized(true); 
-    }
-
-    const filter = { type: 'messaging', $and : [{ members: { $in: [userId.toString()]}}]};
-    const sort = { last_message_at: -1 };
-
-
-    const channels = await chatClient.queryChannels(filter, sort, {
-      watch: true,
-      state: true,
-    });  
   };
 
   function CustomChannelPreview(props){
+
     const channelPreviewButton = createRef(); 
     const [popupVisible, setPopupVisible] = useState(false); 
+    const [noVideosPopupVisible, setNoVideosPopupVisible] = useState(false);
 
     const onSelectChannel = () => {
       props.setActiveChannel(props.channel); 
@@ -124,53 +165,14 @@ export default function MessagesStreamView(props) {
     // console.log(like[0].profileUser.id); 
     const latestMessage = props.latestMessage.text;
 
-    function VideosDisplay({videos}){
-
-      if(videos && videos.length > 0){
-  
-        return (
-          <View style={styles.videoSectionStyle}>
-            {videos.map(video => <VideoView key={video.id} video={video} />)}
-          </View>
-        ) 
-      } else {
-          return null; 
-      }
-    }
-  
-    function VideoView({ video }){
-  
-      const muxPlaybackId = video.muxPlaybackId; 
-      const muxThumbnailUrl = 'https://image.mux.com/' + muxPlaybackId + '/thumbnail.jpg?time=0';
-      const [fullVideoVisible, setFullVideoVisible] = useState(false);
-  
-      const goToVideo = () => {
-        setFullVideoVisible(true); 
-      }
-  
-      return (
-        <View style={styles.thumbnailPaddingStyle}>
-          <TouchableOpacity onPress={goToVideo}>
-              <ImageBackground 
-                  style={styles.thumbnailDimensions}
-                  source={{uri: muxThumbnailUrl }}
-              >
-              </ImageBackground>
-          </TouchableOpacity>
-          <FullPageVideos 
-            visible={fullVideoVisible} 
-            setVisible={setFullVideoVisible} 
-            source={'https://stream.mux.com/' + muxPlaybackId + '.m3u8'}
-            questionText={video.videoQuestion.questionText}
-            videoId={video.id}
-          />
-        </View>
-      )
-    }
-
     function watchVideos(){
       setPopupVisible(true); 
-  }
+    }
+
+    function showNoVideosPopup(){
+      setNoVideosPopupVisible(true); 
+    }
+
 
     function ProfilePicture(){
       if(profileUrl != null){
@@ -180,6 +182,7 @@ export default function MessagesStreamView(props) {
               <TouchableOpacity onPress={watchVideos} style={{ height: 70, width: 70, borderRadius: 35, borderColor: colors.primaryPurple, borderWidth: 3, alignItems: 'center', justifyContent: 'center'}}>
                 <Image
                     style={{ height: 60, width: 60, borderRadius: 30 }}
+                    resizeMode="cover"
                     source={{ uri: profileUrl}}
                 />
               </TouchableOpacity> 
@@ -188,12 +191,13 @@ export default function MessagesStreamView(props) {
         } else {
           return(
             <View style={{ paddingTop: '2%'}}>
-              <View style={{ height: 70, width: 70, borderRadius: 35, alignItems: 'center', justifyContent: 'center'}}>
+              <TouchableOpacity onPress={showNoVideosPopup} style={{ height: 70, width: 70, borderRadius: 35, alignItems: 'center', justifyContent: 'center'}}>
                   <Image
                       style={{ height: 60, width: 60, borderRadius: 30 }}
+                      resizeMode="cover"
                       source={{ uri: profileUrl}}
-                  />
-              </View>
+                    />
+              </TouchableOpacity>
             </View>
           )                    
         }
@@ -246,13 +250,15 @@ export default function MessagesStreamView(props) {
           region={region}
           college={college}
         />
-
-        {/* <VideosDisplay videos={videos} /> */}
-
+        <NoVideosPopup 
+          visible={noVideosPopupVisible}
+          setVisible={setNoVideosPopupVisible}
+          name={firstName}
+        />
       </TouchableOpacity>
     );
 
-  }
+  }; 
 
   function goToAddVideo(){
     props.navigation.navigate('Add Video');
@@ -275,8 +281,10 @@ export default function MessagesStreamView(props) {
               </TouchableOpacity>
           </View>
 
-      </View>           )
+      </View>           
+      )
   }
+
 
   function ChannelListScreen(props){
     if(matchesData){
@@ -289,6 +297,8 @@ export default function MessagesStreamView(props) {
                 <ChannelList
                   filters={{ type: 'messaging', members: { $in: [userId.toString()] } }}
                   sort={{ last_message_at: -1 }}
+                  client={chatClient}
+                  loadMoreThreshold={10}
                   Preview={CustomChannelPreview}
                   onSelect={(channel) => {
                     props.navigation.navigate('Channel', {
@@ -304,6 +314,12 @@ export default function MessagesStreamView(props) {
                   allData={matchesData}
                   setAllData={setMatchesData}
                 />
+                <ChannelMultipleVideos 
+                  visible={videosVisible}
+                  setVisible={setVideosVisible}
+                  matchesData={matchesData}
+                  currentUserId={optionsProfileId}
+                />
               </View>
             </Chat>
           </SafeAreaView>
@@ -316,18 +332,7 @@ export default function MessagesStreamView(props) {
     } else {
       return null; 
     }
-  }
-
-  function HeaderButton({text, disabled}){
-    const textStyle = disabled ? styles.headerText: styles.disabledHeaderText;
-
-    return (
-      <TouchableOpacity onPress={() => { disableHeader({text}) }}>
-        <View>
-          <Text style={textStyle}>{text}</Text>
-        </View>
-      </TouchableOpacity>)
-  }
+  };
 
   ChannelListScreen.navigationOptions = () => ({
     headerShown: false
@@ -362,15 +367,54 @@ export default function MessagesStreamView(props) {
     });
 
     const currentName = like[0].profileUser.firstName;
+    const profileUrl = like[0].profileUser.profileUrl; 
+    const videos = like[0].profileUser.userVideos; 
 
     const moreOptions = () => {
       setMessagesOptionsVisible(true); 
       setOptionsProfileId(profileId); 
     }
 
+    function watchVideos(){
+      setVideosVisible(true); 
+      setOptionsProfileId(profileId); 
+    }
+
+    function ProfilePicture(){
+      if(profileUrl != null){
+        if(videos.length > 0){
+          return(
+            <TouchableOpacity onPress={watchVideos} style={{ height: 40, width: 40, borderRadius: 30, borderColor: colors.primaryPurple, borderWidth: 3, alignItems: 'center', justifyContent: 'center'}}>
+              <Image
+                  style={{ height: 30, width: 30, borderRadius: 30 }}
+                  source={{ uri: profileUrl}}
+              />
+            </TouchableOpacity> 
+          )
+        } else {
+          return(
+            <View style={{ height: 40, width: 40, borderRadius: 30, alignItems: 'center', justifyContent: 'center'}}>
+                <Image
+                    style={{ height: 30, width: 30, borderRadius: 30 }}
+                    source={{ uri: profileUrl}}
+                />
+            </View>
+          )                    
+        }
+      } else {
+          return null;  
+      }
+  }
+
     return {
-      title: currentName,
+      // title: currentName,
       headerBackTitleVisible: false,
+      headerTitle: () => (
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingBottom: 5 }}>
+          <ProfilePicture />
+          <Text style={{ fontSize: 16, fontWeight: '600', paddingLeft: 10 }}>{currentName}</Text>
+        </View>
+      ),
       headerRight: () => (
         <TouchableOpacity onPress={moreOptions} style={{ paddingRight: 20}}>
           <Ionicons name="ios-more" size={30} color={colors.primaryBlack}/>

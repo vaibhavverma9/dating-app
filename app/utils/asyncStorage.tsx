@@ -514,3 +514,41 @@ export const _retrieveProfileUrl = async () => {
         return ''; 
     }
 };
+
+export const _storeExplanationShown = async(explanationShown) => {
+    try {
+        await AsyncStorage.setItem('@explanationShown', explanationShown.toString());
+    } catch (error) {}
+}
+
+export const _retrieveExplanationShown = async() => {
+    try {
+        const value = await AsyncStorage.getItem('@explanationShown');
+        if (value !== null) {
+            return value == "true"; 
+        } else {
+            return false; 
+        }
+    } catch (error) {
+        return false; 
+    }
+}
+
+export const _storeInstagram = async(instagram) => {
+    try {
+        await AsyncStorage.setItem('@instagram', instagram);
+    } catch (error){}
+}
+
+export const _retrieveInstagram = async () => {
+    try {
+      const value = await AsyncStorage.getItem('@instagram');
+      if (value !== null) {
+        return value; 
+      } else {
+          return ''; 
+      }
+    } catch (error) {
+        return ''; 
+    }
+};

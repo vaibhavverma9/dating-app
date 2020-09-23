@@ -27,7 +27,7 @@ export const homeStyles = StyleSheet.create({
         ...StyleSheet.absoluteFill, 
         justifyContent: 'center',
         height: '15%',
-        width: '100%', 
+        // width: '100%', 
         alignItems: 'center', 
         flexDirection: 'column'
     },

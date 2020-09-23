@@ -5,11 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { _storeLatitude, _storeLongitude, _storeCollege, _storeCollegeLatitude, _storeCollegeLongitude, _storeProfileUrl, _retrieveName } from '../../utils/asyncStorage'; 
 import { colors } from '../../styles/colors';
-import Autocomplete from 'react-native-autocomplete-input';
-import CollegeOnboarding from './CollegeOnboarding';
 import * as Permissions from 'expo-permissions';
 import * as ImagePicker from 'expo-image-picker';
-import LocationOnboarding from './LocationOnboarding';
 import firebaseApp from '../../utils/firebase/fbConfig';
 import { UPDATE_PROFILE_URL } from '../../utils/graphql/GraphqlClient';
 import { useMutation } from '@apollo/client';
@@ -72,21 +69,6 @@ export default function ProfilePictureOnboarding(props) {
         const profileUrl = await ref.getDownloadURL(); 
         updateProfileUrl({ variables: { userId, profileUrl }})
         _storeProfileUrl(profileUrl); 
-
-        const profileIds = [{
-            id: userId.toString(), 
-            name: name,
-            image: profileUrl
-        }]; 
-
-        try {
-            const response = await axios.post("https://gentle-brook-91508.herokuapp.com/updateUsersStream", {
-              likerIds: profileIds
-            });
-        } catch (err) {
-            console.log(err); 
-            return;
-        }
     }
 
     const submitProfilePicture = () => {

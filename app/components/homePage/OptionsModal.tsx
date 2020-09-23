@@ -1,8 +1,8 @@
-import { Text, View, Modal, TouchableHighlight, Alert } from 'react-native';
+import { Text, View, Modal, TouchableOpacity, TouchableWithoutFeedback, Alert, StyleSheet} from 'react-native';
 import React from 'react'; 
-import { homeStyles } from '../../styles/homeStyles';
 import { UPDATE_VIDEOS, INSERT_BLOCK } from '../../utils/graphql/GraphqlClient';
 import { useMutation } from '@apollo/client';
+import { colors } from '../../styles/colors';
 
 export default function OptionsModal(props) {
   const [updateVideos, { updateVideosData }] = useMutation(UPDATE_VIDEOS);
@@ -38,31 +38,77 @@ export default function OptionsModal(props) {
   }
 
   return (
+
     <Modal
-      animationType="slide"
-      transparent={false}
-      visible={props.visible}>
-      <View style={homeStyles.optionsModalView}>
-        <TouchableHighlight
-          onPress={flagPost}>
-          <Text style={homeStyles.optionsModalButtons}>Flag Post</Text>
-        </TouchableHighlight>
+    animationType="slide"
+    transparent={true}
+    visible={props.visible}>
+        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: '#00000090'}}>
+            <TouchableWithoutFeedback onPress={cancel}>
+              <View style={{ height: '73%', width: '100%'}}>
+              </View>
+            </TouchableWithoutFeedback>
 
-        <TouchableHighlight
-          onPress={blockPost}>
-          <Text style={homeStyles.optionsModalButtons}>Block User</Text>
-        </TouchableHighlight>
-
-        <TouchableHighlight
-          onPress={removePost}>
-          <Text style={homeStyles.optionsModalButtons}>Remove Post</Text>
-        </TouchableHighlight>
-
-        <TouchableHighlight
-          onPress={cancel}>
-          <Text style={homeStyles.optionsModalButtons}>Cancel</Text>
-        </TouchableHighlight>
-      </View>
+            <View style={{ backgroundColor: colors.primaryPurple, height: '27%', justifyContent: 'space-evenly', alignItems:'center', borderRadius: 5}}>
+                <View style={{ height: '60%', justifyContent: 'space-between'}}>
+                    <TouchableOpacity onPress={flagPost} style={styles.facebookContainer}>
+                        <Text style={styles.facebookText}>Flag Post</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={blockPost} style={styles.facebookContainer}>
+                        <Text style={styles.facebookText}>
+                          Block User
+                        </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={removePost} style={styles.facebookContainer}>
+                        <Text style={styles.facebookText}>
+                        Remove Post
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        </View> 
     </Modal>
+    // <Modal
+    //   animationType="slide"
+    //   transparent={false}
+    //   visible={props.visible}>
+    //   <View style={homeStyles.optionsModalView}>
+    //     <TouchableHighlight
+    //       onPress={flagPost}>
+    //       <Text style={homeStyles.optionsModalButtons}>Flag Post</Text>
+    //     </TouchableHighlight>
+
+    //     <TouchableHighlight
+    //       onPress={blockPost}>
+    //       <Text style={homeStyles.optionsModalButtons}>Block User</Text>
+    //     </TouchableHighlight>
+
+    //     <TouchableHighlight
+    //       onPress={removePost}>
+    //       <Text style={homeStyles.optionsModalButtons}>Remove Post</Text>
+    //     </TouchableHighlight>
+
+    //     <TouchableHighlight
+    //       onPress={cancel}>
+    //       <Text style={homeStyles.optionsModalButtons}>Cancel</Text>
+    //     </TouchableHighlight>
+    //   </View>
+    // </Modal>
   )
 }
+
+const styles = StyleSheet.create({
+  facebookContainer: { 
+      backgroundColor: colors.secondaryWhite, 
+      borderRadius: 5,
+      width: 225,
+      height: 40, 
+      justifyContent: 
+      'center', 
+      alignItems: 'center'
+  }, 
+  facebookText: {
+      fontSize: 17,
+      color: colors.primaryBlack
+  }
+})

@@ -34,11 +34,12 @@ export const GET_VIDEOS = gql`
     city
     region
     college
+    instagram
     likesByLikedId(limit: 1, where: {likerId: {_eq: $userId}}, order_by: {created_at: desc}) {
       dislike
       matched
     }
-    userVideos(limit: 4, where: {status: {_eq: "ready"}}, order_by: {views: asc}) {
+    userVideos(limit: 4, where: {status: {_eq: "ready"}, _or: [{rank: {_eq: 1}},{views: {_lt: 10}}]}) {
       muxPlaybackId
       videoQuestion {
         questionText
@@ -55,7 +56,7 @@ export const GET_VIDEOS = gql`
     profileUrl
   }
 
-  query GetVideos ($userId: Int, $limit: Int, $groupPreference: [Int!], $lastPerformance: numeric, $secondId: Int) { 
+  query GetVideos ($userId: Int, $limit: Int, $groupPreference: [Int!], $lastPerformance: numeric, $secondId: Int, $region1: String, $region2: String) { 
     usersLocation: users (
       limit: $limit, 
       where: {_and: [
@@ -66,7 +67,13 @@ export const GET_VIDEOS = gql`
         {_or: [{_not: {likesByLikedId: {likerId: {_eq: $userId}}}},
           {_not: {likesByLikedId: {likerId: {_eq: $secondId}}}}
         ]},
-        {group: {_in: $groupPreference}}
+        {group: {_in: $groupPreference}},
+        {_or: [
+          {region: {_eq: $region1}}, 
+          {region: {_eq: $region2}}, 
+          {userCollege: {region: {_eq: $region1}}}, 
+          {userCollege: {region: {_eq: $region2}}},
+        ]}
       ]}, 
       order_by: {performance: desc_nulls_last}
     ) {
@@ -75,12 +82,14 @@ export const GET_VIDEOS = gql`
   }
 `
 
+// views: {_lt: 10}, 
+
+
 export const GET_LAST_DAY_VIDEOS = gql`
-  query GetLastDayVideos ($userId: Int, $yesterday: timestamptz){
+  query GetLastDayVideos ($userId: Int){
     videos(where: 
-      {userId: {_eq: $userId}, 
-      status: {_eq: "ready"},
-      views: {_lt: 10}}
+      {userId: {_eq: $userId},
+      status: {_eq: "ready"}}
     , order_by: {created_at: desc}){
       id
       muxPlaybackId
@@ -95,12 +104,13 @@ export const GET_LAST_DAY_VIDEOS = gql`
   }
 `
 
+
 export const GET_PAST_VIDEOS = gql`
-  query GetLastDayVideos ($userId: Int, $yesterday: timestamptz){
+  query GetLastDayVideos ($userId: Int){
     videos(where: 
       {userId: {_eq: $userId}, 
-      status: {_eq: "ready"},
-      views: {_gte: 10}}
+      views: {_gte: 10},
+      status: {_eq: "ready"}}
     , order_by: {created_at: desc}){
       id
       muxPlaybackId
@@ -204,7 +214,7 @@ export const GET_ASSET_STATUS = `
 
 export const GET_LIKES = gql`
   query GetLikes($userId: Int) {
-    likes(where: {_and: [{_not: {Liker: {blocksByBlockedId: {blockerId: {_eq: $userId}}}}}, {_not: {Liker: {likesByLikedId: {likerId: {_eq: $userId}}}}, likedId: {_eq: $userId}, dislike: {_eq: false}}]}, distinct_on: likerId) {
+    likes: likes(where: {_and: [{_not: {Liker: {blocksByBlockedId: {blockerId: {_eq: $userId}}}}}, {likedId: {_eq: $userId}, dislike: {_eq: false}}]}, order_by: {created_at: desc_nulls_last}) {
       id
       userId: likedId
       profileId: likerId
@@ -216,6 +226,7 @@ export const GET_LIKES = gql`
         region
         college
         profileUrl
+        instagram
         userVideos(limit: 4, order_by: {created_at: asc}, where: {_or: [{rank: {_eq: 1}},{views: {_lt: 10}}], status: {_eq: "ready"}, muxPlaybackId: {_is_null: false}}) {
           videoQuestion {
             questionText
@@ -229,8 +240,8 @@ export const GET_LIKES = gql`
 `
 
 export const GET_MATCHES = gql`
-  query GetMatchesLikes($userId: Int){
-    likes(where: {_and: [{_not: {Liker: {blocksByBlockedId: {blockerId: {_eq: 1528}}}}},{Liker: {likesByLikedId: {likerId: {_eq: $userId}, dislike: {_eq: false}}}, likedId: {_eq: $userId}, dislike: {_eq: false}}]}, distinct_on: likerId) {
+  query GetMatches($userId: Int){
+    matches(where: {_and: [{_not: {Liker: {blocksByBlockedId: {blockerId: {_eq: $userId}}}}},{Liker: {likesByLikedId: {likerId: {_eq: $userId}, dislike: {_eq: false}}}, likedId: {_eq: $userId}, dislike: {_eq: false}}]}, distinct_on: likerId) {
       id
       userId: likedId
       profileId: likerId
@@ -242,6 +253,7 @@ export const GET_MATCHES = gql`
         region
         college
         profileUrl
+        instagram
         userVideos(limit: 4, order_by: {created_at: asc}, where: {_or: [{rank: {_eq: 1}},{views: {_lt: 10}}], status: {_eq: "ready"}, muxPlaybackId: {_is_null: false}}) {
           videoQuestion {
             questionText
@@ -339,7 +351,7 @@ export const ON_VIDEO_UPDATED = gql`
 
 export const ON_MATCHES_UPDATED = gql`
   subscription OnMatchesUpdated($userId: Int){
-    likes(where: {_and: [{_not: {Liker: {blocksByBlockedId: {blockerId: {_eq: 1528}}}}},{Liker: {likesByLikedId: {likerId: {_eq: $userId}, dislike: {_eq: false}}}, likedId: {_eq: $userId}, dislike: {_eq: false}}]}, distinct_on: likerId) {
+    likes(where: {_and: [{_not: {Liker: {blocksByBlockedId: {blockerId: {_eq: $userId}}}}},{Liker: {likesByLikedId: {likerId: {_eq: $userId}, dislike: {_eq: false}}}, likedId: {_eq: $userId}, dislike: {_eq: false}}]}, order_by: {created_at: desc_nulls_last}) {
       id
       userId: likedId
       profileId: likerId
@@ -350,6 +362,33 @@ export const ON_MATCHES_UPDATED = gql`
         region
         college
         profileUrl
+        instagram
+        userVideos(limit: 3, order_by: {created_at: asc}, where: {status: {_eq: "ready"}, muxPlaybackId: {_is_null: false}}) {
+          videoQuestion {
+            questionText
+          }
+          id
+          muxPlaybackId
+        }
+      }
+    }
+  }
+`
+
+export const ON_YOUR_LIKES_UPDATED = gql`
+  subscription OnMatchesUpdated($userId: Int){
+    likes(where: {Liked: {likesByLikedId: {likerId: {_eq: $userId}, dislike: {_eq: false}}}}, order_by: {created_at: desc_nulls_last}) {
+      id
+      userId: likerId
+      profileId: likedId
+      profileUser: Liked {
+        firstName
+        id
+        city
+        region
+        college
+        profileUrl
+        instagram
         userVideos(limit: 3, order_by: {created_at: asc}, where: {status: {_eq: "ready"}, muxPlaybackId: {_is_null: false}}) {
           videoQuestion {
             questionText
@@ -377,6 +416,14 @@ export const GET_NUMBER_VIDEOS = gql`
       aggregate {
         count
       }
+    }
+  }
+`
+
+export const GET_INSTAGRAM = gql`
+  query GetInstagram ($userId: Int){
+    users(where: {id: {_eq: $userId}}) {
+      instagram
     }
   }
 `
@@ -440,6 +487,14 @@ export const UPDATE_BIRTHDAY = gql`
 export const UPDATE_COLLEGE = gql`
   mutation UpdateName ($userId: Int, $college: String, $collegeId: Int) {
     update_users(where: {id: {_eq: $userId}}, _set: {college: $college, collegeId: $collegeId}) {
+      affected_rows
+    }
+  }
+`
+
+export const UPDATE_INSTAGRAM = gql`
+  mutation UpdateInstagram ($userId: Int, $instagram: String) {
+    update_users(where: {id: {_eq: $userId}}, _set: {instagram: $instagram}) {
       affected_rows
     }
   }
@@ -607,6 +662,17 @@ export const GET_GENDER_GROUP = gql`
   query GetGenderGroup($userId: Int){
     users(where: {id: {_eq: $userId}}) {
       group
+    }
+  }
+`
+
+export const GET_REGIONS = gql`
+  query GetGenderGroup($userId: Int){
+    users(where: {id: {_eq: $userId}}) {
+      region
+      userCollege {
+        region
+      }
     }
   }
 `

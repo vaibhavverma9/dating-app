@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { _retrieveName, _retrieveBio, _retrieveCity, _retrieveRegion, _retrieveGenderInterest, _retrieveCollege } from '../../utils/asyncStorage'; 
+import { _retrieveName, _retrieveBio, _retrieveCity, _retrieveRegion, _retrieveGenderInterest, _retrieveCollege, _retrieveInstagram } from '../../utils/asyncStorage'; 
 import { colors } from '../../styles/colors';
-import { GET_CITY_REGION, client } from '../../utils/graphql/GraphqlClient';
+import { GET_INSTAGRAM } from '../../utils/graphql/GraphqlClient';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import * as SMS from 'expo-sms';
+import { useLazyQuery } from '@apollo/client';
 
 export default function EditProfileView(props) {
     
@@ -16,12 +17,14 @@ export default function EditProfileView(props) {
     const [region, setRegion] = useState(null); 
     const [genderInterest, setGenderInterest] = useState(null); 
     const [college, setCollege] = useState(''); 
+    const [instagram, setInstagram] = useState(''); 
 
     useEffect(() => {
         props.navigation.addListener('focus', () => {
             initProfile(); 
         });  
       }, [props.navigation]);
+
 
     async function initProfile(){
         const name = await _retrieveName(); 
@@ -30,6 +33,7 @@ export default function EditProfileView(props) {
         const region = await _retrieveRegion(); 
         const genderInterest = await _retrieveGenderInterest(); 
         const college = await _retrieveCollege(); 
+        const instagram = await _retrieveInstagram(); 
 
         setName(name);
         setBio(bio);
@@ -37,6 +41,7 @@ export default function EditProfileView(props) {
         setRegion(region); 
         setGenderInterest(genderInterest); 
         setCollege(college); 
+        setInstagram(instagram); 
     }
 
     function goToEditName(){
@@ -53,6 +58,10 @@ export default function EditProfileView(props) {
 
     function goToCollege(){
         props.navigation.navigate('College', {college}); 
+    }
+
+    function goToInstagram(){
+        props.navigation.navigate('Instagram', { instagram }); 
     }
 
     function NameText(){
@@ -117,6 +126,25 @@ export default function EditProfileView(props) {
         }
     }
 
+    function InstagramText(){
+        if(instagram == ''){
+            return (
+                <Text style={{ color: colors.secondaryGray, fontSize: 16 }}>Add your Instagram handle</Text>
+            )
+
+        } else {
+            if(instagram.includes('@')){
+                return (
+                    <Text style={{ color: colors.secondaryGray, fontSize: 16 }}>{instagram}</Text>
+                )    
+            } else {
+                return (
+                    <Text style={{ color: colors.secondaryGray, fontSize: 16 }}>@{instagram}</Text>
+                )    
+            }
+        }
+    }
+
     async function sendFeedback () {
         const { result } = await SMS.sendSMSAsync(
           ['9496146745'],
@@ -154,6 +182,13 @@ export default function EditProfileView(props) {
                 <Text style={{ fontSize: 16, color: colors.secondaryWhite }}>College</Text>
                 <TouchableOpacity onPress={goToCollege} style={{ flexDirection: 'row', padding: 15}}>
                     <CollegeText />
+                    <MaterialIcons name="navigate-next" color={colors.secondaryGray} size={20}/>  
+                </TouchableOpacity>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingLeft: 15, paddingTop: 15}}>
+                <Text style={{ fontSize: 16, color: colors.secondaryWhite }}>Instagram</Text>
+                <TouchableOpacity onPress={goToInstagram} style={{ flexDirection: 'row', padding: 15}}>
+                    <InstagramText />
                     <MaterialIcons name="navigate-next" color={colors.secondaryGray} size={20}/>  
                 </TouchableOpacity>
             </View>

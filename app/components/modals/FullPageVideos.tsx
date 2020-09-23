@@ -4,9 +4,11 @@ import SingleVideo from '../videosPage/SingleVideo';
 import { BlurView } from 'expo-blur';
 import { fullPageVideoStyles } from '../../styles/fullPageVideoStyles';
 import { colors } from '../../styles/colors';
-import { SimpleLineIcons, Ionicons } from '@expo/vector-icons'
+import { SimpleLineIcons, Ionicons, MaterialIcons } from '@expo/vector-icons'
 import { useMutation } from '@apollo/client';
 import { DELETE_VIDEO } from '../../utils/graphql/GraphqlClient';
+import * as MediaLibrary from 'expo-media-library';
+import * as FileSystem from 'expo-file-system';
 
 export default function FullPageVideos(props) {
 
@@ -76,8 +78,9 @@ export default function FullPageVideos(props) {
     if(showDelete) {
       return (
         <View style={{ ...StyleSheet.absoluteFill, justifyContent: 'flex-end', height: '100%'}}>
-          <View style={{ height: '15%', justifyContent: 'center', backgroundColor: colors.secondaryBlack, borderRadius: 5 }}>
-            <TouchableOpacity onPress={tapDeleteVideo}>
+          <View style={{ height: '15%', justifyContent: 'space-evenly', backgroundColor: colors.secondaryBlack, borderRadius: 5, flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity onPress={tapDeleteVideo} style={{ justifyContent: 'center', alignItems: 'center' }}>
+              <MaterialIcons name='delete' size={40} color={colors.secondaryWhite} />        
               <Text style={{ color: colors.secondaryWhite, fontSize: 17, fontWeight: '500', alignSelf: 'center'}}>Delete</Text>
             </TouchableOpacity>
           </View>

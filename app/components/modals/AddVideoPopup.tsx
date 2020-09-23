@@ -1,6 +1,5 @@
-import { View, Modal, Text, TouchableHighlight, StyleSheet } from 'react-native';
+import { View, Modal, Text, StyleSheet } from 'react-native';
 import React from 'react'; 
-import { TouchableWithoutFeedback } from 'react-native-gesture-handler';
 import { colors } from '../../styles/colors';
 import { TouchableOpacity } from 'react-native';
 
@@ -14,7 +13,7 @@ export default function AddVideoPopup(props) {
     function skip(){
         props.setVisible(false); 
     }
-
+ 
     return (
         <Modal
         animationType="slide"
@@ -22,7 +21,7 @@ export default function AddVideoPopup(props) {
         visible={props.visible}>
             <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: '#00000090'}}>
                 <View style={{ backgroundColor: colors.primaryPurple, height: '30%', justifyContent: 'space-evenly', alignItems:'center', borderRadius: 5}}>
-                    <Text style={{ color: colors.secondaryWhite, fontSize: 16}}>
+                    <Text style={{ color: colors.secondaryWhite, fontSize: 17, fontWeight: '600'}}>
                         You won't get likes until you add a video!
                     </Text>
                     <View style={{ height: '60%', justifyContent: 'space-evenly'}}>

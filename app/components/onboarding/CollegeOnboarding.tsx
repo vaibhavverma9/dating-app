@@ -8,11 +8,8 @@ import { useMutation, useLazyQuery } from '@apollo/client';
 import { UPDATE_COLLEGE, GET_COLLEGES } from '../../utils/graphql/GraphqlClient';
 import { _storeLatitude, _storeLongitude, _storeCollege, _storeCollegeLatitude, _storeCollegeLongitude } from '../../utils/asyncStorage'; 
 import { colors } from '../../styles/colors';
-import CollegeEventsOnboarding from './CollegeEventsOnboarding';
 import Autocomplete from 'react-native-autocomplete-input';
-import ProfilePictureOnboarding from './ProfilePictureOnboarding';
 import * as Segment from 'expo-analytics-segment';
-import GenderInterestOnboarding from './GenderInterestOnboarding';
 
 export default function CollegeOnboarding(props) {
 
@@ -51,7 +48,7 @@ export default function CollegeOnboarding(props) {
         _storeCollegeLongitude(collegeLongitude);  
 
         updateCollege({ variables: { userId, college: college, collegeId: collegeId }});
-        props.navigation.navigate("ProfilePictureOnboarding")
+        props.navigation.navigate("InstagramOnboarding")
     }
 
     function handleSelectItem(item){
@@ -96,7 +93,7 @@ export default function CollegeOnboarding(props) {
             return null; 
         } else {
             return (
-                <TouchableOpacity onPress={() => {props.navigation.navigate("ProfilePictureOnboarding")}}>
+                <TouchableOpacity onPress={() => {props.navigation.navigate("InstagramOnboarding")}}>
                     <Text style={{ paddingTop: '3%', color: primaryColor}}>Skip</Text>
                 </TouchableOpacity>
             )

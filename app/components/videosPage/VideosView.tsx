@@ -45,7 +45,8 @@ export default function VideosView(props) {
     const [bestVideos, setBestVideos] = useState([]);
     const [averageVideos, setAverageVideos] = useState([]);
 
-    const yesterday = new Date(Date.now() - 86400000); 
+    const day = new Date().getDay(); 
+
     const thumbnailPadding = '0.2%'; 
     const length = 110; 
 
@@ -63,7 +64,10 @@ export default function VideosView(props) {
 
     const [getStoredLastDayVideos, { data: storedLastDayVideosData }] = useLazyQuery(GET_LAST_DAY_VIDEOS, 
     { 
-        onCompleted: (storedLastDayVideosData) => { setStoredLastDayVideos(storedLastDayVideosData.videos) } 
+        onCompleted: (storedLastDayVideosData) => { 
+            setStoredLastDayVideos(storedLastDayVideosData.videos);
+            setInitialized(true); 
+        } 
     }); 
 
     const [getPastVideos, { data: getPastVideosData }] = useLazyQuery(GET_PAST_VIDEOS, 
@@ -97,16 +101,16 @@ export default function VideosView(props) {
     const onRefresh = React.useCallback(() => {
         setRefreshing(true);
 
-        getStoredLastDayVideos({variables: { userId, yesterday}}); 
-        getPastVideos({variables: { userId, yesterday}}); 
+        getStoredLastDayVideos({variables: { userId }}); 
+        // getPastVideos({variables: { userId }}); 
 
         wait(2000).then(() => setRefreshing(false));
     }, [refreshing]);
 
     useEffect(() => {
         Segment.screen('Videos'); 
-        getStoredLastDayVideos({variables: { userId, yesterday}}); 
-        getPastVideos({variables: { userId, yesterday}}); 
+        getStoredLastDayVideos({variables: { userId }}); 
+        // getPastVideos({variables: { userId }}); 
         initProfileInfo(); 
         resetName(); 
         setTimeout(() => { setTimedOut(true) }, 3000); 
@@ -135,7 +139,7 @@ export default function VideosView(props) {
     useEffect(() => {
         const params = props.route.params;
         if (params != undefined){
-            if(uploadedVideos.length == 0 && storedLastDayVideos.length == 0){
+            if(uploadedVideos.length == 0 && (storedLastDayVideos.length == 0 || storedLastDayVideos.length == 4 || storedLastDayVideos.length == 8)){
                 setFeedbackVisible(true);
             }
 
@@ -410,7 +414,7 @@ export default function VideosView(props) {
         setUploadedVideos([newParams, ...uploadedVideosFiltered]);
     }
 
-    function VideoSection ({ videos }) {        
+    function VideoRow ({ videos }) {        
         return (
             <View style={styles.videoSectionStyle}>
                 {videos.map(video => <VideoView key={video.id} video={video} />)}
@@ -418,21 +422,45 @@ export default function VideosView(props) {
         )
     }
 
+    function VideoSection({videos}){
+        const rows = []; 
+        const length = videos.length; 
+
+        for (let i = 0; i < videos.length / 3; i++){
+            const lower = i * 3; 
+            const upper = (i + 1) * 3; 
+            rows.push(
+                <VideoRow key={i} videos={videos.slice(lower, upper)}/>
+            )
+        }
+
+        return (
+            <View>
+                {rows}
+            </View>
+        );
+    }
+
+
     function LastDayVideosSubtitle() {
-        if(bestVideos.length > 0 || averageVideos.length > 0){
-            return (
-                <Text style={styles.sectionSubtitles}>Add videos to stay on top of the feed.</Text>
-            )    
-        } else {
-            if(lastDayVideos.length > 1){
+        if(lastDayVideos.length > 3){
+            if(day % 2 == 0){
                 return (
-                    <Text style={styles.sectionSubtitles}>We show up to four videos to each user.</Text>   
-                )    
+                    <Text style={styles.sectionSubtitles}>We continuously test your videos and pick the best four to show users.</Text>   
+                )        
             } else {
                 return (
-                    <Text style={styles.sectionSubtitles}>Add videos to get likes from users.</Text>   
-                )    
+                    <Text style={styles.sectionSubtitles}>Add videos to stay on top of the feed.</Text>
+                )            
             }
+        } else if(lastDayVideos.length > 1){
+            return (
+                <Text style={styles.sectionSubtitles}>We show up to four videos to each user.</Text>   
+            )    
+        } else {
+            return (
+                <Text style={styles.sectionSubtitles}>Add videos to get likes from users.</Text>   
+            )    
         }
     }
 
@@ -667,7 +695,7 @@ export default function VideosView(props) {
             return (
                 <View>
                     <TouchableOpacity onPress={goToNewVideos} style={styles.titleView}>
-                        <Text style={styles.title}>Recent Videos</Text>
+                        <Text style={styles.title}>Videos</Text>
                         <Entypo name="chevron-right" color={colors.primaryWhite} size={17}/>  
                     </TouchableOpacity>
                     <LastDayVideosSubtitle />
@@ -707,25 +735,24 @@ export default function VideosView(props) {
                         <EditProfileButton /> 
                     </View>
                     <View style={styles.thumbnailPaddingTop}>
-                        <RecentVideosTitle />
-                        <VideoSection videos={lastDayVideos.slice(0, 3)}/>
-                        <VideoSection videos={lastDayVideos.slice(3, 6)}  />
+                        <RecentVideosTitle  />
+                        <VideoSection videos={lastDayVideos} />
                     </View>
                     <View style={styles.thumbnailPaddingTop2}>
                         <TouchableOpacity style={styles.titleView} onPress={goToBestVideos}>
                             <SectionTitle text={'Best Videos'} videos={bestVideos} />
                         </TouchableOpacity>
                         <BestVideoSubtitle />
-                        <VideoSection videos={bestVideos.slice(0, 3)}  />
-                        <VideoSection videos={bestVideos.slice(3, 6)}  />
+                        <VideoRow videos={bestVideos.slice(0, 3)}  />
+                        <VideoRow videos={bestVideos.slice(3, 6)}  />
                     </View>
                     <View style={styles.thumbnailPaddingTop2}>
                         <TouchableOpacity style={styles.titleView} onPress={goToAverageVideos}>
                             <SectionTitle text={'Archived Videos'} videos={averageVideos} />
                         </TouchableOpacity>
                         <AverageVideosSubtitle />
-                        <VideoSection videos={averageVideos.slice(0, 3)}  />
-                        <VideoSection videos={averageVideos.slice(3, 6)}  />
+                        <VideoRow videos={averageVideos.slice(0, 3)}  />
+                        <VideoRow videos={averageVideos.slice(3, 6)}  />
                     </View>
                 </View>
                 <Settings />

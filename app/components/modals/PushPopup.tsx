@@ -40,10 +40,9 @@ export default function PushPopup(props) {
                 </TouchableWithoutFeedback> */}
                 <View style={{ backgroundColor: colors.primaryPurple, padding: 16, height: '25%', justifyContent: 'space-evenly', alignItems:'center', borderRadius: 4}}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center',  width: '100%'}}>
-                        <ProfilePicture />
                         <View style={{ width: '80%'}}>
                             <Text style={{ fontSize: 20, fontWeight: '500', textAlign: 'center', color: colors.secondaryWhite }}>
-                                Would you like to be notified when {props.name} like you back?
+                                Would you like to be notified when {props.name} likes you back?
                             </Text>
                         </View>
                     </View>                
