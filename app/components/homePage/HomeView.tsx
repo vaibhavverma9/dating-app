@@ -42,11 +42,11 @@ export default function HomeView({route, navigation}) {
     { 
       onCompleted: (regionsData) => { 
         let regions = ['CA', 'NY', 'IL']; 
-        if(regions.includes(regionsData.users[0].region) && regions.includes(regionsData.users[0].userCollege.region)){
+        if(regions.includes(regionsData.users[0].region) || regions.includes(regionsData.users[0].userCollege.region)){
           setRegion1(regionsData.users[0].region); 
           setRegion2(regionsData.users[0].userCollege.region); 
         } else {
-          setRegion1('IL');
+          setRegion1(regionsData.users[0].region); 
           setRegion2('CA'); 
         }
       }

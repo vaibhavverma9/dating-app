@@ -1,8 +1,35 @@
-import React, { useEffect, useRef } from 'react'; 
+import React, { useEffect, useRef, useState } from 'react'; 
 import { Video, Audio } from 'expo-av';   
 
 export default function SingleVideo(props) {
 
+    const [loaded, setLoaded] = useState(false); 
+    const [currentProgress, setCurrentProgress] = useState(0); 
+    let playbackObject = useRef(null); 
+
+    const _onPlaybackStatusUpdate = (playbackStatus) => {
+        console.log(playbackStatus); 
+        if(playbackStatus.isBuffering){
+            if(loaded){
+                setLoaded(false); 
+            }
+        } else {
+        if(!loaded){
+            setLoaded(true); 
+        }
+        }
+
+        if(playbackStatus.positionMillis && playbackStatus.durationMillis){
+            const progress = playbackStatus.positionMillis / playbackStatus.durationMillis; 
+            setCurrentProgress(progress);   
+        } else {
+            if(currentProgress < 0.5){
+                setCurrentProgress(0); 
+            }
+        }
+    }
+
+    
     useEffect(() => {
         Audio.setAudioModeAsync({
             playsInSilentModeIOS: true,

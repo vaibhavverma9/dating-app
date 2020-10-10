@@ -47,9 +47,12 @@ export default function ViewAllPopup(props) {
                     <View style={{ height: '80%', width: '100%'}}>
                     </View>
                 </TouchableWithoutFeedback>
-                <View style={{ backgroundColor: colors.primaryWhite, padding: 16, height: '100%', justifyContent: 'flex-start', alignItems:'center', borderRadius: 4}}>
-                    <View style={{ flexDirection: 'row'}}>
-                        <Text style={{ color: colors.primaryBlack, paddingTop: 25, fontSize: 20, fontWeight: '500' }}>Daily Questions</Text>
+                <View style={{ backgroundColor: colors.primaryWhite, padding: 16, height: '100%', justifyContent: 'flex-start', borderRadius: 4}}>
+                    <View style={{ paddingTop: 25, flexDirection: 'row', alignItems: 'center' }}>
+                        <TouchableOpacity onPress={onScreenPress}>
+                            <Text style={{ color: colors.primaryBlack, fontSize: 16, fontWeight: '500' }}>Cancel</Text>
+                        </TouchableOpacity>
+                        {/* <Text style={{ color: colors.primaryBlack, fontSize: 20, fontWeight: '500' }}>Questions</Text> */}
                     </View>
                     <FlatList
                         data={props.questionData}

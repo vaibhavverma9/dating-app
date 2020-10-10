@@ -1,20 +1,24 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { UserIdContext } from '../../utils/context/UserIdContext';
 import * as Segment from 'expo-analytics-segment';
-import { useLazyQuery, useMutation } from '@apollo/client';
-import { View, TouchableOpacity, Text, Image, StyleSheet, SafeAreaView, StatusBar, ActivityIndicator } from "react-native";
-import { Feather, Entypo, Ionicons } from '@expo/vector-icons'
+import { useLazyQuery, useMutation, useSubscription } from '@apollo/client';
+import { View, TouchableOpacity, Text, Image, StyleSheet, SafeAreaView, StatusBar, ActivityIndicator, Dimensions } from "react-native";
+import { Feather } from '@expo/vector-icons'
 import { colors } from '../../styles/colors';
-import { FlatList, ScrollView} from 'react-native-gesture-handler';
+import { FlatList} from 'react-native-gesture-handler';
 import { Divider } from 'react-native-paper';
-import { INSERT_LIKE, GET_NUMBER_VIDEOS, GET_LIKES, GET_INSTAGRAM } from '../../utils/graphql/GraphqlClient';
+import { INSERT_LIKE, GET_NUMBER_VIDEOS, GET_LIKES, GET_INSTAGRAM, ON_YOUR_LIKES_UPDATED } from '../../utils/graphql/GraphqlClient';
 import { _retrieveName  } from '../../utils/asyncStorage'; 
-import axios from 'axios';
 import MultipleVideoPopup from '../modals/MultipleVideosPopup'; 
 import NoVideosPopup from '../modals/NoVideosPopup';
+import NoInstagramPopup from '../modals/NoInstagramPopup';
 import InstagramPopup from '../modals/InstagramPopup'; 
+import InstagramOnboardingPopup from '../modals/InstagramOnboardingPopup'; 
+import * as Linking from 'expo-linking';
+import { Ionicons } from '@expo/vector-icons'
+import axios from 'axios';
 
-export default function MessagesStreamView(props) {
+const MessagesStreamView = (props) => {
     
     const [userId, setUserId] = useContext(UserIdContext);
     const [likes, setLikes] = useState(null); 
@@ -23,6 +27,11 @@ export default function MessagesStreamView(props) {
     const [profileVideoCount, setProfileVideoCount] = useState(null); 
     const [lastVideoIndex, setLastVideoIndex] = useState(-1); 
     const [instagramPopup, setInstagramPopup] = useState(false); 
+    const [instagramOnboardingPopup, setInstagramOnboardingPopup] = useState(false); 
+    const [viewingLikesYou, setViewingLikesYou] = useState(true); 
+    const [matches, setMatches] = useState(null); 
+
+    const { data, loading, error } = useSubscription(ON_YOUR_LIKES_UPDATED, {variables: { userId }});    
 
     const [getLikes, { data: likesQueried }] = useLazyQuery(GET_LIKES, 
     { 
@@ -34,7 +43,8 @@ export default function MessagesStreamView(props) {
             }
           )
 
-          setLikes(uniqueLikes); 
+          setLikes(uniqueLikes);
+          
         } 
     }); 
 
@@ -46,16 +56,30 @@ export default function MessagesStreamView(props) {
         }
       });
 
+      const [instagramOnboarded, setInstagramOnboarded] = useState(true); 
+
       const [getInstagramData, { data: instagramData }] = useLazyQuery(GET_INSTAGRAM,
         {
           onCompleted: (instagramData) => {
-            if(!instagramData.users[0].instagram){
+            setInstagramOnboarded(instagramData.users[0].instagramOnboarded); 
+
+            if(instagramData.users[0].instagramOnboarded && !instagramData.users[0].instagram){
                 setInstagramPopup(true); 
             }
         }
     });
 
-    
+    useEffect(() => {
+      if(viewingLikesYou){
+        if(!instagramOnboarded && likes && likes.length > 0){
+          setInstagramOnboardingPopup(true); 
+        }  
+      } else {
+        if(!instagramOnboarded && matches && matches.length > 0){
+          setInstagramOnboardingPopup(true); 
+        }  
+      }
+    }, [instagramOnboarded, likes, matches, viewingLikesYou]);
 
     useEffect(() => {
         Segment.screen('Likes'); 
@@ -65,6 +89,17 @@ export default function MessagesStreamView(props) {
         getInstagramData({ variables: { userId }});
       }, []);
 
+      useEffect(() => {
+        if(data){
+            const uniqueMatches = Array.from(new Set(data.likes.map(match => match.profileUser.id))).map(
+                id => {
+                    return data.likes.find(match => match.profileUser.id === id); 
+                }
+            )
+            setMatches(uniqueMatches);
+        }
+      }, [data]); 
+
     async function initName(){
         let name = await _retrieveName(); 
         setUserName(name); 
@@ -72,6 +107,10 @@ export default function MessagesStreamView(props) {
 
     function goToAddVideo(){
         props.navigation.navigate('Add Video');
+    }
+
+    function goToHome(){
+      props.navigation.navigate('Home');
     }
 
     function AddVideoCta(){
@@ -104,6 +143,24 @@ export default function MessagesStreamView(props) {
         )
     }
 
+    function LikeUsers(){
+      return (
+          <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center' }}>
+              <View style={{ height: '30%', width: '85%', backgroundColor: colors.primaryPurple, borderRadius: 5, padding: 10, alignItems: 'center', justifyContent: 'space-evenly' }}>
+                  <View style={{ }}>
+                      <Feather name="video" size={45} color={colors.primaryWhite} />
+                  </View>        
+                  <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.primaryWhite }}>Your likes will appear here!</Text>
+                  <TouchableOpacity onPress={goToHome} style={{ }}>
+                      <View style={styles.addVideoContainer}>
+                          <Text style={styles.addVideoText}>Like Users</Text>
+                      </View>
+                  </TouchableOpacity>
+              </View>    
+          </View>                
+      )
+    }
+
     const ItemSeparator = () => {
         return (
             <View style={{ padding: '5%'}}>
@@ -112,27 +169,7 @@ export default function MessagesStreamView(props) {
         );
     }
 
-    async function sendLike(likedId, likerName) {
-        let res = await axios({
-          method: 'post', 
-          url: 'https://gentle-brook-91508.herokuapp.com/push',
-          data: { "likerId" : userId, "likedId" : likedId, "likerName" : likerName }
-        }); 
-    }
-
-    async function createChannel(profileUserId){
-        try {
-          const response = await axios.post("https://gentle-brook-91508.herokuapp.com/createChannelStream", {
-            userId: userId.toString(),
-            likerId: profileUserId.toString(),
-          });
-        } catch (err) {
-          console.log(err); 
-          return;
-        }
-      }
-
-    function _calculateAge(birthday) { // birthday is a date
+    function _calculateAge(birthday) { 
         var today = new Date();
         var age = today.getFullYear() - birthday.getFullYear();
         var m = today.getMonth() - birthday.getMonth();
@@ -142,9 +179,11 @@ export default function MessagesStreamView(props) {
         return age;
     }
    
-    function Item({profileUser, index}){
+
+    const Item = React.memo(function Item({profileUser, index}) {
         const [popupVisible, setPopupVisible] = useState(false); 
         const [noVideosPopupVisible, setNoVideosPopupVisible] = useState(false);
+        const [noInstagramPopupVisible, setNoInstagramPopupVisible] = useState(false);
 
         const name = profileUser.firstName; 
         const city = profileUser.city;
@@ -154,6 +193,7 @@ export default function MessagesStreamView(props) {
         const profileUserId = profileUser.id; 
         const userVideos = profileUser.userVideos;  
         const instagram = profileUser.instagram; 
+        const [likedByUser, setLikedByUser] = useState(viewingLikesYou ? profileUser.likesByLikedId_aggregate.aggregate.count > 0 : false);  
         let age = null; 
 
         useEffect(() => {
@@ -167,24 +207,17 @@ export default function MessagesStreamView(props) {
             age = _calculateAge(birthday);
         } 
   
-        function removeUser(){
-          setLikes(likes.filter(like => {
-            return like.profileUser.id != profileUserId; 
-          }))
 
-          if(index <= lastVideoIndex){
-            if(lastVideoIndex != -1){
-              setLastVideoIndex(lastVideoIndex - 1);
-            }
-          }
-        }
-        
         function watchVideos(){
             setPopupVisible(true); 
         }
 
         function showNoVideosPopup(){
           setNoVideosPopupVisible(true); 
+        }
+
+        function showNoInstagramPopup(){
+          setNoInstagramPopupVisible(true); 
         }
 
         function ProfilePicture({profileUrl, userVideos}){
@@ -226,9 +259,15 @@ export default function MessagesStreamView(props) {
         }
         
         function TouchableUserInfo(){
-          if(userVideos.length > 0){
+
+          function sendInstagram(){
+            Segment.trackWithProperties("Likes - Send Instagram", { instagram: instagram}); 
+            Linking.openURL('https://www.instagram.com/' + instagram.replace('@', '')); 
+          }
+
+          if(instagram){
             return (
-              <TouchableOpacity onPress={watchVideos} style={{ paddingLeft: '5%' }}>
+              <TouchableOpacity onPress={sendInstagram} style={{ paddingLeft: '5%' }}>
                 <UserInfo 
                     name={name}
                     city={city}
@@ -241,7 +280,7 @@ export default function MessagesStreamView(props) {
             )
           } else {
             return (
-              <TouchableOpacity onPress={showNoVideosPopup} style={{ paddingLeft: '5%' }}>
+              <TouchableOpacity onPress={showNoInstagramPopup} style={{ paddingLeft: '5%' }}>
                 <UserInfo 
                     name={name}
                     city={city}
@@ -255,6 +294,41 @@ export default function MessagesStreamView(props) {
           }
         }
 
+        async function sendLike(likedId, likerName) {
+          const res = await axios({
+            method: 'post', 
+            url: 'https://gentle-brook-91508.herokuapp.com/push',
+            data: { "likerId" : userId, "likedId" : likedId, "likerName" : likerName }
+          }); 
+        }
+
+        function likeBack(){
+          // console.log("likeBack")
+          insertLike({ variables: { likedId: profileUserId, likerId: userId, matched: false, dislike: false }});
+          // sendLike(profileUserId, name); 
+          setLikedByUser(true); 
+        }
+
+        function LikeButton(){
+          if(viewingLikesYou){
+            if(likedByUser){
+              return (
+                <View style={{ position: 'absolute', right: 20 }}>
+                  <Ionicons name='md-heart' size={30} color={colors.primaryPurple} />        
+                </View>      
+              )
+            } else {
+              return (            
+                <TouchableOpacity onPress={likeBack} style={{ position: 'absolute', right: 20 }}>
+                  <Ionicons name='md-heart' size={30} color={colors.chineseWhite} />        
+                </TouchableOpacity>      
+              )  
+            }
+          } else {
+            return null; 
+          }
+        };
+
         return (
             <View>    
               <VideoDivider />            
@@ -264,15 +338,8 @@ export default function MessagesStreamView(props) {
                         userVideos={userVideos}
                     />
                     <TouchableUserInfo />
+                    <LikeButton />
                 </View>
-                {/* <View style={{ flexDirection: 'row', justifyContent: 'space-evenly' }}>
-                    <TouchableOpacity onPress={onDislike} style={{ alignItems: 'center', justifyContent: 'flex-end', width: 60, height: 60, borderRadius: 40, borderWidth: 1,  borderColor: colors.primaryPurple}}>
-                        <Entypo name='cross' size={45}  />  
-                    </TouchableOpacity>      
-                    <TouchableOpacity onPress={onLike} style={{ alignItems: 'center', justifyContent: 'flex-end', width: 60, height: 60, borderRadius: 40, borderWidth: 1,  borderColor: colors.primaryPurple}}>
-                        <Ionicons name='md-heart' size={45} />       
-                    </TouchableOpacity>      
-                </View> */}
                 <MultipleVideoPopup 
                     userVideos={userVideos}
                     visible={popupVisible}
@@ -289,12 +356,22 @@ export default function MessagesStreamView(props) {
                   requestedId={profileUserId}
                   requesterName={userName}
                 />
+                <NoInstagramPopup 
+                  visible={noInstagramPopupVisible}
+                  setVisible={setNoInstagramPopupVisible}
+                  name={name}
+                  requestedId={profileUserId}
+                  requesterName={userName}
+                />
+                
+
             </View>          
         )
-    }
+    }); 
 
     function UserInfo({name, city, region, college, age, instagram}){
 
+      const fontSize = 13; 
 
         function DistanceSeparator(){
           if(city != null || region != null){
@@ -309,7 +386,7 @@ export default function MessagesStreamView(props) {
         function Distance(){
           if(city != null || region != null){
             return (
-              <Text style={{ paddingLeft: 5}}>{city}, {region}</Text>
+              <Text style={{ fontSize, paddingLeft: 5}}>{city}, {region}</Text>
             )  
           } else {
             return null; 
@@ -329,7 +406,7 @@ export default function MessagesStreamView(props) {
           function Age(){
             if(age != null){
               return (
-                <Text style={{ paddingLeft: 5}}>{age}</Text>
+                <Text style={{ fontSize, paddingLeft: 5}}>{age}</Text>
               )
             } else {
               return null; 
@@ -340,11 +417,11 @@ export default function MessagesStreamView(props) {
             if(instagram != null){
                 if(instagram.includes('@')){
                   return(
-                      <Text style={{ fontWeight: '500'}}>IG: {instagram}</Text>
+                      <Text style={{ fontSize, fontWeight: '500'}}>IG: {instagram}</Text>
                     )    
                 } else {
                   return(
-                      <Text style={{ fontWeight: '500'}}>IG: @{instagram}</Text>
+                      <Text style={{ fontSize, fontWeight: '500'}}>IG: @{instagram}</Text>
                     )    
                 }
             } else {
@@ -359,14 +436,14 @@ export default function MessagesStreamView(props) {
             return (
                 <View>
                   <View style={{ flexDirection: 'row', alignItems: 'center'}}>
-                    <Text>{name}</Text>
+                    <Text style={{ fontSize }}>{name}</Text>
                     {/* <Text style={styles.separatorText}>{'\u2B24'}</Text> */}
                     <DistanceSeparator />
                     <Distance />  
                     <AgeSeparator />
                     <Age />
                   </View>
-                  <Text>{college}</Text>   
+                  <Text style={{ fontSize }}>{college}</Text>   
                   <Instagram />
                 </View>   
             )    
@@ -374,7 +451,7 @@ export default function MessagesStreamView(props) {
             return (
               <View>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text >{name}</Text>     
+                    <Text style={{ fontSize }}>{name}</Text>     
                     <DistanceSeparator />
                     <Distance />    
                     <AgeSeparator />
@@ -387,32 +464,116 @@ export default function MessagesStreamView(props) {
         } else {
           return null; 
         }
+    }
+
+    function LikesHeader(){
+
+      function toggle(){
+        setViewingLikesYou(!viewingLikesYou); 
       }
 
-    if(likes){
+      function InstagramLikesYouTip(){
         if(likes.length > 0){
-            return (
-                    <SafeAreaView style={{ flex: 1, marginTop: StatusBar.currentHeight || 0,}}>
-                        <Text style={{ fontSize: 27, fontWeight: '500', paddingLeft: '5%' }}>Likes You</Text>
-                        <FlatList
-                            data={likes}
-                            renderItem={({ item, index }) => <Item profileUser={item.profileUser} index={index} />}
-                            keyExtractor={item => item.id.toString()}
-                            style={{ paddingTop: '15%' }}
-                            ItemSeparatorComponent={ItemSeparator}
-                        />
-                        <InstagramPopup
-                          visible={instagramPopup}
-                          setVisible={setInstagramPopup}
-                        />
-
-                    </SafeAreaView>
-            )
+          return(
+            <Text style={{ alignSelf: 'center', paddingTop: 10}}>Tip: Shoot your shot on Instagram!</Text>
+          )  
         } else {
-            return (
-                <AddVideo />
-              )      
+          return null;
         }
+      }
+
+      function InstagramYourLikesTip(){
+        if(matches.length > 0){
+          return(
+            <Text style={{ alignSelf: 'center', paddingTop: 10}}>Tip: Shoot your shot on Instagram!</Text>
+          )  
+        } else {
+          return null;
+        }
+      }
+
+
+      if(viewingLikesYou){
+        return(
+          <View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-around', paddingTop: '10%' }}>
+              <Text style={{ fontSize: 23, textDecorationLine: 'underline', fontWeight: '500' }}>Likes You</Text>                        
+              <TouchableOpacity onPress={toggle}>
+                <Text style={{ fontSize: 23, fontWeight: '500' }}>Your Likes</Text>                                      
+              </TouchableOpacity>
+            </View>
+            <InstagramLikesYouTip />
+          
+          </View>
+        )
+      } else {
+        return(
+          <View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-around', paddingTop: '10%' }}>
+              <TouchableOpacity onPress={toggle}>
+                <Text style={{ fontSize: 23, fontWeight: '500' }}>Likes You</Text>        
+              </TouchableOpacity>                
+              <Text style={{ fontSize: 23, textDecorationLine: 'underline', fontWeight: '500' }}>Your Likes</Text>                        
+            </View>
+            <InstagramYourLikesTip />
+          </View>
+        )
+      }
+    }
+
+    function LikesList(){
+      if(viewingLikesYou){
+        if(likes.length > 0){
+          return (
+            <FlatList
+              data={likes}
+              renderItem={({ item, index }) => <Item profileUser={item.profileUser} index={index} />}
+              keyExtractor={item => item.id.toString()}
+              style={{ paddingTop: '15%' }}
+              ItemSeparatorComponent={ItemSeparator}
+            />
+          )
+        } else {
+          return (
+            <AddVideo />
+          )
+        }
+      } else {
+        if(matches.length > 0){
+          return (
+            <FlatList
+              data={matches}
+              renderItem={({ item, index }) => <Item profileUser={item.profileUser} index={index} />}
+              keyExtractor={item => item.id.toString()}
+              style={{ paddingTop: '15%' }}
+              ItemSeparatorComponent={ItemSeparator}
+            />
+          )
+        } else {
+          return (
+            <LikeUsers /> 
+          )
+        }
+      }
+    }
+
+
+    if(likes && matches){
+      return (
+              <SafeAreaView style={{ flex: 1, marginTop: StatusBar.currentHeight || 0}}>
+                <LikesHeader />
+                <LikesList />
+                  <InstagramPopup
+                    visible={instagramPopup}
+                    setVisible={setInstagramPopup}
+                  />
+                  <InstagramOnboardingPopup
+                    visible={instagramOnboardingPopup}
+                    setVisible={setInstagramOnboardingPopup}
+                  />
+
+              </SafeAreaView>
+      )
     } else {
       return(
         <View style={styles.activityView}>
@@ -421,7 +582,9 @@ export default function MessagesStreamView(props) {
       )
     }
 
-}
+};
+
+export default React.memo(MessagesStreamView);
 
 const styles = StyleSheet.create({
     addVideoContainer: { 

@@ -93,6 +93,7 @@ export default function EditNameView(props) {
                         hideResults={hideResults}
                         renderItem={({ item }) => (
                             <TouchableOpacity 
+                                delayPressIn={0}
                                 onPress={() => handleSelectItem(item)}
                                 style={{ height: 40, justifyContent: 'center'}}
                             >

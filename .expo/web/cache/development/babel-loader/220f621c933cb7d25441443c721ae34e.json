@@ -1,1 +1,0 @@
-{"ast":null,"code":"export var empty = {\n  object: {},\n  array: []\n};","map":{"version":3,"sources":["empty.ts"],"names":["empty","object","array"],"mappings":"AAAA,OAAO,IAAMA,KAAK,GAAG;AACpBC,EAAAA,MAAM,EADc,EAAA;AAEpBC,EAAAA,KAAK,EAAE;AAFa,CAAd","sourcesContent":["export const empty = {\n\tobject: {},\n\tarray: [],\n}\n"]},"metadata":{},"sourceType":"module"}

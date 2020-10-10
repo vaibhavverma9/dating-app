@@ -8,7 +8,7 @@ import { INSERT_LIKE, GET_VIDEOS, GET_NUMBER_VIDEOS, UPDATE_PUSH_TOKEN, GET_USER
 import OptionsModal from './OptionsModal'; 
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import * as Segment from 'expo-analytics-segment';
-import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid, _retrieveLatitude, _retrieveLongitude, _retrieveName, _retrievePushShown, _storePushShown, _storeName, _storeBio, _retrieveBio, _storeGenderInterest, _retrieveGenderGroup, _storeAddVideoShown, _retrieveAddVideoShown, _retrieveExplanationShown, _storeExplanationShown } from '../../utils/asyncStorage'; 
+import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid, _retrieveLatitude, _retrieveLongitude, _retrieveName, _retrievePushShown, _storePushShown, _storeName, _storeBio, _retrieveBio, _storeGenderInterest, _retrieveGenderGroup, _storeAddVideoShown, _retrieveAddVideoShown, _retrieveExplanationShown, _storeExplanationShown, _storeFeedbackShown, _retrieveFeedbackShown } from '../../utils/asyncStorage'; 
 import AddVideoPopup from '../modals/AddVideoPopup'; 
 import NoLikesPopup from '../modals/NoLikesPopup'; 
 import PushPopup from '../modals/PushPopup'; 
@@ -20,7 +20,7 @@ import Constants from 'expo-constants';
 import * as Permissions from 'expo-permissions';
 import axios from 'axios';
 import * as Network from 'expo-network';
-import { TouchableOpacity } from 'react-native';
+import { TouchableOpacity, Pressable } from 'react-native';
 import SingleVideo from '../videosPage/SingleVideo';
 import ProgressBar from 'react-native-progress/Bar';
 import { Dimensions } from 'react-native';
@@ -30,6 +30,7 @@ import { VideoCountContext } from '../../utils/context/VideoCountContext';
 import { useIsFocused } from '@react-navigation/native';
 import LikeDislikeExplanation from '../modals/LikeDislikeExplanation'; 
 import { Linking } from 'expo';
+import FeedbackPopup from '../modals/FeedbackPopup';
 
 export default function HomeContents(props) {
   const isFocused = useIsFocused();
@@ -74,6 +75,7 @@ export default function HomeContents(props) {
   const [likeDislikeExplanation, setLikeDislikeExplanation] = useState(false); 
   const [pushName, setPushName] = useState(''); 
   const [pushProfileUrl, setProfileUrl] = useState(''); 
+  const [feedbackPopupVisible, setFeedbackPopupVisible] = useState(false);
 
   const [likeColors, setLikeColors] = useState([]);
   const [dislikeColors, setDislikeColors] = useState([]);
@@ -304,14 +306,17 @@ export default function HomeContents(props) {
 
   const [addVideoShown, setAddVideoShown] = useState(false);
   const [pushShown, setPushShown] = useState(false); 
+  const [feedbackShown, setFeedbackShown] = useState(false); 
 
   async function initPopups(){
     const addVideoShown = await _retrieveAddVideoShown(); 
     const pushShown = await _retrievePushShown(); 
+    const feedbackShown = await _retrieveFeedbackShown(); 
     // const explanationShown = await _retrieveExplanationShown(); 
 
     setAddVideoShown(addVideoShown);
     setPushShown(pushShown); 
+    setFeedbackShown(feedbackShown); 
 
     // if(!explanationShown){
     //   setLikeDislikeExplanation(true); 
@@ -345,6 +350,12 @@ export default function HomeContents(props) {
       _storePushShown(true); 
     }
 
+    if (userIndex == 8 && !feedbackShown){
+      setFeedbackShown(true); 
+      _storeFeedbackShown(true); 
+      setFeedbackPopupVisible(true); 
+    }
+
     if(profileVideoCount == 0 && userIndex == 6){
       if(pushShown && !addVideoShown){
         setAddPopupVisible(true); 
@@ -359,11 +370,9 @@ export default function HomeContents(props) {
     } else {
       if(!likeColors[likedIndex].like){  
 
-          nextUser(); 
-
+        nextUser(); 
         insertLike({ variables: { likedId: likedId, likerId: userId, matched: false, dislike: false }});
         sendLike(likedId, name);
-        createChannel(likedId); 
 
         updateVideoLikes({ variables: { id : videoId, likes: videoData[likedIndex].userVideos[likedVideoIndex].likes + 1 }});
         updateVideoViews({ variables: { id : videoId, views: videoData[likedIndex].userVideos[likedVideoIndex].views + 1 }});      
@@ -640,7 +649,7 @@ export default function HomeContents(props) {
       if(shouldPlay){
         setCurrentProgress(progress);   
       }
-      if(playbackStatus.positionMillis == playbackStatus.durationMillis || playbackStatus.didJustFinish){
+      if(playbackStatus.positionMillis + 50 >= playbackStatus.durationMillis || playbackStatus.didJustFinish){
         nextVideo(); 
       }
     } else {
@@ -650,7 +659,7 @@ export default function HomeContents(props) {
         setCurrentProgress(0); 
       }
     }
-
+ 
   };
 
   const instagramLink = () => {
@@ -727,12 +736,17 @@ export default function HomeContents(props) {
       }
     }
 
+    function sendInstagram(){
+      Segment.track("Likes - Send Instagram"); 
+      Linking.openURL('https://www.instagram.com/' + currentInstagram.replace('@', '')); 
+    }
+
 
     if(currentName){
       if(currentCollege){
         return (
             <View style={homeStyles.userInfoContainer}>
-              <View style={{ flexDirection: 'row', alignItems: 'center'}}>
+              <TouchableOpacity onPress={sendInstagram} style={{ flexDirection: 'row', alignItems: 'center'}}>
                 <Text style={styles.currentNameText}>{currentName}</Text>
                 {/* <Text style={styles.separatorText}>{'\u2B24'}</Text> */}
                 <DistanceSeparator />
@@ -741,14 +755,14 @@ export default function HomeContents(props) {
                 <Age />
                 <InstagramSeparator />
                 <Instagram />
-              </View>
+              </TouchableOpacity>
               <Text style={styles.locationText}>{currentCollege}</Text>      
             </View>
         )    
       } else {
         return (
           <View style={homeStyles.userInfoContainer}>
-            <View style={{ flexDirection: 'row', alignItems: 'center'}}>
+            <TouchableOpacity onPress={sendInstagram} style={{ flexDirection: 'row', alignItems: 'center'}}>
               <Text style={styles.currentNameText}>{currentName}</Text>     
               <DistanceSeparator />
               <Distance />    
@@ -756,7 +770,7 @@ export default function HomeContents(props) {
               <Age />
               <InstagramSeparator />
               <Instagram />
-            </View> 
+            </TouchableOpacity> 
           </View>
         )    
       }
@@ -861,8 +875,8 @@ export default function HomeContents(props) {
             <UserInfo />
             <PlayButton />
             <LoadingIcon />
-            <LikeIndicator />
-            <DislikeIndicator />
+            {/* <LikeIndicator />
+            <DislikeIndicator /> */}
 
 
           </View>
@@ -907,6 +921,10 @@ export default function HomeContents(props) {
             name={pushName}
             profileUrl={pushProfileUrl}
           />
+          <FeedbackPopup 
+            visible={feedbackPopupVisible} 
+            setVisible={setFeedbackPopupVisible} />
+
           <LikeDislikeExplanation 
             visible={likeDislikeExplanation}
             setVisible={setLikeDislikeExplanation}          
@@ -926,6 +944,7 @@ export default function HomeContents(props) {
               shouldPlay={shouldPlay}
               source={'https://stream.mux.com/' + muxPlaybackId + '.m3u8'}
               key={'https://stream.mux.com/' + muxPlaybackId + '.m3u8'}
+              _onPlaybackStatusUpdate={_onPlaybackStatusUpdate}
             >
             </SingleVideo>
             <ProgressBarsContainer />
@@ -982,6 +1001,10 @@ export default function HomeContents(props) {
             setVisible={setNoLikesLeft}
             goToAddVideo={goToAddVideo}
           />
+          <FeedbackPopup 
+            visible={feedbackPopupVisible} 
+            setVisible={setFeedbackPopupVisible} />
+
         </View>
       );    
     }

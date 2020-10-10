@@ -39,7 +39,7 @@ export const GET_VIDEOS = gql`
       dislike
       matched
     }
-    userVideos(limit: 4, where: {status: {_eq: "ready"}, _or: [{rank: {_eq: 1}},{views: {_lt: 10}}]}) {
+    userVideos(limit: 4, where: {status: {_eq: "ready"}, _or: [{rank: {_eq: 1}},{rank: {_eq: 2}},{views: {_lt: 10}}]}) {
       muxPlaybackId
       videoQuestion {
         questionText
@@ -60,7 +60,7 @@ export const GET_VIDEOS = gql`
     usersLocation: users (
       limit: $limit, 
       where: {_and: [
-        {userVideos: {status: {_eq: "ready"}, _or: [{rank: {_eq: 1}},{views: {_lt: 10}}]}},
+        {userVideos: {status: {_eq: "ready"}, _or: [{rank: {_eq: 1}}, {views: {_lt: 10}}]}},
         {_not: {id: {_eq: $userId}}},        
         {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}},
         {performance: {_lt: $lastPerformance}},
@@ -100,6 +100,29 @@ export const GET_LAST_DAY_VIDEOS = gql`
       likes
       dislikes
       views
+      passthroughId
+    }
+  }
+`
+
+export const GET_AUCTIONED_VIDEOS = gql`
+  query GetAuctionedUsersVideos ($userId: Int) {
+    videos(where: {videoUser: {userAuctioned: {auctioneerId: {_eq: $userId}}}, status: {_eq: "ready"}}, order_by: {created_at: desc}) {
+      id
+      muxPlaybackId
+      status
+      videoQuestion {
+        questionText
+      }
+      dislikes
+      likes
+      views
+      passthroughId
+      videoUser {
+        firstName
+        college
+        instagram
+      }
     }
   }
 `
@@ -234,6 +257,11 @@ export const GET_LIKES = gql`
           id
           muxPlaybackId
         }
+        likesByLikedId_aggregate(where: {likerId: {_eq: $userId}}) {
+          aggregate {
+            count
+          }
+        }  
       }
     }
   }
@@ -306,8 +334,8 @@ export const UPDATE_LIKE = gql`
 `
 
 export const UPDATE_LAST_UPLOADED = gql`
-    mutation UpdateLastUploaded($userId: Int, $timestamp: timestamptz){
-      update_users(where: {id: {_eq: $userId}}, _set: {lastUploaded: $timestamp, performance: 0.9}) {
+    mutation UpdateLastUploaded($userId: Int, $timestamp: timestamptz, $performance: numeric){
+      update_users(where: {id: {_eq: $userId}}, _set: {lastUploaded: $timestamp, performance: $performance}) {
         affected_rows
       }
     }
@@ -424,6 +452,7 @@ export const GET_INSTAGRAM = gql`
   query GetInstagram ($userId: Int){
     users(where: {id: {_eq: $userId}}) {
       instagram
+      instagramOnboarded
     }
   }
 `
@@ -495,6 +524,14 @@ export const UPDATE_COLLEGE = gql`
 export const UPDATE_INSTAGRAM = gql`
   mutation UpdateInstagram ($userId: Int, $instagram: String) {
     update_users(where: {id: {_eq: $userId}}, _set: {instagram: $instagram}) {
+      affected_rows
+    }
+  }
+`
+
+export const UPDATE_INSTAGRAM_ONBOARDING = gql`
+  mutation UpdateInstagramOnboarding ($userId: Int, $instagramOnboarding: Boolean) {
+    update_users(where: {id: {_eq: $userId}}, _set: {instagramOnboarded: $instagramOnboarding}) {
       affected_rows
     }
   }
@@ -709,6 +746,45 @@ export const INSERT_NPS = gql`
   mutation InsertNps ($userId: Int, $nps: Int) {
     insert_feedback_one(object: {nps: $nps, userId: $userId}) {
       userId
+    }
+  }
+`
+
+export const INSERT_AUCTION = gql`
+  mutation InsertAuction ($auctioneerId: Int, $auctionedId: Int) {
+    insert_auctionedUsers_one(object: {auctioneerId: $auctioneerId, auctionedId: $auctionedId}) {
+      id
+    }
+  }
+`
+
+export const INSERT_AUCTIONED_USER = gql`
+  mutation InsertAuctionedUser ($college: String, $collegeId: Int, $group: Int, $instagram: String, $firstName: String, $gender: String, $genderInterest: String, $city: String, $region: String) {
+    insert_users_one(object: {college: $college, collegeId: $collegeId, group: $group, instagram: $instagram, firstName: $firstName, gender: $gender, genderInterest: $genderInterest, city: $city, region: $region}) {
+      id
+    }
+  }
+`
+
+export const GET_AUCTIONED_USERS = gql`
+  query GetAuctionedUsers($userId: Int){
+    auctionedUsers(where: {status: {_eq: "active"}, auctioneerId: {_eq: $userId}}) {
+      auctionedUsers_users {
+        firstName
+        instagram
+        id
+        college
+        city
+        region
+      }
+    }  
+  }
+`
+
+export const UPDATE_AUCTIONED_USER = gql`
+  mutation UpdateAuctionedUser($auctionedId: Int, $auctioneerId: Int) {
+    update_auctionedUsers(where: {auctionedId: {_eq: $auctionedId}, auctioneerId: {_eq: $auctioneerId}}, _set: {status: "inactive"}) {
+      affected_rows
     }
   }
 `

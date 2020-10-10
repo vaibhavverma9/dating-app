@@ -208,6 +208,7 @@ export default function MessagesStreamView(props) {
 
     return (
       <TouchableOpacity
+        delayPressIn={0}
         style={{
           display: 'flex',
           borderBottomColor: colors.primaryPurple,

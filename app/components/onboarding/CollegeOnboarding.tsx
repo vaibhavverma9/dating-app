@@ -93,7 +93,7 @@ export default function CollegeOnboarding(props) {
             return null; 
         } else {
             return (
-                <TouchableOpacity onPress={() => {props.navigation.navigate("InstagramOnboarding")}}>
+                <TouchableOpacity delayPresonPress={() => {props.navigation.navigate("InstagramOnboarding")}}>
                     <Text style={{ paddingTop: '3%', color: primaryColor}}>Skip</Text>
                 </TouchableOpacity>
             )

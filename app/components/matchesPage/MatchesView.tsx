@@ -80,7 +80,7 @@ export default function MessagesStreamView(props) {
               </View>    
           </View>                
       )
-  }
+    }
 
     const ItemSeparator = () => {
         return (

@@ -216,6 +216,25 @@ export const _retrievePushShown = async() => {
     }
 }
 
+export const _storeFeedbackShown = async(feedbackShown) => {
+    try {
+        await AsyncStorage.setItem('@feedbackShown', feedbackShown.toString());
+    } catch (error) {}
+}
+
+export const _retrieveFeedbackShown = async() => {
+    try {
+        const value = await AsyncStorage.getItem('@feedbackShown');
+        if (value !== null) {
+            return value == "true"; 
+        } else {
+            return false; 
+        }
+    } catch (error) {
+        return false; 
+    }
+}
+
 export const _storeAddVideoShown = async(addVideoShown) => {
     try {
         await AsyncStorage.setItem('@addVideoShown', addVideoShown.toString());

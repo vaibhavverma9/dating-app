@@ -23,6 +23,10 @@ import { View, Text, TouchableOpacity } from 'react-native';
 //   });
 // }
 
+TouchableOpacity.defaultProps = {
+  delayPressIn: 0
+}
+
 const iosWriteKey = "0QHHf9Gg55EE10Hi5o0LYMfLMN4X7ypl"; 
 const androidWriteKey = "idFwR27mq8yZxEpQFGdmdAJ0yzMM6wV0"; 
 

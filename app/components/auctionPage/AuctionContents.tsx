@@ -16,7 +16,7 @@ import { VideoCountContext } from '../../utils/context/VideoCountContext';
 import Constants from 'expo-constants';
 import * as MediaLibrary from 'expo-media-library';
 
-export default function AddCameraContents(props) {
+export default function AuctionContents(props) {
 
     const [questionData, setQuestionData] = useState([]);
     const [hasCameraPermission, setHasCameraPermission] = useState(null);
@@ -32,6 +32,7 @@ export default function AddCameraContents(props) {
     const [viewAllVisible, setViewAllVisible] = useState(false); 
     const [timedOut, setTimedOut] = useState(false);    
     const [videoCount, setVideoCount] = useContext(VideoCountContext); 
+    const name = props.name; 
 
     useEffect(() => { 
         initQuestions(props.data); 
@@ -89,12 +90,10 @@ export default function AddCameraContents(props) {
         });
 
         props.navigation.addListener('focus', () => {
-            setInitialized(true); 
-
             if ('android' in Constants.platform) {
                 setTimeout(() => { setTimedOut(true) }, 3000); 
             }
-
+            setInitialized(true); 
             setShouldPlay(true); 
             if(hasCameraPermission === false){
                 getCameraPermission();
@@ -223,7 +222,7 @@ export default function AddCameraContents(props) {
 
         Segment.track("Upload Video"); 
 
-        await props.navigation.navigate('Your Videos', { screen: 'VideosView', params: {videoUri: videoUri, thumbnailUri: thumbnailUri, questionText: questionData[index].questionText, questionId: questionData[index].id, status: 'waiting', passthroughId: passthroughId.toString(), type: 'uploadedVideo', id: passthroughId, videoId: null, auction: false }});
+        await props.navigation.navigate('Your Videos', { screen: 'VideosView', params: {videoUri: videoUri, thumbnailUri: thumbnailUri, questionText: questionData[index].questionText, questionId: questionData[index].id, status: 'waiting', passthroughId: passthroughId.toString(), type: 'uploadedVideo', id: passthroughId, videoId: null, auction: true, auctionedId: props.auctionedId, auctionedName: name }});
         setVideoUri(''); 
         setThumbnailUri(''); 
         setVideoCount(videoCount + 1);     
@@ -318,6 +317,10 @@ export default function AddCameraContents(props) {
             ); 
         } 
     }
+
+    function returnHome(){
+        props.setOnboardingStage('Home'); 
+    }
     
     if(initialized){
         if (hasCameraPermission !== true || hasAudioPermission !== true) {
@@ -345,10 +348,15 @@ export default function AddCameraContents(props) {
                         </View>
                     </Camera>
                     <BlurView tint="dark" intensity={20} style={fullPageVideoStyles.questionArrowsContainer}>
-                        <TouchableOpacity onPress={viewAll}>
-                            <Text style={styles.viewAllText}>View All Questions</Text>
-                        </TouchableOpacity>
-
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <TouchableOpacity onPress={returnHome}>
+                                <Text style={styles.viewAllText}>Auctioning {name}</Text>
+                            </TouchableOpacity>
+                            <Text style={{ color: '#eee', fontSize: 5, paddingHorizontal: 5 }}>{'\u2B24'}</Text>
+                            <TouchableOpacity onPress={viewAll}>
+                                <Text style={styles.viewAllText}>View All Questions</Text>
+                            </TouchableOpacity>
+                        </View>
                         <Question /> 
                     </BlurView>
                     <ViewAllPopup 
@@ -363,16 +371,16 @@ export default function AddCameraContents(props) {
             return (
                 <View style={styles.viewBackground}>
                     <Video
-                        source={{uri: videoUri}}
-                        rate={1.0}
-                        volume={1.0}
-                        isMuted={false}
-                        resizeMode={Video.RESIZE_MODE_STRETCH}
-                        usePoster={true}
-                        shouldPlay={shouldPlay}
-                        isLooping
-                        onLoad={onLoad}
-                        style={styles.videoDimensions}
+                    source={{uri: videoUri}}
+                    rate={1.0}
+                    volume={1.0}
+                    isMuted={false}
+                    resizeMode={Video.RESIZE_MODE_STRETCH}
+                    usePoster={true}
+                    shouldPlay={shouldPlay}
+                    isLooping
+                    onLoad={onLoad}
+                    style={styles.videoDimensions}
                     >
                     </Video>
                     <BlurView tint="dark" intensity={20} style={fullPageVideoStyles.questionArrowsContainer}>
@@ -407,7 +415,7 @@ export default function AddCameraContents(props) {
     } else {
         return (
             <View style={styles.activityView}>
-                <ActivityIndicator size="small" color="#eee" />
+              <ActivityIndicator size="small" color="#eee" />
             </View>
         )          
     }

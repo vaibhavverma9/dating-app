@@ -1,22 +1,25 @@
-import { TouchableOpacity, View, Modal, Text, StyleSheet} from 'react-native';
-import React, { useEffect, useState } from 'react'; 
+import { TouchableOpacity, View, Modal, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react'; 
 import SingleVideo from '../videosPage/SingleVideo';
 import { BlurView } from 'expo-blur';
 import { fullPageVideoStyles } from '../../styles/fullPageVideoStyles';
 import { colors } from '../../styles/colors';
 import { SimpleLineIcons, Ionicons, MaterialIcons } from '@expo/vector-icons'
 import { useMutation } from '@apollo/client';
-import { DELETE_VIDEO } from '../../utils/graphql/GraphqlClient';
+import { DELETE_VIDEO, DELETE_VIDEO_PASSTHROUGH_ID } from '../../utils/graphql/GraphqlClient';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 
 export default function FullPageVideos(props) {
+
+  // console.log("passthroughId", props.passthroughId); 
 
   const [views, setViews] = useState(null); 
   const [likes, setLikes] = useState(null); 
   const [showDelete, setShowDelete] = useState(false); 
   const [showOptions, setShowOptions] = useState(false); 
   const [deleteVideo, { deleteVideoData }] = useMutation(DELETE_VIDEO); 
+  const [deleteVideoPassthrough] = useMutation(DELETE_VIDEO_PASSTHROUGH_ID);
 
   useEffect(() => {
     if(props.views){
@@ -57,7 +60,7 @@ export default function FullPageVideos(props) {
   }
 
   function tapDeleteVideo(){
-    deleteVideo({ variables: { videoId: props.videoId }}); 
+    deleteVideoPassthrough({ variables: { passthroughId: props.passthroughId }});
     props.removeVideo(props.videoId); 
     props.setVisible(false); 
   }
@@ -89,6 +92,18 @@ export default function FullPageVideos(props) {
     } else {
       return null; 
     }
+  } 
+
+  function LoadingIcon(){
+    // if(!loaded && currentProgress == 0){
+      return(
+        <View style={{ justifyContent: 'center', alignItems: 'center', ...StyleSheet.absoluteFill}}>
+          <ActivityIndicator size="small" color={colors.primaryWhite} style={{ opacity: 0.4 }} />
+        </View>
+      )
+    // } else {
+    //   return null; 
+    // }
   }
 
   return (
@@ -100,7 +115,7 @@ export default function FullPageVideos(props) {
           <SingleVideo
             key={props.source}
             source={props.source}
-            shouldPlay
+            shouldPlay 
           />
           <View style={fullPageVideoStyles.likesViewsContainer}>
             <View style={{alignItems: 'flex-end'}}>
@@ -108,6 +123,7 @@ export default function FullPageVideos(props) {
               <Options />
             </View>
           </View>
+          {/* <LoadingIcon /> */}
           <Delete />
 
           <ViewsLikes /> 

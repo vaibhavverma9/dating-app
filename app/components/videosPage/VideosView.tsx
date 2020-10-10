@@ -2,7 +2,7 @@ import React, { useEffect, useState, useContext } from 'react';
 import { View, Image, Text, TouchableOpacity, ImageBackground, ActivityIndicator, StyleSheet, RefreshControl } from 'react-native';
 import * as Segment from 'expo-analytics-segment';
 import { Dimensions } from "react-native"; 
-import { GET_LAST_DAY_VIDEOS, INSERT_INIT_VIDEO, UPDATE_LAST_UPLOADED, ON_VIDEO_UPDATED, UPDATE_PROFILE_URL, GET_PAST_VIDEOS, DELETE_VIDEO_PASSTHROUGH_ID, UPDATE_VIDEO_ERRORED, GET_PROFILE_INFO } from '../../utils/graphql/GraphqlClient';
+import { GET_LAST_DAY_VIDEOS, INSERT_INIT_VIDEO, UPDATE_LAST_UPLOADED, GET_AUCTIONED_VIDEOS, UPDATE_PROFILE_URL, GET_PAST_VIDEOS, DELETE_VIDEO_PASSTHROUGH_ID, UPDATE_VIDEO_ERRORED, GET_PROFILE_INFO } from '../../utils/graphql/GraphqlClient';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { ScrollView } from 'react-native-gesture-handler';
 import { useMutation, useSubscription, useLazyQuery } from '@apollo/client';
@@ -26,6 +26,8 @@ export default function VideosView(props) {
 
     const [lastDayVideos, setLastDayVideos] = useState([]); 
     const [storedLastDayVideos, setStoredLastDayVideos] = useState([]);
+    const [auctionedVideos, setAuctionedVideos] = useState([]);
+
     const [userId, setUserId] = useContext(UserIdContext);
     const [insertInitVideo, { insertInitVideoData }] = useMutation(INSERT_INIT_VIDEO); 
     const [updateLastUploaded, { updateLastUploadedData }] = useMutation(UPDATE_LAST_UPLOADED);
@@ -42,7 +44,6 @@ export default function VideosView(props) {
     const [feedbackVisible, setFeedbackVisible] = useState(false); 
     const [timedOut, setTimedOut] = useState(false);
 
-    const [bestVideos, setBestVideos] = useState([]);
     const [averageVideos, setAverageVideos] = useState([]);
 
     const day = new Date().getDay(); 
@@ -70,9 +71,11 @@ export default function VideosView(props) {
         } 
     }); 
 
-    const [getPastVideos, { data: getPastVideosData }] = useLazyQuery(GET_PAST_VIDEOS, 
-    { 
-        onCompleted: (getPastVideosData) => { initPastVideos(getPastVideosData.videos) } 
+    const [getAuctionedVideos] = useLazyQuery(GET_AUCTIONED_VIDEOS, 
+        { 
+            onCompleted: (auctionedVideosData) => { 
+                setAuctionedVideos(auctionedVideosData.videos); 
+        } 
     }); 
 
     const [getProfileInfo, { data: getProfileInfoData }] = useLazyQuery(GET_PROFILE_INFO, 
@@ -110,6 +113,7 @@ export default function VideosView(props) {
     useEffect(() => {
         Segment.screen('Videos'); 
         getStoredLastDayVideos({variables: { userId }}); 
+        getAuctionedVideos({variables: { userId }});
         // getPastVideos({variables: { userId }}); 
         initProfileInfo(); 
         resetName(); 
@@ -143,8 +147,14 @@ export default function VideosView(props) {
                 setFeedbackVisible(true);
             }
 
-            setUploadedVideos([params, ...uploadedVideos]);
-            postVideo(params);
+            const auction = params.auction;         
+            if(auction){
+                setAuctionedVideos([params, ...auctionedVideos]); 
+                postAuctionedVideo(params); 
+            } else {
+                setUploadedVideos([params, ...uploadedVideos]);
+                postVideo(params);    
+            } 
         }
     }, [props.route])
 
@@ -152,12 +162,6 @@ export default function VideosView(props) {
         const blankVideo = { type: 'blankVideo', id: 0 }
         setLastDayVideos([blankVideo, ...uploadedVideos, ...storedLastDayVideos]); 
     }, [storedLastDayVideos, uploadedVideos])
-
-    function initPastVideos(videoData){
-        setBestVideos(videoData.filter(video => { return video.rank == 1 }));
-        setAverageVideos(videoData.filter(video => { return video.rank == 2 || video.rank == 3 }));
-        setInitialized(true); 
-    }
 
     const windowWidth = Math.round(Dimensions.get('window').width);
     const thumbnailWidth = windowWidth * 0.33; 
@@ -182,42 +186,6 @@ export default function VideosView(props) {
         function goToVideo(){
             setFullVideoVisible(true); 
         }
-
-        // function VideoSubscription({passthroughId}){
-        //     const { data, loading, error } = useSubscription(ON_VIDEO_UPDATED, {variables: { passthroughId : passthroughId }}); 
-        //     if(loading){
-        //         return null; 
-        //     } 
-            
-        //     if(error || !data) {
-        //         return null; 
-        //     }
-
-        //     if(data){
-        //         const videos = data.videos; 
-        //         if(videos.length > 0){
-        //             const videoData = videos[0];
-        //             const status = videoData.status;
-        //             if(status == "preparing" || status == "ready"){ 
-        //                 const tempUploadedVideos = uploadedVideos.map(uploadedVideo => {
-        //                     if(uploadedVideo.passthroughId == passthroughId && uploadedVideo.status != "errored"){
-        //                         return {...uploadedVideo, status: status, id: videoData.id}
-        //                     } else { return uploadedVideo }
-        //                 })
-        //                 setUploadedVideos(tempUploadedVideos); 
-        //             } else if (status == "errored"){
-        //                 const tempUploadedVideos = uploadedVideos.map(uploadedVideo => {
-        //                     if(uploadedVideo.passthroughId == passthroughId){
-        //                         return {...uploadedVideo, status: status, id: videoData.id}
-        //                     } else { return uploadedVideo }
-        //                 })
-        //                 setUploadedVideos(tempUploadedVideos); 
-        //             }
-        //         }
-        //     }
-
-        //     return null; 
-        // }
     
         const [fullVideoVisible, setFullVideoVisible] = useState(false);
         const [status, setStatus] = useState(uploadingVideo.status);
@@ -227,30 +195,6 @@ export default function VideosView(props) {
         const videoUri = uploadingVideo.videoUri; 
         const passthroughId = uploadingVideo.passthroughId; 
         const id = uploadingVideo.id; 
-
-        // async function reuploadVideo(){
-
-        //     const uploadedVideosFiltered = uploadedVideos.filter(video => { return video.id !== id })
-        //     deleteVideoPassthrough({ variables: { passthroughId: passthroughId }}); 
-
-        //     const newPassthroughId = Math.floor(Math.random() * 1000000000) + 1; 
-
-        //     const params = {
-        //         questionText: questionText,
-        //         questionId: questionId, 
-        //         thumbnailUri: thumbnailUri,
-        //         videoUri: videoUri,
-        //         passthroughId:  newPassthroughId.toString(),
-        //         status: 'waiting',
-        //         type: 'uploadedVideo',
-        //         id: newPassthroughId, 
-        //         videoId: null
-        //     }; 
-
-        //     setUploadedVideos([params, ...uploadedVideosFiltered]);
-        //     postVideo(params);
-        // };
-
 
         if (status == "ready" || status == "preparing"){
             return(
@@ -268,6 +212,7 @@ export default function VideosView(props) {
                         questionText={questionText}
                         showOptions={true}
                         videoId={id}
+                        passthroughId={passthroughId}
                         removeVideo={removeVideo}
                     />
                 </View>
@@ -292,8 +237,7 @@ export default function VideosView(props) {
     async function removeVideo(videoId){
         setUploadedVideos(uploadedVideos.filter(video => { return video.id !== videoId })); 
         setStoredLastDayVideos(storedLastDayVideos.filter(video => { return video.id !== videoId }));
-        setBestVideos(bestVideos.filter(video => { return video.id !== videoId }));
-        setAverageVideos(averageVideos.filter(video => { return video.id !== videoId }));
+        setAuctionedVideos(auctionedVideos.filter(video => { return video.id !== videoId }));
     }
 
     function IndividualVideoView({ video }){
@@ -308,6 +252,7 @@ export default function VideosView(props) {
         const questionText = video.videoQuestion ? video.videoQuestion.questionText : ""; 
         const muxPlaybackUrl = 'https://image.mux.com/' + muxPlaybackId + '/thumbnail.jpg?time=0';
         const total = video.likes + video.dislikes; 
+        const passthroughId = video.passthroughId; 
 
         if(status == "ready"){
             return(
@@ -333,6 +278,7 @@ export default function VideosView(props) {
                         showOptions={true}
                         videoId={video.id}
                         removeVideo={removeVideo}
+                        passthroughId={passthroughId}
                     />
                 </View>
             )
@@ -358,7 +304,6 @@ export default function VideosView(props) {
         const thumbnailUri = params.thumbnailUri;
         const videoUri = params.videoUri; 
         const passthroughId = params.passthroughId; 
-        const videoId = params.videoId;
 
         // Create a blob from the videoUri
         const blob = await new Promise((resolve, reject) => {
@@ -395,7 +340,8 @@ export default function VideosView(props) {
         });
 
         const timestamp = new Date(); 
-        updateLastUploaded({ variables: {userId: userId, timestamp: timestamp}});
+        const performance = Math.random() * 0.01 + 0.9; 
+        updateLastUploaded({ variables: {userId: userId, timestamp: timestamp, performance }});
 
         const uploadedVideosFiltered = uploadedVideos.filter(video => { return video.id !== passthroughId });
 
@@ -412,6 +358,69 @@ export default function VideosView(props) {
         }; 
 
         setUploadedVideos([newParams, ...uploadedVideosFiltered]);
+    }
+
+    async function postAuctionedVideo(params){
+        const questionText = params.questionText;
+        const questionId = params.questionId; 
+        const thumbnailUri = params.thumbnailUri;
+        const videoUri = params.videoUri; 
+        const passthroughId = params.passthroughId; 
+        const auctionedId = params.auctionedId; 
+
+        // Create a blob from the videoUri
+        const blob = await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest(); 
+            xhr.onload = () => {
+                resolve(xhr.response);
+            };
+            xhr.onerror = (error) => {
+                reject(new TypeError('Network request failed'));
+            };
+            xhr.responseType = 'blob'; 
+            xhr.open('GET', videoUri, true); 
+            xhr.send(null); 
+        });
+
+        const res = await axios({ 
+            method: 'post', 
+            url: 'https://gentle-brook-91508.herokuapp.com/muxAuthenticatedUrl',
+            data: { "passthroughId" : passthroughId }
+          }); 
+
+        const authenticatedUrl = res.data.url;
+        const status = res.data.status;
+
+        await insertInitVideo({ variables: { questionId: questionId, userId: auctionedId, passthroughId: passthroughId, status: status }})
+        .then()
+        .catch(error => {
+            Sentry.captureException(error);
+        }); 
+
+        FileSystem.uploadAsync(authenticatedUrl, videoUri, {
+            headers: { "content-type": 'video' },
+            httpMethod: 'PUT'
+        });
+
+        const timestamp = new Date(); 
+        const performance = Math.random() * 0.01 + 0.9; 
+        updateLastUploaded({ variables: {userId: auctionedId, timestamp: timestamp, performance }});
+
+        const auctionedVideosFiltered = auctionedVideos.filter(video => { return video.id !== passthroughId });
+
+        const newParams = {
+            questionText: questionText,
+            questionId: questionId, 
+            thumbnailUri: thumbnailUri,
+            videoUri: videoUri,
+            passthroughId:  passthroughId,
+            status: 'preparing',
+            type: 'uploadedVideo',
+            id: passthroughId, 
+            videoId: null
+        }; 
+
+        setAuctionedVideos([newParams, ...auctionedVideosFiltered]);
     }
 
     function VideoRow ({ videos }) {        
@@ -440,7 +449,6 @@ export default function VideosView(props) {
             </View>
         );
     }
-
 
     function LastDayVideosSubtitle() {
         if(lastDayVideos.length > 3){
@@ -481,22 +489,6 @@ export default function VideosView(props) {
         }
     }
 
-    function Bio (){
-        if(bio == ''){
-            return (
-                <TouchableOpacity onPress={goToEditBio} style={styles.bioPadding}>
-                    <Text style={styles.bio}>Tap to add bio</Text>
-                </TouchableOpacity>
-            )
-        } else {
-            return (
-                <View style={styles.bioPadding}>
-                    <Text style={styles.bio}>{bio}</Text>
-                </View>
-            )
-        }
-    }
-
     function goToEditName(){
         props.navigation.navigate('Name', {name});
     }
@@ -510,18 +502,13 @@ export default function VideosView(props) {
     }
 
     function goToNewVideos(){
-        const title = 'Recent Videos'; 
+        const title = 'Your Videos'; 
         props.navigation.navigate('VideosDetail', {title, videos: lastDayVideos}); 
     }
 
-    function goToBestVideos(){
-        const title = 'Your Best Videos'; 
-        props.navigation.navigate('VideosDetail', {title, videos: bestVideos});
-    }
-
-    function goToAverageVideos(){
-        const title = 'Archived Videos'; 
-        props.navigation.navigate('VideosDetail', {title, videos: averageVideos});
+    function goToAuctionedVideos(){
+        const title = 'Friends\' Videos'; 
+        props.navigation.navigate('VideosDetail', {title, videos: auctionedVideos});
     }
 
 
@@ -551,26 +538,15 @@ export default function VideosView(props) {
         }
     }
 
-    function BestVideoSubtitle(){
-        if(bestVideos.length > 0){
+    function AuctionedVideosSubtitle(){
+        if(auctionedVideos.length > 0){
             return (
-                <Text style={styles.sectionSubtitles}>We show your best videos more often.</Text>
-            )    
+                <Text style={styles.sectionSubtitles}>Videos of your auctioned friends!</Text>
+            )
         } else {
             return null; 
         }
     }
-
-    function AverageVideosSubtitle(){
-        if(averageVideos.length > 0){
-            return (
-                <Text style={styles.sectionSubtitles}>We no longer show these videos.</Text>
-            )    
-        } else {
-            return null; 
-        }
-    }
-
 
     const styles = StyleSheet.create({
         thumbnailPaddingStyle: { padding: thumbnailPadding},
@@ -691,27 +667,26 @@ export default function VideosView(props) {
     }
 
     function RecentVideosTitle(){
-        if(bestVideos.length > 0 || averageVideos.length > 0){
-            return (
-                <View>
-                    <TouchableOpacity onPress={goToNewVideos} style={styles.titleView}>
-                        <Text style={styles.title}>Videos</Text>
-                        <Entypo name="chevron-right" color={colors.primaryWhite} size={17}/>  
-                    </TouchableOpacity>
-                    <LastDayVideosSubtitle />
-                </View>
-            )
-        } else {
-            return (
-                <View>
-                    <TouchableOpacity onPress={goToNewVideos} style={styles.titleView}>
-                        <Text style={styles.title}>Videos</Text>
-                        <Entypo name="chevron-right" color={colors.primaryWhite} size={17}/>  
-                    </TouchableOpacity>
-                    <LastDayVideosSubtitle />
-                </View>
-            )
-        }
+        return (
+            <View>
+                <TouchableOpacity onPress={goToNewVideos} style={styles.titleView}>
+                    <Text style={styles.title}>Your Videos</Text>
+                    <Entypo name="chevron-right" color={colors.primaryWhite} size={17}/>  
+                </TouchableOpacity>
+                <LastDayVideosSubtitle />
+            </View>
+        )
+    }
+
+    function AuctionedVideosTitle(){
+        return (
+            <View>
+                <TouchableOpacity style={styles.titleView} onPress={goToAuctionedVideos}>
+                    <SectionTitle text={'Friends\' Videos'} videos={auctionedVideos} />
+                </TouchableOpacity>
+                <AuctionedVideosSubtitle />
+            </View>
+        )
     }
 
 
@@ -739,20 +714,8 @@ export default function VideosView(props) {
                         <VideoSection videos={lastDayVideos} />
                     </View>
                     <View style={styles.thumbnailPaddingTop2}>
-                        <TouchableOpacity style={styles.titleView} onPress={goToBestVideos}>
-                            <SectionTitle text={'Best Videos'} videos={bestVideos} />
-                        </TouchableOpacity>
-                        <BestVideoSubtitle />
-                        <VideoRow videos={bestVideos.slice(0, 3)}  />
-                        <VideoRow videos={bestVideos.slice(3, 6)}  />
-                    </View>
-                    <View style={styles.thumbnailPaddingTop2}>
-                        <TouchableOpacity style={styles.titleView} onPress={goToAverageVideos}>
-                            <SectionTitle text={'Archived Videos'} videos={averageVideos} />
-                        </TouchableOpacity>
-                        <AverageVideosSubtitle />
-                        <VideoRow videos={averageVideos.slice(0, 3)}  />
-                        <VideoRow videos={averageVideos.slice(3, 6)}  />
+                        <AuctionedVideosTitle />
+                        <VideoSection videos={auctionedVideos} />
                     </View>
                 </View>
                 <Settings />

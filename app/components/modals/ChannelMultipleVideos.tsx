@@ -1,6 +1,5 @@
 import { TouchableOpacity, View, Modal, Text, StyleSheet, Dimensions} from 'react-native';
 import React, { useEffect, useState, useRef } from 'react'; 
-import SingleVideo from '../videosPage/SingleVideo';
 import { BlurView } from 'expo-blur';
 import { fullPageVideoStyles } from '../../styles/fullPageVideoStyles';
 import { colors } from '../../styles/colors';
@@ -110,15 +109,21 @@ export default function ChannelMultipleVideos(props) {
   }
 
   const _onPlaybackStatusUpdate = playbackStatus => {
+
     if(playbackStatus.positionMillis && playbackStatus.durationMillis){
       const progress = playbackStatus.positionMillis / playbackStatus.durationMillis; 
       setCurrentProgress(progress);   
-      if(playbackStatus.positionMillis == playbackStatus.durationMillis){
+      if(playbackStatus.positionMillis + 50 >= playbackStatus.durationMillis || playbackStatus.didJustFinish){
         nextVideo(); 
       }
     } else {
-      setCurrentProgress(0); 
+      if(currentProgress > 0.5){
+        nextVideo();
+      } else {
+        setCurrentProgress(0); 
+      }
     }
+
   };
 
   const playingData = { 
@@ -149,6 +154,7 @@ export default function ChannelMultipleVideos(props) {
 
   function nextVideo(){
     if(index + 1 < userVideos.length){
+      setCurrentProgress(0); 
       setIndex(index + 1);
     } else {
       props.setVisible(false); 

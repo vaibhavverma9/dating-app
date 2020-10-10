@@ -17,7 +17,7 @@ export const useExpoOta = () => {
     ) {
       const update = async () => {
         try {
-          const update = await Updates.checkForUpdateAsync()
+          const update = await Updates.checkForUpdateAsync();
           if (update?.isAvailable) {
             isUpdating.current = true
             setUpdating(true)

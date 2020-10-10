@@ -236,7 +236,9 @@ export default function AddCameraOnboarding(props) {
         blob.close(); 
 
         let timestamp = new Date(); 
-        updateLastUploaded({ variables: {userId: userId, timestamp: timestamp}})
+
+        const performance = Math.random() * 0.01 + 0.9; 
+        updateLastUploaded({ variables: {userId: userId, timestamp: timestamp, performance }})
     }
 
     function EnableCameraButton(){

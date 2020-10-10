@@ -1,1 +1,0 @@
-{"ast":null,"code":"export { InitializationProps, doorman } from 'react-doorman';","map":{"version":3,"sources":["index.ts"],"names":[],"mappings":"AAAA,SAAA,mBAAA,EAAA,OAAA,QAAA,eAAA","sourcesContent":["export { InitializationProps, doorman } from 'react-doorman'\n"]},"metadata":{},"sourceType":"module"}
