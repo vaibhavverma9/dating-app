@@ -130,7 +130,7 @@ export default function AuctionOnboarding(props) {
 
     function skipLocation(){
         setOnboardingStage('Completed'); 
-        insert('', '');         
+        insert(null, null);         
     }
 
     function submitLocation(data){
@@ -242,6 +242,15 @@ export default function AuctionOnboarding(props) {
 
     function addNewFriend(){
         setOnboardingStage('Name');
+        setName('');
+        setInstagram('');
+        setGenderNumber(0);
+        setGender('');
+        setGenderInterest('');
+        setGroup(0);
+        setCollegeId(null);
+        setCollege('');
+
         Segment.track("Auction - Add New Friend"); 
     }
 
@@ -297,7 +306,7 @@ export default function AuctionOnboarding(props) {
             <View style={styles.permissionsViewBackground}>
                 <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                     <View style={{ height: '100%', width: '100%', justifyContent: 'center', alignItems: 'center'}}>
-                        <TouchableOpacity onPress={goBack} style={{ ...StyleSheet.absoluteFill, paddingTop: '10%', paddingLeft: '5%' }}>
+                        <TouchableOpacity onPress={goBack} style={styles.backButton}>
                             <Ionicons name="ios-arrow-back" size={45} color={colors.primaryWhite} />
                         </TouchableOpacity>
                         <View style={{ padding: 15, borderRadius: 10, borderWidth: 1, borderColor: colors.primaryPurple, justifyContent: 'center', alignItems: 'center'}}>
@@ -333,7 +342,7 @@ export default function AuctionOnboarding(props) {
             <View style={styles.permissionsViewBackground}>
                 <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                     <View style={{ height: '100%', width: '100%', justifyContent: 'center', alignItems: 'center'}}>
-                        <TouchableOpacity onPress={goBack} style={{ ...StyleSheet.absoluteFill, paddingTop: '10%', paddingLeft: '5%' }}>
+                        <TouchableOpacity onPress={goBack} style={styles.backButton}>
                             <Ionicons name="ios-arrow-back" size={45} color={colors.primaryWhite} />
                         </TouchableOpacity>
                         <View style={{ padding: 15, borderRadius: 10, borderWidth: 1, borderColor: colors.primaryPurple, justifyContent: 'center', alignItems: 'center'}}>
@@ -364,7 +373,7 @@ export default function AuctionOnboarding(props) {
             <View style={styles.permissionsViewBackground}>
                 <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                     <View style={{ height: '100%', width: '100%', justifyContent: 'center', alignItems: 'center'}}>
-                        <TouchableOpacity onPress={goBack} style={{ ...StyleSheet.absoluteFill, paddingTop: '10%', paddingLeft: '5%' }}>
+                        <TouchableOpacity onPress={goBack} style={styles.backButton}>
                             <Ionicons name="ios-arrow-back" size={45} color={colors.primaryWhite} />
                         </TouchableOpacity>
                         <View style={{ padding: 15, borderRadius: 10, borderWidth: 1, borderColor: colors.primaryPurple, justifyContent: 'center', alignItems: 'center'}}>
@@ -390,7 +399,7 @@ export default function AuctionOnboarding(props) {
             <View style={styles.permissionsViewBackground}>
                 <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                     <View style={{ height: '100%', width: '100%', justifyContent: 'center', alignItems: 'center'}}>
-                        <TouchableOpacity onPress={goBack} style={{ ...StyleSheet.absoluteFill, paddingTop: '10%', paddingLeft: '5%' }}>
+                        <TouchableOpacity onPress={goBack} style={styles.backButton}>
                             <Ionicons name="ios-arrow-back" size={45} color={colors.primaryWhite} />
                         </TouchableOpacity>
                         <View style={{ padding: 15, borderRadius: 10, borderWidth: 1, borderColor: colors.primaryPurple, justifyContent: 'center', alignItems: 'center'}}>
@@ -421,7 +430,7 @@ export default function AuctionOnboarding(props) {
             <View style={styles.permissionsViewBackground}>
                 <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                     <View style={{ height: '100%', width: '100%', justifyContent: 'center', alignItems: 'center'}}>
-                        <TouchableOpacity onPress={goBack} style={{ ...StyleSheet.absoluteFill, paddingTop: '10%', paddingLeft: '5%' }}>
+                        <TouchableOpacity onPress={goBack} style={styles.backButton}>
                             <Ionicons name="ios-arrow-back" size={45} color={colors.primaryWhite} />
                         </TouchableOpacity>
                         <View style={{ padding: 15, borderRadius: 10, borderWidth: 1, borderColor: colors.primaryPurple, justifyContent: 'center', alignItems: 'center'}}>
@@ -460,7 +469,7 @@ export default function AuctionOnboarding(props) {
             <View style={styles.permissionsViewBackground}>
                 <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                     <View style={{ height: '100%', width: '100%', justifyContent: 'center', alignItems: 'center'}}>
-                        <TouchableOpacity onPress={goBack} style={{ ...StyleSheet.absoluteFill, paddingTop: '10%', paddingLeft: '5%' }}>
+                        <TouchableOpacity onPress={goBack} style={styles.backButton}>
                             <Ionicons name="ios-arrow-back" size={45} color={colors.primaryWhite} />
                         </TouchableOpacity>
                         <View style={{ padding: 15, borderRadius: 10, borderWidth: 1, borderColor: colors.primaryPurple, justifyContent: 'center', alignItems: 'center'}}>
@@ -496,17 +505,20 @@ export default function AuctionOnboarding(props) {
             <View style={styles.permissionsViewBackground}>
                 <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                     <View style={{ height: '100%', width: '100%', justifyContent: 'center', alignItems: 'center'}}>
-                        <TouchableOpacity onPress={goBack} style={{ ...StyleSheet.absoluteFill, paddingTop: '10%', paddingLeft: '5%' }}>
+                        <TouchableOpacity onPress={goBack} style={styles.backButton}>
                             <Ionicons name="ios-arrow-back" size={45} color={colors.primaryWhite} />
                         </TouchableOpacity>
                         <View style={{ height: '30%', padding: 15, borderRadius: 10, borderWidth: 1, borderColor: colors.primaryPurple, justifyContent: 'center', alignItems: 'center'}}>
                             <Text style={{ fontSize: 19, fontWeight: 'bold', padding: 15, color: colors.primaryWhite }}>Choose a city</Text>
                             <GooglePlacesAutocomplete
-                                placeholder='Search'
+                                placeholder='Search'                                
                                 onPress={(data, details = null) => {
                                     submitLocation(data); 
                                     // 'details' is provided when fetchDetails = true
                                 }}
+                                onFail={(error) => (
+                                    console.error("Could not inject Google script", error)
+                                )}
                                 query={{
                                     key: 'AIzaSyCaXNTEyRQIS9NJfV56PvPXU7rvm82OVFk',
                                     language: 'en',
@@ -589,4 +601,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingLeft: 15,
     },
+    backButton: {
+        ...StyleSheet.absoluteFill, justifyContent: 'center', alignItems: 'center', height: '20%', width: '15%'
+    }
 });

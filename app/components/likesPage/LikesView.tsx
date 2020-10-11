@@ -338,7 +338,7 @@ const MessagesStreamView = (props) => {
                         userVideos={userVideos}
                     />
                     <TouchableUserInfo />
-                    <LikeButton />
+                    {/* <LikeButton /> */}
                 </View>
                 <MultipleVideoPopup 
                     userVideos={userVideos}
