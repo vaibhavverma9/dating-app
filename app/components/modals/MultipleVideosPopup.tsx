@@ -1,6 +1,7 @@
-import { TouchableOpacity, View, Modal, Text, StyleSheet, Dimensions} from 'react-native';
-import React, { useEffect, useState, useRef } from 'react'; 
+import { TouchableOpacity, View, Modal, Text, StyleSheet, Dimensions } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
 import { BlurView } from 'expo-blur';
+import { Ionicons, Entypo } from '@expo/vector-icons';
 import { fullPageVideoStyles } from '../../styles/fullPageVideoStyles';
 import { colors } from '../../styles/colors';
 import { Video, Audio } from 'expo-av';   
@@ -9,11 +10,13 @@ import ProgressBar from 'react-native-progress/Bar';
 
 export default function MultipleVideoPopup(props) {
 
-  const [index, setIndex] = useState(0); 
+  const [index, setIndex] = useState(0);
   const renderedVideos = [];
-  let playbackObject = useRef(null); 
-  const [currentProgress, setCurrentProgress] = useState(0); 
-  const [questionText, setQuestionText] = useState(''); 
+  let playbackObject = useRef(null);
+  const [currentProgress, setCurrentProgress] = useState(0);
+  const [questionText, setQuestionText] = useState('');
+  // const [dislikeColor, setDislikeColor] = useState(colors.primaryWhite);
+  // const [likeColor, setLikeColor] = useState(colors.primaryWhite);
   
   const name = props.name; 
   const college = props.college;
@@ -24,7 +27,14 @@ export default function MultipleVideoPopup(props) {
     if(props.userVideos.length > 0){
       setQuestionText(props.userVideos[index].videoQuestion.questionText)
     }
-  }, [props.userVideos, index]); 
+  }, [props.userVideos, index]);
+  
+  // useEffect(() => {
+  //   if(props.likedByUser){
+  //     setLikeColor(colors.primaryPurple);
+  //     setDislikeColor(colors.secondaryBlack);
+  //   };
+  // }, [props.likedByUser]);  
 
   function ProgressBarsContainer () {
 
@@ -228,6 +238,34 @@ export default function MultipleVideoPopup(props) {
     }
   }
 
+  // function onLike(){
+  //   if(!props.likedByUser){
+  //     props.likeBack(); 
+  //   }
+  //   props.setVisible(false);
+  // }
+
+  // function onDislike(){
+  //   props.setVisible(false);
+  // }
+
+  // function LikeDislikeButtons() {
+  //   if (props.viewingLikesYou) {
+  //     return (
+  //       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center', paddingBottom: 40, flexDirection: 'row', justifyContent: 'space-around' }}>
+  //         <TouchableOpacity onPress={onLike}>
+  //           <Entypo name="cross" size={65} color={dislikeColor} />
+  //         </TouchableOpacity>
+  //         <TouchableOpacity onPress={onDislike}>
+  //           <Ionicons name="md-heart" size={65} color={likeColor} />
+  //         </TouchableOpacity>
+  //       </View>
+  //     )
+  //   } else {
+  //     return null; 
+  //   }
+  // }
+
   return (
     <Modal
       animationType="slide"
@@ -238,10 +276,11 @@ export default function MultipleVideoPopup(props) {
         {renderedVideos}
 
         <BlurView tint="dark" intensity={40} style={homeStyles.questionContainer}>
-          <Text style={{fontSize: 18,color: "#eee", padding: 15, textAlign: 'center'}}>{questionText}</Text>
+          <Text style={{ fontSize: 18, color: "#eee", padding: 15, textAlign: 'center'}}>{questionText}</Text>
         </BlurView>
         <ProgressBarsContainer />
         <UserInfo />
+
       </TouchableOpacity>
       </Modal>
   );

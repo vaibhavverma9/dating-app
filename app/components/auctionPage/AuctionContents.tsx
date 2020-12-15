@@ -44,7 +44,6 @@ export default function AuctionContents(props) {
         getAudioPermission(); 
         getCameraPermission();
         Segment.screen('Add'); 
-        setTimeout(() => { setTimedOut(true) }, 3000); 
     }, []);
 
     async function getCameraPermission(){

@@ -26,6 +26,8 @@ export const client = new ApolloClient({
 
 //             { location: {_st_d_within: {distance: 300000, from: $point }}},
 
+// {_not: {likesByLikedId: {likerId: {_eq: $secondId}}}}
+
 
 export const GET_VIDEOS = gql`
   fragment videoFields on users {
@@ -65,7 +67,6 @@ export const GET_VIDEOS = gql`
         {_not: {blocksByBlockedId: {blockerId: {_eq: $userId}}}},
         {performance: {_lt: $lastPerformance}},
         {_or: [{_not: {likesByLikedId: {likerId: {_eq: $userId}}}},
-          {_not: {likesByLikedId: {likerId: {_eq: $secondId}}}}
         ]},
         {group: {_in: $groupPreference}},
         {_or: [
@@ -267,33 +268,6 @@ export const GET_LIKES = gql`
   }
 `
 
-export const GET_MATCHES = gql`
-  query GetMatches($userId: Int){
-    matches(where: {_and: [{_not: {Liker: {blocksByBlockedId: {blockerId: {_eq: $userId}}}}},{Liker: {likesByLikedId: {likerId: {_eq: $userId}, dislike: {_eq: false}}}, likedId: {_eq: $userId}, dislike: {_eq: false}}]}, distinct_on: likerId) {
-      id
-      userId: likedId
-      profileId: likerId
-      profileUser: Liker {
-        firstName
-        birthday
-        id
-        city
-        region
-        college
-        profileUrl
-        instagram
-        userVideos(limit: 4, order_by: {created_at: asc}, where: {_or: [{rank: {_eq: 1}},{views: {_lt: 10}}], status: {_eq: "ready"}, muxPlaybackId: {_is_null: false}}) {
-          videoQuestion {
-            questionText
-          }
-          id
-          muxPlaybackId
-        }
-      }
-    }
-  }
-`
-
 export const GET_LIKE = gql`
   query GetLike ($likerId: Int, $likedId: Int, $dislike: Boolean) {
     likes(where: {_and: [{likerId: {_eq: $likerId}}, {likedId: {_eq: $likedId}}, {dislike: {_eq: $dislike}}]}) {
@@ -391,6 +365,7 @@ export const ON_MATCHES_UPDATED = gql`
         college
         profileUrl
         instagram
+        birthday
         userVideos(limit: 3, order_by: {created_at: asc}, where: {status: {_eq: "ready"}, muxPlaybackId: {_is_null: false}}) {
           videoQuestion {
             questionText
@@ -424,6 +399,38 @@ export const ON_YOUR_LIKES_UPDATED = gql`
           id
           muxPlaybackId
         }
+      }
+    }
+  }
+`
+
+export const ON_LIKES_YOU_UPDATED = gql`
+subscription onLikesYouUpdated($userId: Int) {
+    likes: likes(where: {_and: [{_not: {Liker: {blocksByBlockedId: {blockerId: {_eq: $userId}}}}}, {likedId: {_eq: $userId}, dislike: {_eq: false}}]}, order_by: {created_at: desc_nulls_last}) {
+      id
+      userId: likedId
+      profileId: likerId
+      profileUser: Liker {
+        firstName
+        id
+        birthday
+        city
+        region
+        college
+        profileUrl
+        instagram
+        userVideos(limit: 4, order_by: {created_at: asc}, where: {_or: [{rank: {_eq: 1}},{views: {_lt: 10}}], status: {_eq: "ready"}, muxPlaybackId: {_is_null: false}}) {
+          videoQuestion {
+            questionText
+          }
+          id
+          muxPlaybackId
+        }
+        likesByLikedId_aggregate(where: {likerId: {_eq: $userId}}) {
+          aggregate {
+            count
+          }
+        }  
       }
     }
   }
@@ -784,6 +791,14 @@ export const GET_AUCTIONED_USERS = gql`
 export const UPDATE_AUCTIONED_USER = gql`
   mutation UpdateAuctionedUser($auctionedId: Int, $auctioneerId: Int) {
     update_auctionedUsers(where: {auctionedId: {_eq: $auctionedId}, auctioneerId: {_eq: $auctioneerId}}, _set: {status: "inactive"}) {
+      affected_rows
+    }
+  }
+`
+
+export const UPDATE_LAST_ACTIVE = gql`
+  mutation UpdateLastActive($userId: Int, $today: timestamptz) {
+    update_users(where: {id: {_eq: 1528}}, _set: {lastActive: $today}) {
       affected_rows
     }
   }

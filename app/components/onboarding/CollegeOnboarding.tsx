@@ -93,7 +93,7 @@ export default function CollegeOnboarding(props) {
             return null; 
         } else {
             return (
-                <TouchableOpacity delayPresonPress={() => {props.navigation.navigate("InstagramOnboarding")}}>
+                <TouchableOpacity onPress={() => {props.navigation.navigate("InstagramOnboarding")}}>
                     <Text style={{ paddingTop: '3%', color: primaryColor}}>Skip</Text>
                 </TouchableOpacity>
             )
@@ -103,7 +103,7 @@ export default function CollegeOnboarding(props) {
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: primaryColor }}>
-                <View style={{ height: '40%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center' }}>
+                <View style={{ height: '50%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center' }}>
                     <View style={{ paddingTop: '10%', height: '25%'}}>
                         <Ionicons name="md-person" size={45} color={primaryColor} />
                     </View>        

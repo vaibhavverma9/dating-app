@@ -7,7 +7,7 @@ import { Feather } from '@expo/vector-icons'
 import { colors } from '../../styles/colors';
 import { FlatList} from 'react-native-gesture-handler';
 import { Divider } from 'react-native-paper';
-import { INSERT_LIKE, GET_NUMBER_VIDEOS, GET_LIKES, GET_INSTAGRAM, ON_YOUR_LIKES_UPDATED } from '../../utils/graphql/GraphqlClient';
+import { INSERT_LIKE, GET_NUMBER_VIDEOS, GET_LIKES, GET_INSTAGRAM, ON_YOUR_LIKES_UPDATED, ON_LIKES_YOU_UPDATED } from '../../utils/graphql/GraphqlClient';
 import { _retrieveName  } from '../../utils/asyncStorage'; 
 import MultipleVideoPopup from '../modals/MultipleVideosPopup'; 
 import NoVideosPopup from '../modals/NoVideosPopup';
@@ -31,22 +31,25 @@ const MessagesStreamView = (props) => {
     const [viewingLikesYou, setViewingLikesYou] = useState(true); 
     const [matches, setMatches] = useState(null); 
 
-    const { data, loading, error } = useSubscription(ON_YOUR_LIKES_UPDATED, {variables: { userId }});    
+    const { data, loading, error } = useSubscription(ON_YOUR_LIKES_UPDATED, { variables: { userId }});    
 
-    const [getLikes, { data: likesQueried }] = useLazyQuery(GET_LIKES, 
-    { 
-        onCompleted: (likesQueried) => { 
+    const { data: onLikesYouData } = useSubscription(ON_LIKES_YOU_UPDATED, { variables: { userId }}); 
 
-          const uniqueLikes = Array.from(new Set(likesQueried.likes.map(like => like.profileUser.id))).map(
-            id => {
-              return likesQueried.likes.find(like => like.profileUser.id === id); 
-            }
-          )
+    useEffect(() => {
+      if(onLikesYouData){
+        const uniqueLikes = Array.from(new Set(onLikesYouData.likes.map(like => like.profileUser.id))).map(
+          id => {
+            return onLikesYouData.likes.find(like => like.profileUser.id === id); 
+          }
+        )
+        
+        if(uniqueLikes.length == 0){
+          setViewingLikesYou(false); 
+        }
 
-          setLikes(uniqueLikes);
-          
-        } 
-    }); 
+        setLikes(uniqueLikes);
+      }
+    }, [onLikesYouData]);
 
     const [getNumberVideos, { data: numberVideos }] = useLazyQuery(GET_NUMBER_VIDEOS,
       {
@@ -83,10 +86,10 @@ const MessagesStreamView = (props) => {
 
     useEffect(() => {
         Segment.screen('Likes'); 
-        getLikes({ variables: { userId }})
+        // getLikes({ variables: { userId }})
         initName(); 
         getNumberVideos({variables: { userId }}); 
-        getInstagramData({ variables: { userId }});
+        // getInstagramData({ variables: { userId }});
       }, []);
 
       useEffect(() => {
@@ -212,10 +215,7 @@ const MessagesStreamView = (props) => {
             setPopupVisible(true); 
         }
 
-        function showNoVideosPopup(){
-          setNoVideosPopupVisible(true); 
-        }
-
+        setNoVideosPopupVisible
         function showNoInstagramPopup(){
           setNoInstagramPopupVisible(true); 
         }
@@ -233,7 +233,10 @@ const MessagesStreamView = (props) => {
                     )                    
                 } else {
                     return(
-                        <TouchableOpacity onPress={showNoVideosPopup} style={{ height: 70, width: 70, borderRadius: 35, alignItems: 'center', justifyContent: 'center'}}>
+                        <TouchableOpacity onPress={
+                          
+                          
+                        } style={{ height: 70, width: 70, borderRadius: 35, alignItems: 'center', justifyContent: 'center'}}>
                             <Image
                                 style={{ height: 60, width: 60, borderRadius: 30 }}
                                 source={{ uri: profileUrl}}
@@ -303,10 +306,10 @@ const MessagesStreamView = (props) => {
         }
 
         function likeBack(){
-          // console.log("likeBack")
           insertLike({ variables: { likedId: profileUserId, likerId: userId, matched: false, dislike: false }});
-          // sendLike(profileUserId, name); 
+          sendLike(profileUserId, name); 
           setLikedByUser(true); 
+          setViewingLikesYou(false); 
         }
 
         function LikeButton(){
@@ -338,7 +341,7 @@ const MessagesStreamView = (props) => {
                         userVideos={userVideos}
                     />
                     <TouchableUserInfo />
-                    {/* <LikeButton /> */}
+                    <LikeButton />
                 </View>
                 <MultipleVideoPopup 
                     userVideos={userVideos}
@@ -348,6 +351,9 @@ const MessagesStreamView = (props) => {
                     city={city}
                     region={region}
                     college={college}
+                    // likedByUser={likedByUser}
+                    // likeBack={likeBack}
+                    // viewingLikesYou={viewingLikesYou}
                 />
                 <NoVideosPopup 
                   visible={noVideosPopupVisible}
@@ -437,7 +443,6 @@ const MessagesStreamView = (props) => {
                 <View>
                   <View style={{ flexDirection: 'row', alignItems: 'center'}}>
                     <Text style={{ fontSize }}>{name}</Text>
-                    {/* <Text style={styles.separatorText}>{'\u2B24'}</Text> */}
                     <DistanceSeparator />
                     <Distance />  
                     <AgeSeparator />
@@ -522,6 +527,7 @@ const MessagesStreamView = (props) => {
     }
 
     function LikesList(){
+
       if(viewingLikesYou){
         if(likes.length > 0){
           return (
@@ -555,7 +561,7 @@ const MessagesStreamView = (props) => {
           )
         }
       }
-    }
+    };
 
 
     if(likes && matches){

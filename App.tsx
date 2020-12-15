@@ -151,6 +151,7 @@ function FirebaseAuthenticatedApp({authState}){
       options: {
         lazy: true,
         reconnect: true,
+        timeout: 30000,
         connectionParams: {
           headers
         }

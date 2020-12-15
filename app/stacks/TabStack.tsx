@@ -17,6 +17,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { colors } from '../styles/colors';
 import EditGenderInterestView from '../components/videosPage/EditGenderInterestView';
 import EditGenderView from '../components/videosPage/EditGenderView'; 
+import { ChatStack } from './ChatStack'; 
 
 const Tab = createBottomTabNavigator(); 
 const Stack = createStackNavigator(); 
@@ -45,7 +46,6 @@ export default function TabStack (){
                 height: 0,
         } }
     }
-
     function VideosStack() {
         return (
             <Stack.Navigator>
@@ -62,6 +62,7 @@ export default function TabStack (){
             </Stack.Navigator>
         )
     }
+
 
     return (
             <Tab.Navigator
@@ -97,8 +98,7 @@ export default function TabStack (){
             >
                 <Tab.Screen name="Home" component={HomeView} />
                 <Tab.Screen name="Add Video" component={AddCameraView} />
-                <Tab.Screen name="Auction Friend" component={AuctionView} />
-                <Tab.Screen name="Likes" component={LikesView} /> 
+                <Tab.Screen name="Likes" component={ChatStack} /> 
                 <Tab.Screen name="Your Videos" component={VideosStack} />
             </Tab.Navigator>
 

@@ -5,7 +5,7 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import TabStack from '../../stacks/TabStack';
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import { useMutation } from '@apollo/client';
-import { UPDATE_CITY, UPDATE_REGION, UPDATE_ONBOARDED } from '../../utils/graphql/GraphqlClient';
+import { UPDATE_CITY, UPDATE_REGION } from '../../utils/graphql/GraphqlClient';
 import { _storeLatitude, _storeLongitude, _storeCity, _storeRegion, _storeOnboarded } from '../../utils/asyncStorage'; 
 import { colors } from '../../styles/colors';
 import * as Segment from 'expo-analytics-segment';
@@ -18,9 +18,9 @@ export default function LocationOnboarding(props) {
     const [updateCity, { updateCityData }] = useMutation(UPDATE_CITY);
     const [updateRegion, { updateRegionData }] = useMutation(UPDATE_REGION);
     const [onboarded, setOnboarded] = useState(false); 
-    const [updateOnboarded, { updateOnboardedData }] = useMutation(UPDATE_ONBOARDED);
 
     const enableLocation = () => {
+        completeOnboarding();  
         (async () => {
             let { status } = await Location.requestPermissionsAsync();
             if (status !== 'granted') {
@@ -57,43 +57,44 @@ export default function LocationOnboarding(props) {
             updateCity({ variables: { userId, city }}); 
             updateRegion({ variables: { userId, region }}); 
             Segment.track("Onboarding - Enable Location");
-            props.navigation.navigate("TabStack");
-            completeOnboarding();  
+            props.navigation.navigate("GenderOnboarding");
         })();
     }
 
     const skipForNow = () => {
         Segment.track("Onboarding - Skip Location");
-        props.navigation.navigate("TabStack")
+        props.navigation.navigate("GenderOnboarding")
         completeOnboarding(); 
     }
 
     function completeOnboarding(){
         setOnboarded(true); 
-        _storeOnboarded(true); 
-        updateOnboarded({ variables: { userId, onboarded: true }}); 
-        Segment.track("Onboarding - Complete Onboarding");
     }
 
-    return (
-        <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: primaryColor }}>
-            <View style={{ height: '40%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center' }}>
-                <View style={{ paddingTop: '10%', height: '25%'}}>
-                    <FontAwesome5 name="city" size={45} color={primaryColor} />
-                </View>        
-                <Text style={{ fontSize: 25, textAlign: 'center', padding: 15, color: primaryColor }}>Get matches near you</Text>
-                <Text style={{ textAlign: 'center', fontSize: 14, padding: 15, color: primaryColor}}>This app uses your location to find matches near you.</Text>
-                <View style={{ paddingTop: '12%' }}>
+    if(onboarded){
+        return (
+            <View style={{ flex: 1, backgroundColor: colors.primaryPurple, justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={{ color: '#eee'}}>App is loading, just a sec...</Text>
+           </View>
+          )       
+    } else {
+        return (
+            <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: primaryColor }}>
+                <View style={{ height: '50%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center', justifyContent: 'space-around' }}>
+                    <View style={{ paddingTop: '10%', alignItems: 'center' }}>
+                        <FontAwesome5 name="city" size={45} color={primaryColor} />
+                        <Text style={{ fontSize: 25, textAlign: 'center', padding: 15, color: primaryColor }}>Get matches near you</Text>
+                    </View>        
                     <TouchableOpacity onPress={enableLocation} style={styles.locationsContainer}>
                         <Text style={styles.locationsText}>Enable Location</Text>
                     </TouchableOpacity>
                 </View>
+                <TouchableOpacity onPress={skipForNow} style={{ height: '25%', justifyContent: 'flex-start'}}>
+                    <Text style={{ paddingTop: '4%', fontWeight: 'bold', color: secondaryColor, fontSize: 14 }}>Skip for now</Text>
+                </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={skipForNow} style={{ height: '25%', justifyContent: 'flex-start'}}>
-                <Text style={{ paddingTop: '4%', fontWeight: 'bold', color: secondaryColor, fontSize: 14 }}>Skip for now</Text>
-            </TouchableOpacity>
-        </View>
-    );
+        );
+    }
 }
 
 const primaryColor = colors.primaryPurple;

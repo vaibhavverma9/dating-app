@@ -14,7 +14,7 @@ export default function FeedbackPopup(props) {
     const [insertNps, { insertNpsData }] = useMutation(INSERT_NPS); 
     const [userId, setUserId] = useContext(UserIdContext);
 
-    function submitNps(score){
+    async function submitNps(score){
 
         insertNps({ variables: { userId, nps: score}})
         if(score > 8){

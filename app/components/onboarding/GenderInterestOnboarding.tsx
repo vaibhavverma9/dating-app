@@ -34,7 +34,8 @@ export default function GenderInterestOnboarding(props) {
         _storeGenderInterest('Men'); 
         setGenderInterestSubmitted(true); 
         Segment.track("Onboarding - Submit Gender");
-        props.navigation.navigate("AgeOnboarding");
+        // props.navigation.navigate("AgeOnboarding");
+        props.navigation.navigate("CollegeOnboarding");
     };
 
     const interestWoman = () => {
@@ -54,7 +55,8 @@ export default function GenderInterestOnboarding(props) {
         _storeGenderInterest('Women');
         setGenderInterestSubmitted(true); 
         Segment.track("Onboarding - Submit Gender");
-        props.navigation.navigate("AgeOnboarding");
+        // props.navigation.navigate("AgeOnboarding");
+        props.navigation.navigate("CollegeOnboarding");
     };
 
     const interestEveryone = () => {
@@ -74,17 +76,18 @@ export default function GenderInterestOnboarding(props) {
         _storeGenderInterest('Everyone');
         setGenderInterestSubmitted(true); 
         Segment.track("Onboarding - Submit Gender");
-        props.navigation.navigate("AgeOnboarding");
+        // props.navigation.navigate("AgeOnboarding");
+        props.navigation.navigate("CollegeOnboarding");
     }; 
 
     return (
         <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: primaryColor }}>
-            <View style={{ height: '40%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center' }}>
+            <View style={{ height: '50%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center' }}>
                 <View style={{ paddingTop: '10%', height: '25%'}}>
                     <Ionicons name="md-person" size={45} color={primaryColor} />
                 </View>        
-                <Text style={{ fontSize: 25, fontWeight: 'bold', paddingTop: 15, textAlign: 'center', color: primaryColor }}>I'm looking to date</Text>
-                <View style={{ justifyContent: 'space-evenly', height: '60%'}}>
+                <Text style={{ fontSize: 25, fontWeight: 'bold', paddingVertical: 15, textAlign: 'center', color: primaryColor }}>I'm looking to date</Text>
+                <View style={{ justifyContent: 'space-evenly', height: '50%'}}>
                     <TouchableOpacity onPress={interestWoman} style={styles.genderContainer}>
                         <Text style={styles.genderText}>Women</Text>
                     </TouchableOpacity>

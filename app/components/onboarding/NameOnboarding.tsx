@@ -23,14 +23,13 @@ export default function NameOnboarding(props) {
          updateName({ variables: { userId, firstName: name }});
         //  setNameSubmitted(true); 
          Segment.track('Onboarding - Submit Name'); 
-         props.navigation.navigate("GenderOnboarding");
-
+        props.navigation.navigate("LocationSelectOnboarding"); 
     }
 
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: primaryColor }}>
-                <View style={{ height: '40%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center' }}>
+                <View style={{ height: '50%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center' }}>
                     <View style={{ paddingTop: '10%', height: '25%'}}>
                         <Ionicons name="md-person" size={45} color={primaryColor} />
                     </View>        

@@ -27,7 +27,6 @@ export default function NameOnboarding(props) {
     };
 
     function submitBirthday(){
-        console.log("submitBirthday");
         updateBirthday({ variables: { userId, birthday: date }});
         props.navigation.navigate("CollegeOnboarding"); 
         Segment.track('Onboarding - Submit Age'); 

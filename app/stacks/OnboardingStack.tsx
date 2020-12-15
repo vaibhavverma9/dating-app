@@ -13,6 +13,7 @@ import AgeOnboarding from '../components/onboarding/AgeOnboarding';
 import TabStack from './TabStack';
 import TutorialOnboarding from '../components/onboarding/TutorialOnboarding';
 import InstagramOnboarding from '../components/onboarding/InstagramOnboarding';
+import LocationSelectOnboarding from '../components/onboarding/LocationSelectOnboarding'; 
 
 const Stack = createStackNavigator(); 
 
@@ -45,6 +46,7 @@ export default function OnboardingStack (){
                 <Stack.Screen options={onboardingStyle} name="LocationOnboarding" component={LocationOnboarding} />
                 <Stack.Screen options={onboardingStyle} name="TutorialOnboarding" component={TutorialOnboarding} />
                 <Stack.Screen options={onboardingStyle} name="InstagramOnboarding" component={InstagramOnboarding} />
+                <Stack.Screen options={onboardingStyle} name="LocationSelectOnboarding" component={LocationSelectOnboarding} />
                 <Stack.Screen options={tabStyle} name="TabStack" component={TabStack} />
             </Stack.Navigator>
         // </NavigationContainer>

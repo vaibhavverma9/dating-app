@@ -4,11 +4,11 @@ import { homeStyles } from '../../styles/homeStyles';
 import { BlurView } from 'expo-blur';
 import { Ionicons, Entypo } from '@expo/vector-icons'
 import { useMutation, useLazyQuery } from '@apollo/client';
-import { INSERT_LIKE, GET_VIDEOS, GET_NUMBER_VIDEOS, UPDATE_PUSH_TOKEN, GET_USER_INFO, UPDATE_VIDEO_LIKES, UPDATE_VIDEO_VIEWS, UPDATE_VIDEO_DISLIKES } from '../../utils/graphql/GraphqlClient';
+import { INSERT_LIKE, GET_VIDEOS, GET_NUMBER_VIDEOS, UPDATE_PUSH_TOKEN, GET_USER_INFO, UPDATE_VIDEO_LIKES, UPDATE_VIDEO_VIEWS, UPDATE_VIDEO_DISLIKES, UPDATE_LAST_ACTIVE } from '../../utils/graphql/GraphqlClient';
 import OptionsModal from './OptionsModal'; 
 import { UserIdContext } from '../../utils/context/UserIdContext'
 import * as Segment from 'expo-analytics-segment';
-import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid, _retrieveLatitude, _retrieveLongitude, _retrieveName, _retrievePushShown, _storePushShown, _storeName, _storeBio, _retrieveBio, _storeGenderInterest, _retrieveGenderGroup, _storeAddVideoShown, _retrieveAddVideoShown, _retrieveExplanationShown, _storeExplanationShown, _storeFeedbackShown, _retrieveFeedbackShown } from '../../utils/asyncStorage'; 
+import { _retrieveUserId, _storeUserId, _retrieveDoormanUid, _storeDoormanUid, _retrieveLatitude, _retrieveLongitude, _retrieveName, _retrievePushShown, _storePushShown, _storeName, _storeBio, _retrieveBio, _storeGenderInterest, _retrieveGenderGroup, _storeAddVideoShown, _retrieveAddVideoShown, _retrieveExplanationShown, _storeExplanationShown, _storeFeedbackShown, _retrieveFeedbackShown, _storeLastPerformance } from '../../utils/asyncStorage'; 
 import AddVideoPopup from '../modals/AddVideoPopup'; 
 import NoLikesPopup from '../modals/NoLikesPopup'; 
 import PushPopup from '../modals/PushPopup'; 
@@ -34,7 +34,7 @@ import FeedbackPopup from '../modals/FeedbackPopup';
 
 export default function HomeContents(props) {
   const isFocused = useIsFocused();
-  const { uid, phoneNumber } = useDoormanUser();
+  const { phoneNumber } = useDoormanUser();
   const [videoData, setVideoData] = useState(null); 
   const [questionText, setQuestionText] = useState(''); 
   const [shouldPlay, setShouldPlay] = useState(true); 
@@ -49,20 +49,19 @@ export default function HomeContents(props) {
   const [currentName, setCurrentName] = useState('');
   const [currentInstagram, setCurrentInstagram] = useState(''); 
 
-  const [currentCollege, setCurrentCollege] = useState(''); 
+  const [currentCollege, setCurrentCollege] = useState('');
   const [currentCity, setCurrentCity] = useState(null);
-  const [currentRegion, setCurrentRegion] = useState(null); 
-  
+  const [currentRegion, setCurrentRegion] = useState(null);
   const [userId, setUserId] = useContext(UserIdContext);
-  const [name, setName] = useState(''); 
+  const [name, setName] = useState('');
 
-  const [userIndex, setUserIndex] = useState(0); 
+  const [userIndex, setUserIndex] = useState(0);
   const [videoIndex, setVideoIndex] = useState(0);
-  const [flags, setFlags] = useState(0); 
-  const [videoId, setVideoId] = useState(0); 
-  const [querying, setQuerying] = useState(true); 
-  const [initialized, setInitialized] = useState(false); 
-  const [muxPlaybackId, setMuxPlaybackId] = useState(''); 
+  const [flags, setFlags] = useState(0);
+  const [videoId, setVideoId] = useState(0);
+  const [querying, setQuerying] = useState(true);
+  const [initialized, setInitialized] = useState(false);
+  const [muxPlaybackId, setMuxPlaybackId] = useState('');
 
   const renderedUserIndex1 = useMemo(() => userIndex % 2 === 0 ? userIndex : userIndex + 1, [userIndex]);
   const renderedUserIndex2 = useMemo(() => userIndex % 2 === 1 ? userIndex : userIndex + 1, [userIndex]); 
@@ -80,11 +79,12 @@ export default function HomeContents(props) {
   const [likeColors, setLikeColors] = useState([]);
   const [dislikeColors, setDislikeColors] = useState([]);
 
-  const [insertLike, { insertLikeData }] = useMutation(INSERT_LIKE);
-  const [updatePushToken, { updatePushTokenData }] = useMutation(UPDATE_PUSH_TOKEN);
-  const [updateVideoLikes, { updateVideoLikesData }] = useMutation(UPDATE_VIDEO_LIKES);
-  const [updateVideoDislikes, { updateVideoDislikesData }] = useMutation(UPDATE_VIDEO_DISLIKES);
-  const [updateVideoViews, { updateVideoViewsData }] = useMutation(UPDATE_VIDEO_VIEWS);
+  const [insertLike] = useMutation(INSERT_LIKE);
+  const [updatePushToken] = useMutation(UPDATE_PUSH_TOKEN);
+  const [updateVideoLikes] = useMutation(UPDATE_VIDEO_LIKES);
+  const [updateVideoDislikes] = useMutation(UPDATE_VIDEO_DISLIKES);
+  const [updateVideoViews] = useMutation(UPDATE_VIDEO_VIEWS);
+  const [updateLastActive] = useMutation(UPDATE_LAST_ACTIVE);
 
   const [optionsModalVisible, setOptionsModalVisible] = useState(false); 
 
@@ -92,7 +92,6 @@ export default function HomeContents(props) {
 
   const [noMoreVideos, setNoMoreVideos] = useState(false); 
   const [noLikesLeft, setNoLikesLeft] = useState(false); 
-  // const [lastLoaded, setLastLoaded] = useState(props.lastLoaded); 
   const [lastPerformance, setLastPerformance] = useState(props.lastPerformance); 
   const [groupPreference, setGroupPreference] = useState(props.groupPreference); 
   const [videoCount, setVideoCount] = useContext(VideoCountContext); 
@@ -106,6 +105,7 @@ export default function HomeContents(props) {
 
   const [liked, setLiked] = useState(false); 
   const [disliked, setDisliked] = useState(false); 
+  const [timedOut, setTimedOut] = useState(false);
 
   const [getVideosLower, { data: videosLower }] = useLazyQuery(GET_VIDEOS, 
   { 
@@ -124,7 +124,7 @@ export default function HomeContents(props) {
 
   const [getUserInfo, { data: userInfo }] = useLazyQuery(GET_USER_INFO, 
   {
-    onCompleted: (userInfo) => { 
+      onCompleted: (userInfo) => { 
       const users = userInfo.users; 
       
       if(users[0].firstName){
@@ -144,19 +144,19 @@ export default function HomeContents(props) {
   const _panResponder = PanResponder.create({
     onStartShouldSetPanResponder: (evt, gestureState) => true,
     onStartShouldSetPanResponderCapture: (evt, gestureState) => true,
-    // onMoveShouldSetPanResponder: (evt, gestureState) => {},
-    // onMoveShouldSetPanResponderCapture: (evt, gestureState) => {},
-    // onPanResponderGrant: (evt, gestureState) => {},
-    // onPanResponderMove: (evt, gestureState) => {},
     onPanResponderTerminationRequest: (evt, gestureState) => true,
     onPanResponderRelease: (evt, gestureState) => {
 
       nextVideo(); 
-      // setShouldPlay(!shouldPlay);         
     },
-    // onPanResponderTerminate: (evt, gestureState) => {},
     onShouldBlockNativeResponder: (evt, gestureState) => true
   });
+
+  function _updateLastActive() {
+    const today = new Date();
+    updateLastActive({ variables: { userId, today } });      
+  }
+
 
   useEffect(() => {
     if(isFocused){
@@ -168,9 +168,9 @@ export default function HomeContents(props) {
     initPopups(); 
     initSegment(); 
     Segment.track("Home Page - Start Videos"); 
-    // networkConnected(); 
     getNumberVideos({variables: { userId }}); 
-
+    _updateLastActive();
+    setTimeout(() => { setTimedOut(true) }, 3000); 
   }, []);
 
   async function initSegment() {
@@ -184,12 +184,6 @@ export default function HomeContents(props) {
       Segment.screen('Home'); 
     }
   }
-
-  // useEffect(() => {
-  //   if(props.lastLoaded != lastLoaded){
-  //     setQuerying(false); 
-  //   }
-  // }, [lastLoaded]);
   
   useEffect(() => {
     if(props.lastPerformance != lastPerformance){
@@ -203,7 +197,6 @@ export default function HomeContents(props) {
     setVideoIndex(0); 
     queryVideos(); 
   }, [groupPreference]);
-
 
   async function queryVideos(){
 
@@ -235,7 +228,6 @@ export default function HomeContents(props) {
         }
 
         setMuxPlaybackId(users[0].userVideos[0].muxPlaybackId); 
-        // setLastLoaded(users[users.length - 1].lastUploaded); 
         setLastPerformance(users[users.length - 1].performance); 
         setUserCount(users.length); 
         setCurrentUserVideoCount(users[0].userVideos.length);
@@ -245,10 +237,8 @@ export default function HomeContents(props) {
         setVideoData(tempVideoData);
         setUserCount(userCount + users.length); 
         setLastPerformance(users[users.length - 1].performance); 
-        // setLastLoaded(users[users.length - 1].lastUploaded); 
       }
     } else {
-      // Stops any further querying
       setQuerying(true);  
     }
   }
@@ -312,16 +302,10 @@ export default function HomeContents(props) {
     const addVideoShown = await _retrieveAddVideoShown(); 
     const pushShown = await _retrievePushShown(); 
     const feedbackShown = await _retrieveFeedbackShown(); 
-    // const explanationShown = await _retrieveExplanationShown(); 
 
     setAddVideoShown(addVideoShown);
     setPushShown(pushShown); 
     setFeedbackShown(feedbackShown); 
-
-    // if(!explanationShown){
-    //   setLikeDislikeExplanation(true); 
-    //   _storeExplanationShown(true); 
-    // }
 
   }
 
@@ -348,12 +332,6 @@ export default function HomeContents(props) {
         setPushShown(true); 
       }        
       _storePushShown(true); 
-    }
-
-    if (userIndex == 8 && !feedbackShown){
-      setFeedbackShown(true); 
-      _storeFeedbackShown(true); 
-      setFeedbackPopupVisible(true); 
     }
 
     if(profileVideoCount == 0 && userIndex == 6){
@@ -413,7 +391,6 @@ export default function HomeContents(props) {
   }
 
   function initColors(users){
-    // console.log(users);
     const newLikeColors = users.map(user => {
       if(user.likesByLikedId.length == 0){
         return { like: false, color: '#eee' }
@@ -455,6 +432,7 @@ export default function HomeContents(props) {
     return age;
   }
 
+
   // set new muxPlaybackId and questionText with any update to videoIndex, userIndex or videoData
   useEffect(() => {
     if(videoData && videoData.length > 0){
@@ -464,7 +442,10 @@ export default function HomeContents(props) {
       setCurrentCollege(videoData[userIndex].college); 
       setCurrentCity(videoData[userIndex].city);
       setCurrentRegion(videoData[userIndex].region); 
-
+      if(secondId == 0){
+        _storeLastPerformance(videoData[userIndex].performance); 
+      };
+  
       if(videoData[userIndex].birthday){
         const birthday = new Date(videoData[userIndex].birthday);
         const age = _calculateAge(birthday);
@@ -542,6 +523,7 @@ export default function HomeContents(props) {
         queryVideos(); 
       } else {
         setNoMoreVideos(true); 
+        _storeLastPerformance(1); 
         Segment.track("Home - Out of Users")
       }
     }
@@ -1009,7 +991,7 @@ export default function HomeContents(props) {
       );    
     }
   } else {
-    if(noMoreVideos == true){
+    if(noMoreVideos || timedOut){
       return (
         <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: colors.primaryWhite }}>
           <View style={{ height: '40%', width: '85%', backgroundColor: colors.primaryPurple, borderRadius: 5, padding: 10, alignItems: 'center', justifyContent: 'center' }}>

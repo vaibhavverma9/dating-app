@@ -3,15 +3,13 @@ import HomeContents from './HomeContents';
 import { useQuery, useLazyQuery } from '@apollo/client';
 import { GET_VIDEOS, GET_GENDER_GROUP, GET_REGIONS } from '../../utils/graphql/GraphqlClient';
 import { UserIdContext } from '../../utils/context/UserIdContext'
-import { _retrieveLatitude, _retrieveLongitude, _retrieveGender, _storeGender, _retrieveGenderInterest, _storeGenderInterest, _storeLastWatchedUpper, _storeLastWatchedLower, _retrieveLastWatchedUpper, _retrieveLastWatchedLower, _retrieveCollegeLatitude, _storeCollegeLatitude, _retrieveCollegeLongitude, _storeCollegeLongitude, _retrieveGenderGroup, _storeGenderGroup} from '../../utils/asyncStorage'; 
+import { _retrieveLatitude, _retrieveLongitude, _retrieveGender, _storeGender, _retrieveGenderInterest, _storeGenderInterest, _storeLastWatchedUpper, _storeLastWatchedLower, _retrieveLastWatchedUpper, _retrieveLastWatchedLower, _retrieveCollegeLatitude, _storeCollegeLatitude, _retrieveCollegeLongitude, _storeCollegeLongitude, _retrieveGenderGroup, _storeGenderGroup, _retrieveLastPerformance, _storeLastPerformance} from '../../utils/asyncStorage'; 
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import { colors } from '../../styles/colors';
 
 export default function HomeView({route, navigation}) {
 
-  // const [data, setData] = useState(null); 
   const [userId, setUserId] = useContext(UserIdContext);
-
   const [secondId, setSecondId] = useState(userId); 
   const limit = 4;
   
@@ -20,11 +18,6 @@ export default function HomeView({route, navigation}) {
   const [groupPreference, setGroupPreference] = useState([0]); 
   const [region1, setRegion1] = useState('');
   const [region2, setRegion2] = useState('');
-  
-  const [timedOut, setTimedOut] = useState(false);
-  // let currentDate = new Date();
-  // const [lastLoaded, setLastLoaded] = useState(currentDate); 
-
   const [lastPerformance, setLastPerformance] = useState(1.0); 
 
 
@@ -41,13 +34,14 @@ export default function HomeView({route, navigation}) {
   const [getRegions, { data: regionsData }] = useLazyQuery(GET_REGIONS, 
     { 
       onCompleted: (regionsData) => { 
-        let regions = ['CA', 'NY', 'IL']; 
-        if(regions.includes(regionsData.users[0].region) || regions.includes(regionsData.users[0].userCollege.region)){
+        let regions = ['NY']; 
+        if(regions.includes(regionsData.users[0].region)){
           setRegion1(regionsData.users[0].region); 
-          setRegion2(regionsData.users[0].userCollege.region); 
+          setRegion2(regionsData.users[0].region); 
+          // setRegion2(regionsData.users[0].userCollege.region); 
         } else {
           setRegion1(regionsData.users[0].region); 
-          setRegion2('CA'); 
+          setRegion2('NY'); 
         }
       }
     }); 
@@ -120,14 +114,39 @@ export default function HomeView({route, navigation}) {
   }
 
   const { loading, error, data } = useQuery(GET_VIDEOS, {
-    variables: { userId, limit, groupPreference, lastPerformance, secondId, region1, region2 }
+    variables: {
+      userId, limit, groupPreference, lastPerformance, secondId, region1, region2 
+    }
   });
 
-  useEffect(() => {
-    if(data && data.usersLocation.length < limit && secondId > 0){
-      setSecondId(0); 
+  async function retrieveLastPerformance() {
+    const retrievedLastPerformance = await _retrieveLastPerformance();
+    if(retrievedLastPerformance == null) {
+      setLastPerformance(1);
+    } else {
+      setLastPerformance(retrievedLastPerformance);
     }
-  }, [data]); 
+  }
+
+  useEffect(() => {
+    if (data && data.usersLocation.length < limit) {
+      if (secondId > 0) {
+        setSecondId(0);
+
+        if (data.usersLocation.length === 0) {
+          retrieveLastPerformance();
+        } else {
+          const queriedLastPerformance = data.usersLocation[0].performance + 0.0001;
+          setLastPerformance(queriedLastPerformance);
+        }
+      } else if (secondId === 0) {
+        if (data.usersLocation.length === 0) {
+          setLastPerformance(1);
+          _storeLastPerformance(1);
+        }
+      }
+    }
+  }, [data]);
 
   if(loading){
     return (

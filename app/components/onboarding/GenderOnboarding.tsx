@@ -123,13 +123,13 @@ export default function GenderOnboarding(props) {
         return (
             <View>
                 <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: primaryColor }}>
-                    <View style={{ height: '40%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center' }}>
+                    <View style={{ height: '50%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center' }}>
 
                         <View style={{ paddingTop: '10%', height: '25%'}}>
                             <Ionicons name="md-person" size={45} color={primaryColor} />
                         </View>        
-                        <Text style={{ fontSize: 25, fontWeight: 'bold', paddingTop: 15, color: primaryColor }}>What's your gender?</Text>
-                        <View style={{ justifyContent: 'space-evenly', height: '60%'}}>
+                        <Text style={{ fontSize: 25, fontWeight: 'bold', paddingVertical: 15, color: primaryColor }}>What's your gender?</Text>
+                        <View style={{ justifyContent: 'space-evenly', height: '50%'}}>
                             <TouchableOpacity onPress={genderWoman} style={styles.genderContainer}>
                                 <Text style={styles.genderText}>Woman</Text>
                             </TouchableOpacity>

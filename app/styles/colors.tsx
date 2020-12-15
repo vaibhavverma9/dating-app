@@ -7,5 +7,6 @@ export const colors= {
     primaryGray: '#808080',
     secondaryGray: '#778899',
     primaryPurple: '#734f96',
-    lightPurple: '#b19cd9'
+    lightPurple: '#b19cd9',
+    lightGray: '#DCDCDC'
 };

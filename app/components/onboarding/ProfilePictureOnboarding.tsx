@@ -3,14 +3,15 @@ import { Text, View, StyleSheet, Keyboard, Image } from 'react-native';
 import { TouchableOpacity, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { UserIdContext } from '../../utils/context/UserIdContext'
-import { _storeLatitude, _storeLongitude, _storeCollege, _storeCollegeLatitude, _storeCollegeLongitude, _storeProfileUrl, _retrieveName } from '../../utils/asyncStorage'; 
+import { _storeOnboarded, _storeLatitude, _storeLongitude, _storeCollege, _storeCollegeLatitude, _storeCollegeLongitude, _storeProfileUrl, _retrieveName } from '../../utils/asyncStorage'; 
 import { colors } from '../../styles/colors';
 import * as Permissions from 'expo-permissions';
 import * as ImagePicker from 'expo-image-picker';
 import firebaseApp from '../../utils/firebase/fbConfig';
-import { UPDATE_PROFILE_URL } from '../../utils/graphql/GraphqlClient';
+import { UPDATE_PROFILE_URL, UPDATE_ONBOARDED } from '../../utils/graphql/GraphqlClient';
 import { useMutation } from '@apollo/client';
 import axios from 'axios';
+import * as Segment from 'expo-analytics-segment';
 
 export default function ProfilePictureOnboarding(props) {
 
@@ -20,6 +21,7 @@ export default function ProfilePictureOnboarding(props) {
     const [updateProfileUrl, { updateProfileUrlData }] = useMutation(UPDATE_PROFILE_URL);
     const [name, setName] = useState(''); 
     const [sendBack, setSendBack] = useState(false);
+    const [updateOnboarded, { updateOnboardedData }] = useMutation(UPDATE_ONBOARDED);
 
     function tapBack(){
         setSendBack(true); 
@@ -73,7 +75,14 @@ export default function ProfilePictureOnboarding(props) {
 
     const submitProfilePicture = () => {
         uploadImage(imageUri); 
-        props.navigation.navigate("LocationOnboarding")
+        props.navigation.navigate("TabStack");
+        completeOnboarding(); 
+    }
+
+    function completeOnboarding(){
+        _storeOnboarded(true); 
+        updateOnboarded({ variables: { userId, onboarded: true }}); 
+        Segment.track("Onboarding - Complete Onboarding");
     }
 
     function ProfilePicture(){
@@ -116,9 +125,8 @@ export default function ProfilePictureOnboarding(props) {
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View style={{ height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: primaryColor }}>
-                <View style={{ height: '40%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center', justifyContent: 'space-evenly' }}>
+                <View style={{ height: '50%', width: '85%', backgroundColor: secondaryColor, borderRadius: 5, padding: 10, alignItems: 'center', justifyContent: 'space-evenly' }}>
                     <Text style={{ fontSize: 25, fontWeight: 'bold', height: '25%', color: primaryColor }}>Add a profile picture</Text>
-
                     <TouchableOpacity onPress={pickProfilePicture} style={{ 
                         height: '15%',
                         width: '100%', 

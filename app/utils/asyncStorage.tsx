@@ -571,3 +571,22 @@ export const _retrieveInstagram = async () => {
         return ''; 
     }
 };
+
+export const _storeLastPerformance = async(lastPerformance) => {
+    try {
+        await AsyncStorage.setItem('@lastPerformance', lastPerformance.toString());
+    } catch (error){}
+}
+
+export const _retrieveLastPerformance = async () => {
+    try {
+      const value = await AsyncStorage.getItem('@lastPerformance');
+      if (value !== null) {
+        return parseFloat(value); 
+      } else {
+          return null; 
+      }
+    } catch (error) {
+        return null; 
+    }
+};

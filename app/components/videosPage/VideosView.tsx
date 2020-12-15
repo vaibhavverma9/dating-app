@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState, useContext, FunctionComponent } from 'react';
 import { View, Image, Text, TouchableOpacity, ImageBackground, ActivityIndicator, StyleSheet, RefreshControl } from 'react-native';
 import * as Segment from 'expo-analytics-segment';
 import { Dimensions } from "react-native"; 
@@ -29,11 +29,9 @@ export default function VideosView(props) {
     const [auctionedVideos, setAuctionedVideos] = useState([]);
 
     const [userId, setUserId] = useContext(UserIdContext);
-    const [insertInitVideo, { insertInitVideoData }] = useMutation(INSERT_INIT_VIDEO); 
-    const [updateLastUploaded, { updateLastUploadedData }] = useMutation(UPDATE_LAST_UPLOADED);
-    const [deleteVideoPassthrough, { deleteVideoPassthroughData }] = useMutation(DELETE_VIDEO_PASSTHROUGH_ID); 
-    const [updateVideoErrored, { updateVideoErroredData }] = useMutation(UPDATE_VIDEO_ERRORED); 
-    const [updateProfileUrl, { updateProfileUrlData }] = useMutation(UPDATE_PROFILE_URL);
+    const [insertInitVideo] = useMutation(INSERT_INIT_VIDEO); 
+    const [updateLastUploaded] = useMutation(UPDATE_LAST_UPLOADED);
+    const [updateProfileUrl] = useMutation(UPDATE_PROFILE_URL);
 
     const [uploadedVideos, setUploadedVideos] = useState([]); 
     const [name, setName] = useState(''); 
@@ -143,9 +141,9 @@ export default function VideosView(props) {
     useEffect(() => {
         const params = props.route.params;
         if (params != undefined){
-            if(uploadedVideos.length == 0 && (storedLastDayVideos.length == 0 || storedLastDayVideos.length == 4 || storedLastDayVideos.length == 8)){
-                setFeedbackVisible(true);
-            }
+            // if(uploadedVideos.length == 0 && (storedLastDayVideos.length == 0 || storedLastDayVideos.length == 4 || storedLastDayVideos.length == 8)){
+            //     setFeedbackVisible(true);
+            // }
 
             const auction = params.auction;         
             if(auction){
