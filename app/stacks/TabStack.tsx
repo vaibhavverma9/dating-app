@@ -74,7 +74,7 @@ export default function TabStack (){
                     iconName = 'home';
                 } else if (route.name === 'Add Video') {
                     iconName = 'add';
-                } else if (route.name === 'Likes') {
+                } else if (route.name === 'Matches') {
                     iconName = 'favorite';
                 } else if (route.name === 'Your Videos') {
                     iconName = 'video-library';
@@ -98,7 +98,7 @@ export default function TabStack (){
             >
                 <Tab.Screen name="Home" component={HomeView} />
                 <Tab.Screen name="Add Video" component={AddCameraView} />
-                <Tab.Screen name="Likes" component={ChatStack} /> 
+                <Tab.Screen name="Matches" component={ChatStack} /> 
                 <Tab.Screen name="Your Videos" component={VideosStack} />
             </Tab.Navigator>
 

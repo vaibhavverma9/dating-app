@@ -52,14 +52,13 @@ export function getMessages(CHANNEL_URL, setMessages){
         }
 
         var prevMessageListQuery = groupChannel.createPreviousMessageListQuery();
-        prevMessageListQuery.limit = 20;
+        prevMessageListQuery.limit = 15;
         prevMessageListQuery.reverse = false;
         
         prevMessageListQuery.load(function(messages, error) {
             if (error) {
                 return;
             }    
-            console.log(messages); 
             setMessages(messages); 
         });
     
@@ -93,7 +92,6 @@ export function addChannelHandler(UNIQUE_HANDLER_ID, addNewMessage){
     var channelHandler = new sb.ChannelHandler();
 
     channelHandler.onMessageReceived = function(channel, message) {
-        // console.log("onMessageReceived", channel, message);
         addNewMessage(message)
     };
 

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, KeyboardAvoidingView, Platform, StyleSheet, Keyboard } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, KeyboardAvoidingView, Platform, StyleSheet, Image } from 'react-native';
 import { getMessages, sendMessage, addChannelHandler, removeChannelHandler } from '../../utils/sendBird'; 
 import { FlatList, TouchableOpacity, TouchableWithoutFeedback } from 'react-native-gesture-handler';
 import { colors } from '../../styles/colors';
@@ -9,9 +9,11 @@ export default function ChannelView(props){
     const name = props.route.params.name;
     const url = props.route.params.url; 
     const userId = props.route.params.userId; 
+    const profileUrl = props.route.params.profileUrl; 
     const [messages, setMessages] = useState([]); 
     const [inputMessage, setInputMessage] = useState(''); 
     const [sendButtonColor, setSendButtonColor] = useState(colors.lightPurple); 
+    const listRef = useRef(null);
 
     useEffect(() => {
         getMessages(url, setMessages); 
@@ -58,9 +60,21 @@ export default function ChannelView(props){
         }
     }
 
+    useEffect(() => {
+        if(listRef.current){
+            listRef.current.scrollToEnd(); 
+        }
+    }, [messages]);
+
     function send(){
         sendMessage(url, inputMessage);
+        const messageObject = { message: inputMessage, _sender: { userId: userId.toString()}}; 
+        setMessages([...messages, messageObject]); 
         setInputMessage(''); 
+    }
+
+    function goBack(){
+        props.navigation.goBack(); 
     }
 
     return (
@@ -68,15 +82,23 @@ export default function ChannelView(props){
             behavior={Platform.OS == "ios" ? "padding" : "height"}
             style={{ flex: 1, marginTop: '10%' }}
         >
-            {/* Put header here */}
-            {/* <View>
-                <Text>Carina</Text>
-            </View> */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5, width: '100%' }}>
+                <TouchableOpacity onPress={goBack} style={{ padding: 3, marginLeft: 5, alignSelf: 'flex-start'}}>
+                    <Ionicons name="ios-arrow-back" size={35} color={colors.primaryPurple} />
+                </TouchableOpacity>
+                
+                <Image
+                    style={{ marginLeft: '30%',  height: 30, width: 30, borderRadius: 30 }}
+                    source={{ uri: profileUrl}}
+                />
+                <Text style={{ marginLeft: 5, fontSize: 18, fontWeight: '600' }}>{name}</Text>
+            </View>
             <FlatList
                 style={{ marginTop: 5, marginHorizontal: '5%' }}
                 data={messages}
                 renderItem={({ item, index }) => <Message item={item} />}
                 keyExtractor={(item, index) => index.toString()}
+                ref={listRef}
             />
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <TextInput 

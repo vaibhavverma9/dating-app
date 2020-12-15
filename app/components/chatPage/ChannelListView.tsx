@@ -35,7 +35,7 @@ const ChannelListView = (props) => {
 
   return  (
     <SafeAreaView style={{ flex: 1, marginTop: StatusBar.currentHeight || 0,}}>
-      <Text style={{ fontSize: 27, fontWeight: '500', paddingLeft: '5%' }}>Your Likes</Text>
+      <Text style={{ fontSize: 27, fontWeight: '500', paddingLeft: '5%' }}>Matches</Text>
       <FlatList
           data={groupChannels}
           renderItem={({ item, index }) => <ChannelCell userId={userId} url={item.url} members={item.members} lastMessage={item.lastMessage} cachedReadReceiptStatus={item.cachedReadReceiptStatus} index={index} navigation={props.navigation} matchesData={data} />}          
